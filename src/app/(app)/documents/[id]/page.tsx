@@ -20,9 +20,12 @@ export default async function DocumentDetailPage({
   if (!doc) notFound();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const recipients = doc.recipients || [];
+  const fields = doc.fields || [];
   const safeDoc = {
     ...doc,
-    recipients: doc.recipients.map((r) => ({ ...r })),
+    fields,
+    recipients: recipients.map((r) => ({ ...r })),
   };
 
   return (
@@ -53,7 +56,7 @@ export default async function DocumentDetailPage({
             content={doc.content}
             fileKind={doc.fileKind}
             fileDataUrl={doc.fileDataUrl}
-            fields={doc.fields}
+            fields={fields}
             highlightPending
           />
           <p className="text-sm text-muted">
@@ -65,13 +68,15 @@ export default async function DocumentDetailPage({
           <div className="panel p-5">
             <h2 className="font-semibold">Recipients</h2>
             <ul className="mt-3 space-y-3">
-              {doc.recipients.map((r) => (
+              {recipients.map((r) => (
                 <li key={r.id} className="rounded-2xl bg-mist/70 p-3">
-                  <p className="font-semibold">{r.name}</p>
-                  <p className="text-sm text-muted">{r.email}</p>
+                  <p className="font-semibold">{r.name || "Recipient"}</p>
+                  <p className="text-sm text-muted">{r.email || ""}</p>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className={statusTone(r.status)}>{r.status}</span>
-                    {(doc.status === "sent" || doc.status === "viewed") && r.status !== "signed" && (
+                    {(doc.status === "sent" || doc.status === "viewed") &&
+                      r.status !== "signed" &&
+                      r.token && (
                       <a
                         className="text-xs font-semibold text-accent-deep underline"
                         href={`${appUrl}/sign/${r.token}`}

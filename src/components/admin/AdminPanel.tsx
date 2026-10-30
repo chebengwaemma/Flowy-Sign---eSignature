@@ -3,10 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
+import {
+  AdminSectionBanner,
+  AdminStickySave,
+  SECTION_META,
+} from "@/components/admin/AdminEditorChrome";
 import { MarketingCmsExtra } from "@/components/admin/MarketingCmsExtra";
 import type { MarketingSite, PageHero } from "@/lib/marketing";
+import { withSyncedPlanFeatures } from "@/lib/plans";
 import { mergeSettings } from "@/lib/settings";
-import type { DocStatus, OrgSettings, PlanId, Role } from "@/lib/types";
+import type { DocStatus, OrgSettings, PlanDefinition, PlanId, Role } from "@/lib/types";
 import { formatDate, statusTone } from "@/lib/utils";
 
 type AdminUser = {
@@ -26,7 +32,59 @@ type AdminDoc = {
   recipients: { email: string }[];
 };
 
+const CONTROL_MAP: {
+  group: string;
+  items: { id: string; title: string; controls: string; preview?: string }[];
+}[] = [
+  {
+    group: "Website / Marketing",
+    items: [
+      { id: "A", title: "Appearance & brand", controls: "Brand name, logo, colors, address", preview: "/" },
+      { id: "L", title: "Homepage copy", controls: "Hero, pillars, stories, tools CTAs", preview: "/" },
+      { id: "M", title: "Page heroes", controls: "Why / Features / Teams / Help / About…", preview: "/why" },
+      { id: "N", title: "Nav & footer menu", controls: "Public header + footer links", preview: "/" },
+      { id: "O", title: "Steps / teams / API", controls: "Homepage steps & team cards", preview: "/#teams" },
+      { id: "P", title: "FAQs", controls: "Help page questions", preview: "/help" },
+      { id: "Q", title: "Privacy & Terms", controls: "Legal page body text", preview: "/privacy" },
+      { id: "R", title: "About / Contact / Press", controls: "Card grids on those pages", preview: "/about" },
+      { id: "S", title: "Feature pages", controls: "Each /features/[slug] page", preview: "/features" },
+      { id: "T", title: "Team pages", controls: "Each /teams/[slug] page", preview: "/teams" },
+      { id: "W", title: "Pricing page & plans", controls: "Full /pricing + plan quotas + Stripe IDs", preview: "/pricing" },
+    ],
+  },
+  {
+    group: "App product",
+    items: [
+      { id: "B", title: "Billing visibility", controls: "Show billing / upgrade in app" },
+      { id: "C", title: "Chatbot", controls: "Enable, name, greeting" },
+      { id: "D", title: "Documents defaults", controls: "Default title, max signers" },
+      { id: "E", title: "Email & support", controls: "Support email" },
+      { id: "F", title: "Features & modules", controls: "Fax, templates, API, team toggles" },
+      { id: "G", title: "Maintenance", controls: "Site maintenance mode" },
+      { id: "H", title: "Website hero (quick)", controls: "Public homepage hero shortcuts", preview: "/" },
+      { id: "I", title: "Interface labels", controls: "Sign / bulk button labels" },
+      { id: "J", title: "Bulk send modal", controls: "Upgrade modal copy" },
+      { id: "K", title: "App nav labels", controls: "Logged-in sidebar labels" },
+      { id: "V", title: "Signature generator", controls: "Sidebar + free downloads" },
+      { id: "X", title: "Auth & signup", controls: "Public signup + Google login" },
+      { id: "Y", title: "Send rules", controls: "Free send limit, modules" },
+    ],
+  },
+  {
+    group: "Users & documents",
+    items: [
+      { id: "U", title: "Users control", controls: "Change any user plan / role" },
+      { id: "Z", title: "Documents control", controls: "Admin document list / status" },
+    ],
+  },
+];
+
 const MENU_GROUPS = [
+  {
+    id: "control",
+    title: "All control",
+    items: [{ id: "hub", title: "Control center" }],
+  },
   {
     id: "website",
     title: "Website / Marketing",
@@ -41,6 +99,7 @@ const MENU_GROUPS = [
       { id: "R", title: "About / Contact / Press" },
       { id: "S", title: "Feature pages" },
       { id: "T", title: "Team pages" },
+      { id: "W", title: "Pricing page & plans" },
     ],
   },
   {
@@ -53,10 +112,13 @@ const MENU_GROUPS = [
       { id: "E", title: "Email & support" },
       { id: "F", title: "Features & modules" },
       { id: "G", title: "Maintenance" },
-      { id: "H", title: "App home copy" },
+      { id: "H", title: "Website hero (quick)" },
       { id: "I", title: "Interface labels" },
       { id: "J", title: "Bulk send modal" },
       { id: "K", title: "App nav labels" },
+      { id: "V", title: "Signature generator" },
+      { id: "X", title: "Auth & signup" },
+      { id: "Y", title: "Send rules" },
     ],
   },
   {
@@ -64,10 +126,6 @@ const MENU_GROUPS = [
     title: "Users & documents",
     items: [
       { id: "U", title: "Users control" },
-      { id: "V", title: "Signature generator" },
-      { id: "W", title: "Plans & quotas" },
-      { id: "X", title: "Auth & signup" },
-      { id: "Y", title: "Send rules" },
       { id: "Z", title: "Documents control" },
     ],
   },
@@ -91,9 +149,10 @@ export function AdminPanel({
   documents: AdminDoc[];
 }) {
   const router = useRouter();
-  const [form, setForm] = useState(() => mergeSettings(settings));
-  const [section, setSection] = useState<SectionId>("A");
+  const [form, setForm] = useState(() => mergeSettings(settings || null));
+  const [section, setSection] = useState<SectionId>("hub");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    control: true,
     website: true,
     app: true,
     people: true,
@@ -216,17 +275,39 @@ export function AdminPanel({
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    const starter = form.plans?.find((p) => p.id === "starter");
+    // Keep legacy landing* fields in sync with the real website hero (marketing.home)
+    const home = {
+      ...form.marketing.home,
+      ...(starter
+        ? {
+            planTeamPrice: String(starter.monthly),
+            planTeamTitle: starter.name,
+          }
+        : null),
+    };
+    const payload = {
+      ...form,
+      landingHeadline: home.heroTitle,
+      landingSubhead: home.heroLead,
+      landingCta: home.heroCta,
+      marketing: {
+        ...form.marketing,
+        home,
+      },
+    };
+    setForm(payload);
     const res = await fetch("/api/admin/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     setLoading(false);
     if (!res.ok) {
       setMessage("Could not save settings");
       return;
     }
-    setMessage("All admin settings saved. Frontend will reflect changes immediately.");
+    setMessage("Saved. Open Home / Pricing / Billing in a new tab (or hard-refresh) to see updates.");
     router.refresh();
   }
 
@@ -236,8 +317,8 @@ export function AdminPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, ...patch }),
     });
-    const data = await res.json();
-    if (res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data?.user) {
       setLocalUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data.user } : u)));
       router.refresh();
     }
@@ -261,11 +342,11 @@ export function AdminPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ documentId, ...patch }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) return;
     if (patch.delete) {
       setLocalDocs((prev) => prev.filter((d) => d.id !== documentId));
-    } else {
+    } else if (data?.document) {
       setLocalDocs((prev) => prev.map((d) => (d.id === documentId ? { ...d, ...data.document } : d)));
     }
     router.refresh();
@@ -345,10 +426,74 @@ export function AdminPanel({
           </div>
         )}
 
-        {section !== "U" && section !== "Z" && (
+        {section === "hub" && (
+          <div className="space-y-6">
+            <Section title="All control — website & app (A–Z)">
+              <p className="md:col-span-2 text-sm text-muted">
+                Every section has a detailed editor like Pricing: what it controls, a Preview button, and a sticky{" "}
+                <strong>Save</strong> at the bottom. Open from the map → edit → Save → Preview (hard refresh).
+              </p>
+              {CONTROL_MAP.map((group) => (
+                <div key={group.group} className="md:col-span-2 space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-[#0b3d38]">{group.group}</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {group.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-[var(--line)] bg-white p-4"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-ink">
+                              <span className="admin-letter mr-1">{item.id}</span>
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-xs text-muted">{item.controls}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => goSection(item.id as SectionId)}
+                          >
+                            Open editor
+                          </button>
+                          {item.preview && (
+                            <a
+                              className="btn"
+                              href={item.preview}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Preview
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </Section>
+          </div>
+        )}
+
+        {section !== "U" && section !== "Z" && section !== "hub" && (
           <form onSubmit={saveSettings} className="space-y-5">
+            {SECTION_META[section] && (
+              <AdminSectionBanner
+                letter={section}
+                title={SECTION_META[section].title}
+                controls={SECTION_META[section].controls}
+                preview={SECTION_META[section].preview}
+              />
+            )}
             {section === "A" && (
               <Section title="Appearance & brand">
+                <p className="text-sm text-muted">
+                  Brand name / logo text update header &amp; footer. Colors update the marketing site theme and the logged-in app.
+                </p>
                 <Field label="Brand name" value={form.brandName} onChange={(v) => set("brandName", v)} />
                 <Field label="Logo text" value={form.logoText} onChange={(v) => set("logoText", v)} />
                 <Field
@@ -431,12 +576,41 @@ export function AdminPanel({
             )}
 
             {section === "H" && (
-              <Section title="Home & landing copy">
-                <Field label="Landing headline" value={form.landingHeadline} onChange={(v) => set("landingHeadline", v)} />
-                <Area label="Landing subhead" value={form.landingSubhead} onChange={(v) => set("landingSubhead", v)} />
-                <Field label="Landing CTA" value={form.landingCta} onChange={(v) => set("landingCta", v)} />
+              <Section title="Home & landing copy (public website hero)">
+                <p className="text-sm text-muted">
+                  These fields update the real homepage hero at <strong>/</strong>. (Section L has the same hero fields plus more homepage blocks.)
+                </p>
                 <Field
-                  label="Home greeting suffix"
+                  label="Website hero title"
+                  value={form.marketing.home.heroTitle}
+                  onChange={(v) => {
+                    setHomeField("heroTitle", v);
+                    set("landingHeadline", v);
+                  }}
+                />
+                <Area
+                  label="Website hero lead"
+                  value={form.marketing.home.heroLead}
+                  onChange={(v) => {
+                    setHomeField("heroLead", v);
+                    set("landingSubhead", v);
+                  }}
+                />
+                <Field
+                  label="Website hero CTA"
+                  value={form.marketing.home.heroCta}
+                  onChange={(v) => {
+                    setHomeField("heroCta", v);
+                    set("landingCta", v);
+                  }}
+                />
+                <Field
+                  label="Hero secondary button"
+                  value={form.marketing.home.heroSecondary}
+                  onChange={(v) => setHomeField("heroSecondary", v)}
+                />
+                <Field
+                  label="App home greeting suffix (dashboard only)"
                   value={form.homeGreetingSuffix}
                   onChange={(v) => set("homeGreetingSuffix", v)}
                 />
@@ -459,7 +633,11 @@ export function AdminPanel({
             )}
 
             {section === "K" && (
-              <Section title="App navigation labels">
+              <Section title="App sidebar labels (logged-in product)">
+                <p className="text-sm text-muted">
+                  These change the <strong>app sidebar after login</strong> — not the public marketing header.
+                  Public nav is section <strong>N · Marketing nav &amp; footer</strong>.
+                </p>
                 <Field label="Home" value={form.navHome} onChange={(v) => set("navHome", v)} />
                 <Field label="Templates" value={form.navTemplates} onChange={(v) => set("navTemplates", v)} />
                 <Field label="Documents" value={form.navDocuments} onChange={(v) => set("navDocuments", v)} />
@@ -479,71 +657,122 @@ export function AdminPanel({
             )}
 
             {section === "L" && (
-              <Section title="Marketing homepage copy">
-                <Field label="Hero title" value={form.marketing.home.heroTitle} onChange={(v) => setHomeField("heroTitle", v)} />
-                <Area label="Hero lead" value={form.marketing.home.heroLead} onChange={(v) => setHomeField("heroLead", v)} />
-                <Field label="Hero CTA" value={form.marketing.home.heroCta} onChange={(v) => setHomeField("heroCta", v)} />
-                <Field label="Hero secondary" value={form.marketing.home.heroSecondary} onChange={(v) => setHomeField("heroSecondary", v)} />
-                <Field label="Stars label" value={form.marketing.home.starsLabel} onChange={(v) => setHomeField("starsLabel", v)} />
-                <Field label="Integrations kicker" value={form.marketing.home.integKicker} onChange={(v) => setHomeField("integKicker", v)} />
-                <Field label="Integrations title" value={form.marketing.home.integTitle} onChange={(v) => setHomeField("integTitle", v)} />
-                <Area label="Integrations sub" value={form.marketing.home.integSub} onChange={(v) => setHomeField("integSub", v)} />
-                <Field label="Integrations link" value={form.marketing.home.integLink} onChange={(v) => setHomeField("integLink", v)} />
-                <Field label="Features title" value={form.marketing.home.featuresTitle} onChange={(v) => setHomeField("featuresTitle", v)} />
-                <Field label="Teams title" value={form.marketing.home.teamsTitle} onChange={(v) => setHomeField("teamsTitle", v)} />
-                <Area label="Teams sub" value={form.marketing.home.teamsSub} onChange={(v) => setHomeField("teamsSub", v)} />
-                <Field label="Steps title" value={form.marketing.home.stepsTitle} onChange={(v) => setHomeField("stepsTitle", v)} />
-                <Area label="Steps sub" value={form.marketing.home.stepsSub} onChange={(v) => setHomeField("stepsSub", v)} />
-                <Field label="Tools title" value={form.marketing.home.toolsTitle} onChange={(v) => setHomeField("toolsTitle", v)} />
-                <Area label="Tools body" value={form.marketing.home.toolsBody} onChange={(v) => setHomeField("toolsBody", v)} />
-                <Field label="Plans title" value={form.marketing.home.plansTitle} onChange={(v) => setHomeField("plansTitle", v)} />
-                <Field label="Stories title" value={form.marketing.home.storiesTitle} onChange={(v) => setHomeField("storiesTitle", v)} />
-                <Field label="Bottom CTA title" value={form.marketing.home.bottomTitle} onChange={(v) => setHomeField("bottomTitle", v)} />
-                <Field label="Pillar 1 title" value={form.marketing.home.pillar1Title} onChange={(v) => setHomeField("pillar1Title", v)} />
-                <Area label="Pillar 1 body" value={form.marketing.home.pillar1Body} onChange={(v) => setHomeField("pillar1Body", v)} />
-                <Field label="Pillar 2 title" value={form.marketing.home.pillar2Title} onChange={(v) => setHomeField("pillar2Title", v)} />
-                <Area label="Pillar 2 body" value={form.marketing.home.pillar2Body} onChange={(v) => setHomeField("pillar2Body", v)} />
-                <Field label="Pillar 3 title" value={form.marketing.home.pillar3Title} onChange={(v) => setHomeField("pillar3Title", v)} />
-                <Area label="Pillar 3 body" value={form.marketing.home.pillar3Body} onChange={(v) => setHomeField("pillar3Body", v)} />
-                <Field label="Pillar 4 title" value={form.marketing.home.pillar4Title} onChange={(v) => setHomeField("pillar4Title", v)} />
-                <Area label="Pillar 4 body" value={form.marketing.home.pillar4Body} onChange={(v) => setHomeField("pillar4Body", v)} />
-                <Field label="Plan team title" value={form.marketing.home.planTeamTitle} onChange={(v) => setHomeField("planTeamTitle", v)} />
-                <Field label="Plan team price" value={form.marketing.home.planTeamPrice} onChange={(v) => setHomeField("planTeamPrice", v)} />
-                <Area label="Plan team body" value={form.marketing.home.planTeamBody} onChange={(v) => setHomeField("planTeamBody", v)} />
-                <Field label="Plan API title" value={form.marketing.home.planApiTitle} onChange={(v) => setHomeField("planApiTitle", v)} />
-                <Field label="Plan API price" value={form.marketing.home.planApiPrice} onChange={(v) => setHomeField("planApiPrice", v)} />
-                <Area label="Plan API body" value={form.marketing.home.planApiBody} onChange={(v) => setHomeField("planApiBody", v)} />
-                <Field label="Story 1 metric" value={form.marketing.home.story1Metric} onChange={(v) => setHomeField("story1Metric", v)} />
-                <Area label="Story 1 quote" value={form.marketing.home.story1Quote} onChange={(v) => setHomeField("story1Quote", v)} />
-                <Field label="Story 1 by" value={form.marketing.home.story1By} onChange={(v) => setHomeField("story1By", v)} />
-                <Field label="Story 2 metric" value={form.marketing.home.story2Metric} onChange={(v) => setHomeField("story2Metric", v)} />
-                <Area label="Story 2 quote" value={form.marketing.home.story2Quote} onChange={(v) => setHomeField("story2Quote", v)} />
-                <Field label="Story 2 by" value={form.marketing.home.story2By} onChange={(v) => setHomeField("story2By", v)} />
-                <Field label="Story 3 metric" value={form.marketing.home.story3Metric} onChange={(v) => setHomeField("story3Metric", v)} />
-                <Area label="Story 3 quote" value={form.marketing.home.story3Quote} onChange={(v) => setHomeField("story3Quote", v)} />
-                <Field label="Story 3 by" value={form.marketing.home.story3By} onChange={(v) => setHomeField("story3By", v)} />
-              </Section>
+              <>
+                <Section title="1 · Hero">
+                  <Field label="Hero title" value={form.marketing.home.heroTitle} onChange={(v) => setHomeField("heroTitle", v)} />
+                  <Area label="Hero lead" value={form.marketing.home.heroLead} onChange={(v) => setHomeField("heroLead", v)} />
+                  <Field label="Hero CTA" value={form.marketing.home.heroCta} onChange={(v) => setHomeField("heroCta", v)} />
+                  <Field label="Hero secondary" value={form.marketing.home.heroSecondary} onChange={(v) => setHomeField("heroSecondary", v)} />
+                  <Field label="Stars label" value={form.marketing.home.starsLabel} onChange={(v) => setHomeField("starsLabel", v)} />
+                </Section>
+                <Section title="2 · Integrations block">
+                  <Field label="Kicker" value={form.marketing.home.integKicker} onChange={(v) => setHomeField("integKicker", v)} />
+                  <Field label="Title" value={form.marketing.home.integTitle} onChange={(v) => setHomeField("integTitle", v)} />
+                  <Area label="Sub" value={form.marketing.home.integSub} onChange={(v) => setHomeField("integSub", v)} />
+                  <Field label="Link label" value={form.marketing.home.integLink} onChange={(v) => setHomeField("integLink", v)} />
+                </Section>
+                <Section title="3 · Feature pillars">
+                  <Field label="Section title" value={form.marketing.home.featuresTitle} onChange={(v) => setHomeField("featuresTitle", v)} />
+                  <Field label="Pillar link label" value={form.marketing.home.pillarLinkLabel} onChange={(v) => setHomeField("pillarLinkLabel", v)} />
+                  {([1, 2, 3, 4] as const).map((n) => (
+                    <div key={n} className="md:col-span-2 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 md:grid-cols-2">
+                      <p className="md:col-span-2 text-sm font-bold text-[#0b3d38]">Pillar {n}</p>
+                      <Field
+                        label="Title"
+                        value={form.marketing.home[`pillar${n}Title`]}
+                        onChange={(v) => setHomeField(`pillar${n}Title`, v)}
+                      />
+                      <Area
+                        label="Body"
+                        value={form.marketing.home[`pillar${n}Body`]}
+                        onChange={(v) => setHomeField(`pillar${n}Body`, v)}
+                      />
+                    </div>
+                  ))}
+                </Section>
+                <Section title="4 · Teams teaser">
+                  <Field label="Title" value={form.marketing.home.teamsTitle} onChange={(v) => setHomeField("teamsTitle", v)} />
+                  <Area label="Sub" value={form.marketing.home.teamsSub} onChange={(v) => setHomeField("teamsSub", v)} />
+                  <Field label="Card link label" value={form.marketing.home.teamLinkLabel} onChange={(v) => setHomeField("teamLinkLabel", v)} />
+                  <p className="md:col-span-2 text-xs text-muted">Team card content is edited in section O.</p>
+                </Section>
+                <Section title="5 · Steps">
+                  <Field label="Title" value={form.marketing.home.stepsTitle} onChange={(v) => setHomeField("stepsTitle", v)} />
+                  <Area label="Sub" value={form.marketing.home.stepsSub} onChange={(v) => setHomeField("stepsSub", v)} />
+                  <p className="md:col-span-2 text-xs text-muted">Step cards are edited in section O.</p>
+                </Section>
+                <Section title="6 · Tools / API CTA">
+                  <Field label="Title" value={form.marketing.home.toolsTitle} onChange={(v) => setHomeField("toolsTitle", v)} />
+                  <Area label="Body" value={form.marketing.home.toolsBody} onChange={(v) => setHomeField("toolsBody", v)} />
+                  <Field label="Primary CTA" value={form.marketing.home.toolsPrimaryCta} onChange={(v) => setHomeField("toolsPrimaryCta", v)} />
+                  <Field label="Primary URL" value={form.marketing.home.toolsPrimaryHref} onChange={(v) => setHomeField("toolsPrimaryHref", v)} />
+                  <Field label="Secondary CTA" value={form.marketing.home.toolsSecondaryCta} onChange={(v) => setHomeField("toolsSecondaryCta", v)} />
+                  <Field label="Secondary URL" value={form.marketing.home.toolsSecondaryHref} onChange={(v) => setHomeField("toolsSecondaryHref", v)} />
+                </Section>
+                <Section title="7 · Plans teaser (home)">
+                  <Field label="Section title" value={form.marketing.home.plansTitle} onChange={(v) => setHomeField("plansTitle", v)} />
+                  <Field label="Team plan title" value={form.marketing.home.planTeamTitle} onChange={(v) => setHomeField("planTeamTitle", v)} />
+                  <Field label="Team plan price" value={form.marketing.home.planTeamPrice} onChange={(v) => setHomeField("planTeamPrice", v)} />
+                  <Area label="Team plan body" value={form.marketing.home.planTeamBody} onChange={(v) => setHomeField("planTeamBody", v)} />
+                  <Field label="API plan title" value={form.marketing.home.planApiTitle} onChange={(v) => setHomeField("planApiTitle", v)} />
+                  <Field label="API plan price" value={form.marketing.home.planApiPrice} onChange={(v) => setHomeField("planApiPrice", v)} />
+                  <Area label="API plan body" value={form.marketing.home.planApiBody} onChange={(v) => setHomeField("planApiBody", v)} />
+                  <p className="md:col-span-2 text-xs text-muted">Full /pricing control is in section W.</p>
+                </Section>
+                <Section title="8 · Stories + bottom CTA">
+                  <Field label="Stories title" value={form.marketing.home.storiesTitle} onChange={(v) => setHomeField("storiesTitle", v)} />
+                  <Field label="Bottom CTA title" value={form.marketing.home.bottomTitle} onChange={(v) => setHomeField("bottomTitle", v)} />
+                  {([1, 2, 3] as const).map((n) => (
+                    <div key={n} className="md:col-span-2 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 md:grid-cols-2">
+                      <p className="md:col-span-2 text-sm font-bold text-[#0b3d38]">Story {n}</p>
+                      <Field
+                        label="Metric"
+                        value={form.marketing.home[`story${n}Metric`]}
+                        onChange={(v) => setHomeField(`story${n}Metric`, v)}
+                      />
+                      <Field
+                        label="By"
+                        value={form.marketing.home[`story${n}By`]}
+                        onChange={(v) => setHomeField(`story${n}By`, v)}
+                      />
+                      <Area
+                        label="Quote"
+                        value={form.marketing.home[`story${n}Quote`]}
+                        onChange={(v) => setHomeField(`story${n}Quote`, v)}
+                      />
+                    </div>
+                  ))}
+                </Section>
+              </>
             )}
 
             {section === "M" && (
-              <Section title="Marketing page heroes">
+              <Section title="Marketing page heroes (every public page)">
+                <p className="md:col-span-2 text-sm text-muted">
+                  Each card = one website page hero. Pricing layout extras are also in <strong>W</strong>.
+                </p>
                 {(
                   [
-                    ["why", "Why"],
-                    ["features", "Features"],
-                    ["teams", "Teams"],
-                    ["developers", "Developers"],
-                    ["pricing", "Pricing"],
-                    ["help", "Help"],
-                    ["about", "About"],
-                    ["contact", "Contact"],
-                    ["press", "Press"],
-                    ["privacy", "Privacy"],
-                    ["terms", "Terms"],
+                    ["why", "Why", "/why"],
+                    ["features", "Features", "/features"],
+                    ["teams", "Teams", "/teams"],
+                    ["developers", "Developers", "/developers"],
+                    ["pricing", "Pricing", "/pricing"],
+                    ["help", "Help", "/help"],
+                    ["about", "About", "/about"],
+                    ["contact", "Contact", "/contact"],
+                    ["press", "Press", "/press"],
+                    ["privacy", "Privacy", "/privacy"],
+                    ["terms", "Terms", "/terms"],
                   ] as const
-                ).map(([key, label]) => (
+                ).map(([key, label, href]) => (
                   <div key={key} className="md:col-span-2 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 md:grid-cols-2">
-                    <p className="md:col-span-2 text-sm font-bold text-[#0b3d38]">{label}</p>
+                    <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-[#0b3d38]">{label}</p>
+                      <a className="text-sm font-semibold text-accent-deep" href={href} target="_blank" rel="noreferrer">
+                        Preview {href}
+                      </a>
+                    </div>
                     <Field label="Kicker" value={form.marketing[key].kicker} onChange={(v) => setHero(key, "kicker", v)} />
                     <Field label="Title" value={form.marketing[key].title} onChange={(v) => setHero(key, "title", v)} />
                     <Area label="Lead" value={form.marketing[key].lead} onChange={(v) => setHero(key, "lead", v)} />
@@ -632,15 +861,18 @@ export function AdminPanel({
               />
             )}
 
-            {message && <p className="text-sm font-semibold text-accent-deep">{message}</p>}
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : "Save A–Z settings"}
-            </button>
+            <AdminStickySave loading={loading} message={message} />
           </form>
         )}
 
         {section === "V" && (
           <form className="space-y-6" onSubmit={saveSettings}>
+            <AdminSectionBanner
+              letter="V"
+              title={SECTION_META.V.title}
+              controls={SECTION_META.V.controls}
+              preview={SECTION_META.V.preview}
+            />
             <Section title="Signature generator">
               <Toggle
                 label="Show Signature generator in app sidebar"
@@ -661,70 +893,342 @@ export function AdminPanel({
                 Paid plan download limits follow Plans &amp; quotas (same as signature send limits).
               </p>
             </Section>
-            {message && <p className="text-sm font-semibold text-accent-deep">{message}</p>}
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : "Save A–Z settings"}
-            </button>
+            <AdminStickySave loading={loading} message={message} />
           </form>
         )}
 
         {section === "W" && (
           <form className="space-y-6" onSubmit={saveSettings}>
-            <Section title="Plans & quotas">
+            <AdminSectionBanner
+              letter="W"
+              title={SECTION_META.W.title}
+              controls={SECTION_META.W.controls}
+              preview={SECTION_META.W.preview}
+            />
+            <Section title="/pricing page — hero & layout">
               <p className="text-sm text-muted">
-                Controls monthly signature sends and generator downloads for each package. Use{" "}
-                <strong>-1</strong> for unlimited.
+                Everything on <strong>/pricing</strong> is editable here: hero, highlight cards, API block, compare
+                section, and each plan below.
               </p>
               <Field
-                label="Free · signature sends / month"
-                value={String(form.sendFreeLimit)}
-                onChange={(v) => set("sendFreeLimit", Number(v) || 0)}
+                label="Hero kicker"
+                value={form.marketing.pricing.kicker}
+                onChange={(v) => setHero("pricing", "kicker", v)}
               />
               <Field
-                label="Free · generator downloads / month"
-                value={String(form.generatorFreeDownloads)}
-                onChange={(v) => set("generatorFreeDownloads", Math.max(0, Number(v) || 0))}
+                label="Hero title"
+                value={form.marketing.pricing.title}
+                onChange={(v) => setHero("pricing", "title", v)}
+              />
+              <Area
+                label="Hero lead"
+                value={form.marketing.pricing.lead}
+                onChange={(v) => setHero("pricing", "lead", v)}
               />
               <Field
-                label="Starter · signatures / downloads"
-                value={String(form.starterSignatureLimit)}
-                onChange={(v) => set("starterSignatureLimit", Number(v) || 0)}
+                label="Hero primary CTA"
+                value={form.marketing.pricing.cta}
+                onChange={(v) => setHero("pricing", "cta", v)}
               />
               <Field
-                label="Starter · faxes"
-                value={String(form.starterFaxLimit)}
-                onChange={(v) => set("starterFaxLimit", Number(v) || 0)}
+                label="Hero secondary CTA"
+                value={form.marketing.pricing.secondary}
+                onChange={(v) => setHero("pricing", "secondary", v)}
               />
               <Field
-                label="Pro · signatures / downloads"
-                value={String(form.proSignatureLimit)}
-                onChange={(v) => set("proSignatureLimit", Number(v) || 0)}
+                label="Essentials eyebrow"
+                value={form.marketing.pricingPage.essentialsEyebrow}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, essentialsEyebrow: v },
+                    },
+                  }))
+                }
               />
               <Field
-                label="Pro · faxes"
-                value={String(form.proFaxLimit)}
-                onChange={(v) => set("proFaxLimit", Number(v) || 0)}
+                label="Standard eyebrow"
+                value={form.marketing.pricingPage.standardEyebrow}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, standardEyebrow: v },
+                    },
+                  }))
+                }
               />
               <Field
-                label="Business · signatures / downloads (-1 unlimited)"
-                value={String(form.businessSignatureLimit)}
-                onChange={(v) => set("businessSignatureLimit", Number(v))}
+                label="Standard card CTA"
+                value={form.marketing.pricingPage.standardCta}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, standardCta: v },
+                    },
+                  }))
+                }
               />
               <Field
-                label="Business · faxes (-1 unlimited)"
-                value={String(form.businessFaxLimit)}
-                onChange={(v) => set("businessFaxLimit", Number(v))}
+                label='"Starts at" label'
+                value={form.marketing.pricingPage.startsAtLabel}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, startsAtLabel: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Month suffix"
+                value={form.marketing.pricingPage.monthSuffix}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, monthSuffix: v },
+                    },
+                  }))
+                }
+              />
+              <Toggle
+                label="Show Essentials / Standard highlight row"
+                checked={form.marketing.pricingPage.showHighlightRow}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, showHighlightRow: v },
+                    },
+                  }))
+                }
+              />
+              <Toggle
+                label="Show API plans block"
+                checked={form.marketing.pricingPage.showApiBlock}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, showApiBlock: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="API kicker"
+                value={form.marketing.pricingPage.apiKicker}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, apiKicker: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="API title"
+                value={form.marketing.home.planApiTitle}
+                onChange={(v) => setHomeField("planApiTitle", v)}
+              />
+              <Field
+                label="API price ($ / month)"
+                value={form.marketing.home.planApiPrice}
+                onChange={(v) => setHomeField("planApiPrice", v)}
+              />
+              <Area
+                label="API body"
+                value={form.marketing.home.planApiBody}
+                onChange={(v) => setHomeField("planApiBody", v)}
+              />
+              <Field
+                label="API link label"
+                value={form.marketing.pricingPage.apiLinkLabel}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, apiLinkLabel: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="API link URL"
+                value={form.marketing.pricingPage.apiLinkHref}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, apiLinkHref: v },
+                    },
+                  }))
+                }
+              />
+              <Toggle
+                label="Show Compare plans grid"
+                checked={form.marketing.pricingPage.showCompare}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, showCompare: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Compare section title"
+                value={form.marketing.pricingPage.compareTitle}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, compareTitle: v },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Compare card CTA"
+                value={form.marketing.pricingPage.compareCta}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, compareCta: v },
+                    },
+                  }))
+                }
               />
             </Section>
-            {message && <p className="text-sm font-semibold text-accent-deep">{message}</p>}
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : "Save A–Z settings"}
-            </button>
+
+            <Section title="Plans (compare grid + billing)">
+              <p className="text-sm text-muted">
+                Change <strong>Signature sends / downloads / faxes / seats</strong> — Billing &amp; Pricing
+                feature lists update automatically from those numbers. Extra lines (Audit trail, SSO…) stay.
+                Use <strong>-1</strong> for unlimited. Scroll down and press <strong>Save pricing page</strong>.
+              </p>
+              {form.plans.map((plan, idx) => {
+                const patchPlan = (next: PlanDefinition, syncQuota = false) => {
+                  const plans = [...form.plans];
+                  plans[idx] = syncQuota ? withSyncedPlanFeatures(next) : next;
+                  set("plans", plans);
+                };
+                return (
+                <div
+                  key={plan.id}
+                  className="space-y-3 rounded-xl border border-[var(--line)] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-semibold capitalize">{plan.id} plan</h3>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={plan.visible}
+                        onChange={(e) => patchPlan({ ...plan, visible: e.target.checked })}
+                      />
+                      Show on website / billing
+                    </label>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field
+                      label="Display name"
+                      value={plan.name}
+                      onChange={(v) => patchPlan({ ...plan, name: v })}
+                    />
+                    <Field
+                      label="Seats"
+                      value={String(plan.seats)}
+                      onChange={(v) => patchPlan({ ...plan, seats: Number(v) || 0 }, true)}
+                    />
+                    <Field
+                      label="Monthly price ($)"
+                      value={String(plan.monthly)}
+                      onChange={(v) => patchPlan({ ...plan, monthly: Number(v) || 0 })}
+                    />
+                    <Field
+                      label="Yearly price ($)"
+                      value={String(plan.yearly)}
+                      onChange={(v) => patchPlan({ ...plan, yearly: Number(v) || 0 })}
+                    />
+                    <Field
+                      label="Signature sends / month"
+                      value={String(plan.docs)}
+                      onChange={(v) => patchPlan({ ...plan, docs: Number(v) }, true)}
+                    />
+                    <Field
+                      label="Generator downloads / month"
+                      value={String(plan.downloads)}
+                      onChange={(v) => patchPlan({ ...plan, downloads: Number(v) }, true)}
+                    />
+                    <Field
+                      label="Faxes / month"
+                      value={String(plan.faxes)}
+                      onChange={(v) => patchPlan({ ...plan, faxes: Number(v) }, true)}
+                    />
+                  </div>
+                  <Area
+                    label="Features on website (auto quota lines + your extras)"
+                    value={plan.features.join("\n")}
+                    onChange={(v) =>
+                      patchPlan({
+                        ...plan,
+                        features: v
+                          .split("\n")
+                          .map((l) => l.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                  {plan.id !== "free" && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field
+                        label="Stripe price ID · monthly"
+                        value={plan.stripePriceMonthly}
+                        onChange={(v) => patchPlan({ ...plan, stripePriceMonthly: v.trim() })}
+                      />
+                      <Field
+                        label="Stripe price ID · yearly"
+                        value={plan.stripePriceYearly}
+                        onChange={(v) => patchPlan({ ...plan, stripePriceYearly: v.trim() })}
+                      />
+                    </div>
+                  )}
+                </div>
+                );
+              })}
+            </Section>
+            <AdminStickySave loading={loading} message={message} label="Save pricing page" />
           </form>
         )}
 
         {section === "X" && (
           <form className="space-y-6" onSubmit={saveSettings}>
+            <AdminSectionBanner
+              letter="X"
+              title={SECTION_META.X.title}
+              controls={SECTION_META.X.controls}
+              preview={SECTION_META.X.preview}
+            />
             <Section title="Auth & signup">
               <Toggle
                 label="Allow public signup"
@@ -745,15 +1249,18 @@ export function AdminPanel({
                 Google login still needs GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env.local.
               </p>
             </Section>
-            {message && <p className="text-sm font-semibold text-accent-deep">{message}</p>}
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : "Save A–Z settings"}
-            </button>
+            <AdminStickySave loading={loading} message={message} />
           </form>
         )}
 
         {section === "Y" && (
           <form className="space-y-6" onSubmit={saveSettings}>
+            <AdminSectionBanner
+              letter="Y"
+              title={SECTION_META.Y.title}
+              controls={SECTION_META.Y.controls}
+              preview={SECTION_META.Y.preview}
+            />
             <Section title="Send rules">
               <Field
                 label="Max signers per request"
@@ -781,16 +1288,20 @@ export function AdminPanel({
                 onChange={(v) => set("bulkSendEnabled", v)}
               />
             </Section>
-            {message && <p className="text-sm font-semibold text-accent-deep">{message}</p>}
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : "Save A–Z settings"}
-            </button>
+            <AdminStickySave loading={loading} message={message} />
           </form>
         )}
 
         {section === "U" && (
+          <div className="space-y-5">
+          <AdminSectionBanner
+            letter="U"
+            title={SECTION_META.U.title}
+            controls={SECTION_META.U.controls}
+            preview={SECTION_META.U.preview}
+          />
           <Section title="Users control">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto md:col-span-2">
               <table className="w-full text-left text-sm">
                 <thead className="text-[var(--muted)]">
                   <tr>
@@ -840,11 +1351,19 @@ export function AdminPanel({
               </table>
             </div>
           </Section>
+          </div>
         )}
 
         {section === "Z" && (
+          <div className="space-y-5">
+          <AdminSectionBanner
+            letter="Z"
+            title={SECTION_META.Z.title}
+            controls={SECTION_META.Z.controls}
+            preview={SECTION_META.Z.preview}
+          />
           <Section title="Documents control">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto md:col-span-2">
               <table className="w-full text-left text-sm">
                 <thead className="text-[var(--muted)]">
                   <tr>
@@ -888,6 +1407,7 @@ export function AdminPanel({
               </table>
             </div>
           </Section>
+          </div>
         )}
       </div>
     </div>

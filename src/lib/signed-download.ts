@@ -33,7 +33,7 @@ function markHtml(field: SignatureField) {
 
 /** Builds a standalone HTML signed copy — original content intact, marks overlaid. */
 export function buildSignedDocumentHtml(doc: Document) {
-  const fields = doc.fields.filter((f) => f.value || f.signature);
+  const fields = (doc.fields || []).filter((f) => f.value || f.signature);
   const marks = fields
     .map(
       (f) => `
@@ -87,7 +87,7 @@ export function buildSignedDocumentHtml(doc: Document) {
         ${stylesUsed ? ` Styles used: ${escapeHtml(stylesUsed)}.` : ""}
       </p>
       <p style="color:#5a736e;font-size:13px;">Recipients: ${escapeHtml(
-        doc.recipients.map((r) => `${r.name} <${r.email}>`).join(", "),
+        (doc.recipients || []).map((r) => `${r.name || ""} <${r.email || ""}>`).join(", "),
       )}</p>
     </div>
     <div class="sheet">
@@ -134,7 +134,7 @@ export async function downloadSignedPng(doc: Document) {
 
   ctx.drawImage(img, 0, 0);
 
-  for (const field of doc.fields) {
+  for (const field of doc.fields || []) {
     if (!field.value && !field.signature) continue;
     const x = (field.x / 100) * canvas.width;
     const y = (field.y / 100) * canvas.height;

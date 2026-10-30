@@ -138,16 +138,69 @@ function seed(): PlatformStore {
   };
 }
 
-function normalizeStore(store: PlatformStore): PlatformStore {
-  store.site = mergeSettings(store.site);
-  store.organizations = (store.organizations || []).map((org) => ({
+function normalizeStore(raw: unknown): PlatformStore {
+  const base =
+    raw && typeof raw === "object"
+      ? (raw as Partial<PlatformStore>)
+      : ({} as Partial<PlatformStore>);
+
+  const store: PlatformStore = {
+    users: (Array.isArray(base.users) ? base.users : []).map((u) => ({
+      ...u,
+      id: u?.id || "",
+      email: u?.email || "",
+      name: u?.name || u?.email || "User",
+      role: u?.role || "member",
+      orgId: u?.orgId || "",
+      plan: u?.plan || "free",
+      createdAt: u?.createdAt || new Date().toISOString(),
+    })),
+    organizations: Array.isArray(base.organizations) ? base.organizations : [],
+    documents: (Array.isArray(base.documents) ? base.documents : []).map((d) => ({
+      ...d,
+      id: d?.id || "",
+      orgId: d?.orgId || "",
+      ownerId: d?.ownerId || "",
+      title: d?.title || "Untitled",
+      status: d?.status || "draft",
+      content: d?.content || "",
+      fields: Array.isArray(d?.fields) ? d.fields : [],
+      recipients: Array.isArray(d?.recipients) ? d.recipients : [],
+      createdAt: d?.createdAt || new Date().toISOString(),
+      updatedAt: d?.updatedAt || d?.createdAt || new Date().toISOString(),
+    })),
+    faxes: (Array.isArray(base.faxes) ? base.faxes : []).map((f) => ({
+      ...f,
+      id: f?.id || "",
+      orgId: f?.orgId || "",
+      createdAt: f?.createdAt || new Date().toISOString(),
+    })),
+    invites: Array.isArray(base.invites) ? base.invites : [],
+    site: mergeSettings(base.site),
+  };
+
+  // Keep org settings filled, but platform site CMS remains source of truth for branding/plans
+  store.organizations = store.organizations.map((org) => ({
     ...org,
-    settings: mergeSettings(org.settings),
+    id: org?.id || "",
+    name: org?.name || "Workspace",
+    ownerId: org?.ownerId || "",
+    plan: org?.plan || "free",
+    createdAt: org?.createdAt || new Date().toISOString(),
+    settings: mergeSettings({
+      ...(org?.settings || {}),
+      // Live admin CMS always wins for plans + marketing + brand
+      ...store.site,
+      plans: store.site.plans,
+      marketing: store.site.marketing,
+      brandName: store.site.brandName,
+      logoText: store.site.logoText,
+      primaryColor: store.site.primaryColor,
+      accentColor: store.site.accentColor,
+      signalColor: store.site.signalColor,
+    }),
   }));
-  store.users = store.users || [];
-  store.documents = store.documents || [];
-  store.faxes = store.faxes || [];
-  store.invites = store.invites || [];
+
   return store;
 }
 
@@ -171,18 +224,20 @@ async function writeFileStore(store: PlatformStore): Promise<void> {
 async function readMongoStore(): Promise<PlatformStore | null> {
   try {
     await connectDB();
-    let doc = await Platform.findOne({ key: "main" });
-    if (!doc) {
+    // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
+    let doc = await Platform.findOne({ key: "main" }).lean<{ data?: unknown }>().exec();
+    if (!doc?.data) {
       const initial = seed();
-      // Prefer existing file seed if present
       try {
         const file = await readFileStore();
-        doc = await Platform.create({ key: "main", data: file });
+        await Platform.create({ key: "main", data: file });
+        return normalizeStore(file);
       } catch {
-        doc = await Platform.create({ key: "main", data: initial });
+        await Platform.create({ key: "main", data: initial });
+        return normalizeStore(initial);
       }
     }
-    return normalizeStore(doc.data as PlatformStore);
+    return normalizeStore(doc.data);
   } catch (err) {
     console.warn("[store] MongoDB unavailable, using file store:", (err as Error).message);
     return null;
@@ -192,9 +247,11 @@ async function readMongoStore(): Promise<PlatformStore | null> {
 async function writeMongoStore(store: PlatformStore): Promise<boolean> {
   try {
     await connectDB();
+    // $set + lean round-trip so Mixed nested CMS fields (plans, marketing) persist fully
+    const plain = JSON.parse(JSON.stringify(store)) as PlatformStore;
     await Platform.findOneAndUpdate(
       { key: "main" },
-      { data: store },
+      { $set: { data: plain } },
       { upsert: true, new: true },
     );
     return true;
@@ -231,7 +288,9 @@ export async function updateStore(
 
 export async function findUserByEmail(email: string) {
   const store = await readStore();
-  return store.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const needle = (email || "").toLowerCase();
+  if (!needle) return undefined;
+  return store.users.find((u) => (u.email || "").toLowerCase() === needle);
 }
 
 export async function findUserById(id: string) {
@@ -338,14 +397,14 @@ export async function getOrgDocuments(orgId: string) {
   const store = await readStore();
   return store.documents
     .filter((d) => d.orgId === orgId)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 }
 
 export async function getOrgFaxes(orgId: string) {
   const store = await readStore();
   return store.faxes
     .filter((f) => f.orgId === orgId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function getOrgMembers(orgId: string) {

@@ -99,11 +99,12 @@ export const TEAM_LINKS: NavLink[] = [
   },
 ];
 
+/** Static fallback — prefer buildPricingLinks() from live OrgSettings plans */
 export const PRICING_LINKS: NavLink[] = [
   {
     href: "/pricing#essentials",
     title: "Essentials",
-    desc: "Starts at $15/mo — unlimited templates for individuals",
+    desc: "Individual plans with signature requests and templates",
   },
   {
     href: "/pricing#standard",
@@ -113,7 +114,7 @@ export const PRICING_LINKS: NavLink[] = [
   {
     href: "/pricing#api",
     title: "API plans",
-    desc: "Starts at $75/mo — embed signing in your app",
+    desc: "Embed signing in your app",
   },
   {
     href: "/contact",
@@ -121,3 +122,36 @@ export const PRICING_LINKS: NavLink[] = [
     desc: "Custom volume and enterprise needs",
   },
 ];
+
+export function buildPricingLinks(
+  plans: { id: string; name: string; monthly: number; visible?: boolean }[],
+  apiPriceLabel?: string,
+): NavLink[] {
+  const paid = (plans || []).filter((p) => p.visible !== false && p.id !== "free");
+  const essentials = paid[0];
+  const standard = paid[1] || paid[0];
+  return [
+    {
+      href: "/pricing#essentials",
+      title: essentials?.name || "Essentials",
+      desc: essentials
+        ? `Starts at $${essentials.monthly}/mo — signature requests and templates`
+        : PRICING_LINKS[0].desc,
+    },
+    {
+      href: "/pricing#standard",
+      title: standard?.name || "Standard",
+      desc: standard
+        ? `From $${standard.monthly}/mo — team roles, branding, and bulk send`
+        : PRICING_LINKS[1].desc,
+    },
+    {
+      href: "/pricing#api",
+      title: "API plans",
+      desc: apiPriceLabel
+        ? `Starts at $${apiPriceLabel}/mo — embed signing in your app`
+        : PRICING_LINKS[2].desc,
+    },
+    PRICING_LINKS[3],
+  ];
+}

@@ -54,6 +54,13 @@ export type MarketingSite = {
     planApiTitle: string;
     planApiPrice: string;
     planApiBody: string;
+    /** Homepage link labels */
+    pillarLinkLabel: string;
+    teamLinkLabel: string;
+    toolsPrimaryCta: string;
+    toolsSecondaryCta: string;
+    toolsPrimaryHref: string;
+    toolsSecondaryHref: string;
     story1Metric: string;
     story1Quote: string;
     story1By: string;
@@ -104,6 +111,22 @@ export type MarketingSite = {
   /** Feature & team detail pages */
   featurePages: DetailPage[];
   teamPages: DetailPage[];
+  /** Full /pricing page layout labels (plans themselves live in OrgSettings.plans) */
+  pricingPage: {
+    essentialsEyebrow: string;
+    standardEyebrow: string;
+    standardCta: string;
+    apiKicker: string;
+    apiLinkLabel: string;
+    apiLinkHref: string;
+    compareTitle: string;
+    compareCta: string;
+    startsAtLabel: string;
+    monthSuffix: string;
+    showHighlightRow: boolean;
+    showApiBlock: boolean;
+    showCompare: boolean;
+  };
 };
 
 export const defaultMarketing: MarketingSite = {
@@ -143,6 +166,12 @@ export const defaultMarketing: MarketingSite = {
     planApiTitle: "Integrate eSignatures with the API",
     planApiPrice: "75",
     planApiBody: "Build secure, branded signing directly into your website or app.",
+    pillarLinkLabel: "Learn more",
+    teamLinkLabel: "See the solution",
+    toolsPrimaryCta: "Explore integrations",
+    toolsSecondaryCta: "Developers",
+    toolsPrimaryHref: "/features",
+    toolsSecondaryHref: "/developers",
     story1Metric: "$80K saved a year",
     story1Quote:
       "Sign saves us around four minutes per document. That time adds up across thousands of agreements.",
@@ -188,6 +217,21 @@ export const defaultMarketing: MarketingSite = {
     lead: "Start free, then pick the plan that fits your team or API needs.",
     cta: "Start a free trial",
     secondary: "Contact sales",
+  },
+  pricingPage: {
+    essentialsEyebrow: "Essentials",
+    standardEyebrow: "Standard",
+    standardCta: "Get started",
+    apiKicker: "API plans",
+    apiLinkLabel: "Explore developers →",
+    apiLinkHref: "/developers",
+    compareTitle: "Compare plans",
+    compareCta: "Get started",
+    startsAtLabel: "Starts at",
+    monthSuffix: "/month",
+    showHighlightRow: true,
+    showApiBlock: true,
+    showCompare: true,
   },
   help: {
     kicker: "Help center",
@@ -428,5 +472,9 @@ export function mergeMarketing(partial?: Partial<MarketingSite> | null): Marketi
     termsBody: p.termsBody ?? defaultMarketing.termsBody,
     featurePages: mergeDetailPages(defaultMarketing.featurePages, p.featurePages),
     teamPages: mergeDetailPages(defaultMarketing.teamPages, p.teamPages),
+    pricingPage: {
+      ...defaultMarketing.pricingPage,
+      ...(p.pricingPage || {}),
+    },
   };
 }

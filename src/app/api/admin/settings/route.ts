@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin-auth";
@@ -59,6 +60,24 @@ const schema = z.object({
   starterFaxLimit: z.number().int().optional(),
   proFaxLimit: z.number().int().optional(),
   businessFaxLimit: z.number().int().optional(),
+  plans: z
+    .array(
+      z.object({
+        id: z.enum(["free", "starter", "pro", "business"]),
+        name: z.string().min(1),
+        monthly: z.number(),
+        yearly: z.number(),
+        docs: z.number().int(),
+        downloads: z.number().int(),
+        faxes: z.number().int(),
+        seats: z.number().int(),
+        features: z.array(z.string()),
+        visible: z.boolean(),
+        stripePriceMonthly: z.string(),
+        stripePriceYearly: z.string(),
+      }),
+    )
+    .optional(),
   signupEnabled: z.boolean().optional(),
   showGoogleLogin: z.boolean().optional(),
 }).passthrough();
@@ -97,5 +116,49 @@ export async function PATCH(req: Request) {
     settings = store.site;
   });
 
-  return NextResponse.json({ settings });
+  // When admin changes plan $ amounts, create/find matching Stripe Prices so Checkout ≠ stale $15
+  if (body.data.plans?.length && settings) {
+    try {
+      const { syncPlanStripePriceIds } = await import("@/lib/stripe");
+      const synced = await syncPlanStripePriceIds(settings);
+      if (synced !== settings) {
+        await updateStore((store) => {
+          store.site = mergeSettings({ ...store.site, plans: synced.plans });
+          settings = store.site;
+        });
+      }
+    } catch (err) {
+      console.warn(
+        "[admin/settings] Stripe price sync skipped:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
+  // Bust Next.js full-route + layout cache so marketing/app UI pick up CMS changes
+  for (const path of [
+    "/",
+    "/pricing",
+    "/billing",
+    "/about",
+    "/contact",
+    "/why",
+    "/features",
+    "/teams",
+    "/developers",
+    "/help",
+    "/press",
+    "/privacy",
+    "/terms",
+    "/dashboard",
+    "/documents",
+    "/signature-generator",
+    "/admin",
+  ]) {
+    revalidatePath(path);
+  }
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+
+  return NextResponse.json({ settings, result: "success" });
 }

@@ -15,6 +15,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showGoogle, setShowGoogle] = useState(true);
   const [signupEnabled, setSignupEnabled] = useState(true);
+  const [brandName, setBrandName] = useState("Flowy Sign - eSignature");
 
   useEffect(() => {
     fetch("/api/public/site")
@@ -22,6 +23,7 @@ function LoginForm() {
       .then((d) => {
         setShowGoogle(d.showGoogleLogin !== false);
         setSignupEnabled(d.signupEnabled !== false);
+        if (d.brandName) setBrandName(d.brandName);
       })
       .catch(() => undefined);
   }, []);
@@ -35,10 +37,10 @@ function LoginForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Login failed");
+      setError(data?.error || "Login failed");
       return;
     }
     router.push("/dashboard");
@@ -47,9 +49,9 @@ function LoginForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12 rise">
-      <Logo />
+      <Logo label={brandName} />
       <h1 className="display mt-8 text-4xl">Welcome back</h1>
-      <p className="mt-2 text-muted">Sign in to Flowy Sign - eSignature.</p>
+      <p className="mt-2 text-muted">Sign in to {brandName}.</p>
 
       <div className="panel mt-8 space-y-4 p-6">
         <form onSubmit={onSubmit} className="space-y-4">

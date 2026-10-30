@@ -1,5 +1,5 @@
 import { signatureSendLimit } from "./plan-limits";
-import { getPlan } from "./plans";
+import { getPlanFromSettings } from "./plans";
 import { mergeSettings } from "./settings";
 import { readStore } from "./store";
 import type { PlanId, User } from "./types";
@@ -25,9 +25,9 @@ export type SignatureQuota = {
 };
 
 export async function getSignatureQuota(user: User): Promise<SignatureQuota> {
-  const plan = getPlan(user.plan);
   const store = await readStore();
   const settings = mergeSettings(store.site);
+  const plan = getPlanFromSettings(user.plan, settings);
   const limit = signatureSendLimit(user.plan, settings);
   const start = monthStartIso();
   const used = store.documents.filter(

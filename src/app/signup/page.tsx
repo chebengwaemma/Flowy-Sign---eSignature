@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [ready, setReady] = useState(false);
   const [signupEnabled, setSignupEnabled] = useState(true);
   const [showGoogle, setShowGoogle] = useState(true);
+  const [brandName, setBrandName] = useState("Flowy Sign - eSignature");
 
   useEffect(() => {
     fetch("/api/public/site")
@@ -23,6 +24,7 @@ export default function SignupPage() {
       .then((d) => {
         setSignupEnabled(d.signupEnabled !== false);
         setShowGoogle(d.showGoogleLogin !== false);
+        if (d.brandName) setBrandName(d.brandName);
         setReady(true);
       })
       .catch(() => setReady(true));
@@ -37,10 +39,10 @@ export default function SignupPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Signup failed");
+      setError(data?.error || "Signup failed");
       return;
     }
     router.push("/dashboard");
@@ -50,7 +52,7 @@ export default function SignupPage() {
   if (ready && !signupEnabled) {
     return (
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12 rise">
-        <Logo />
+        <Logo label={brandName} />
         <h1 className="display mt-8 text-4xl">Signup closed</h1>
         <p className="mt-2 text-muted">New accounts are disabled by the administrator.</p>
         <Link href="/login" className="btn btn-primary mt-6 inline-flex">
@@ -62,9 +64,9 @@ export default function SignupPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12 rise">
-      <Logo />
+      <Logo label={brandName} />
       <h1 className="display mt-8 text-4xl">Create your workspace</h1>
-      <p className="mt-2 text-muted">Start sending signature requests in minutes.</p>
+      <p className="mt-2 text-muted">Start with {brandName} in minutes.</p>
 
       <div className="panel mt-8 space-y-4 p-6">
         <form onSubmit={onSubmit} className="space-y-4">

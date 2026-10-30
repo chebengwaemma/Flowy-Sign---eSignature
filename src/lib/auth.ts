@@ -29,7 +29,13 @@ export async function createSession(userId: string) {
 
 export async function destroySession() {
   const jar = await cookies();
-  jar.delete(COOKIE);
+  jar.set(COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export async function getSessionUser(): Promise<User | null> {

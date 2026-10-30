@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getMarketing } from "@/lib/get-marketing";
+import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
+import { getPlans } from "@/lib/plans";
+
+export const dynamic = "force-dynamic";
 
 export default async function DevelopersPage() {
-  const { developers: d, home, developersBlocks } = await getMarketing();
+  const [{ developers: d, home, developersBlocks }, site] = await Promise.all([
+    getMarketing(),
+    getSiteSettings(),
+  ]);
+  const starter = getPlans(site).find((p) => p.id === "starter");
+  const teamPrice = starter ? String(starter.monthly) : home.planTeamPrice;
+  const teamTitle = starter?.name || home.planTeamTitle;
+  const apiPrice = home.planApiPrice || teamPrice;
 
   return (
     <main className="lp-page lp-dev">
@@ -60,9 +70,9 @@ Authorization: Bearer sk_live_••••
         <div className="lp-wrap lp-plans-inner" data-animate="stagger">
           <article className="lp-plan-card">
             <p className="eyebrow">For teams</p>
-            <h3>{home.planTeamTitle}</h3>
+            <h3>{teamTitle}</h3>
             <p className="price">
-              Starts at <strong>${home.planTeamPrice}</strong>
+              Starts at <strong>${teamPrice}</strong>
               <span>/month</span>
             </p>
             <p className="desc">{home.planTeamBody}</p>
@@ -74,7 +84,7 @@ Authorization: Bearer sk_live_••••
             <p className="eyebrow">For developers</p>
             <h3>{home.planApiTitle}</h3>
             <p className="price">
-              Starts at <strong>${home.planApiPrice}</strong>
+              Starts at <strong>${apiPrice}</strong>
               <span>/month</span>
             </p>
             <p className="desc">{home.planApiBody}</p>

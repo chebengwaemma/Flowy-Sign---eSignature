@@ -1,5 +1,9 @@
 import Stripe from "stripe";
-import type { BillingInterval, PlanId } from "./types";
+import { getPlanFromSettings, planStripePriceId } from "./plans";
+import type { BillingInterval, OrgSettings, PlanId } from "./types";
+
+/** Global billing currency — dashboard + Checkout always USD (no SGD/local FX). */
+export const BILLING_CURRENCY = "usd" as const;
 
 let stripeClient: Stripe | null | undefined;
 
@@ -27,9 +31,126 @@ const priceEnv: Record<Exclude<PlanId, "free">, Record<BillingInterval, string |
   },
 };
 
-export function getPriceId(plan: PlanId, interval: BillingInterval) {
+export function getPriceId(plan: PlanId, interval: BillingInterval, settings?: OrgSettings | null) {
   if (plan === "free") return null;
-  return priceEnv[plan][interval] || null;
+  const envId = priceEnv[plan][interval] || null;
+  if (!settings) return envId;
+  return planStripePriceId(getPlanFromSettings(plan, settings), interval, envId);
+}
+
+function productDisplayName(planName: string) {
+  const n = (planName || "Plan").trim();
+  return n.toLowerCase().startsWith("flowy") ? n : `Flowy Sign ${n}`;
+}
+
+/**
+ * Resolve a Stripe Price whose unit_amount matches the live CMS plan amount.
+ * Stale env/CMS price IDs (e.g. $15) are ignored when admin set monthly to $12.
+ */
+export async function resolveCheckoutPriceId(
+  plan: Exclude<PlanId, "free">,
+  interval: BillingInterval,
+  settings: OrgSettings,
+): Promise<{ priceId: string; amountCents: number; created: boolean } | null> {
+  const stripe = getStripe();
+  if (!stripe) return null;
+
+  const def = getPlanFromSettings(plan, settings);
+  const dollars = interval === "monthly" ? def.monthly : def.yearly;
+  if (typeof dollars !== "number" || !Number.isFinite(dollars) || dollars < 0) return null;
+  const amountCents = Math.round(dollars * 100);
+  const stripeInterval = interval === "yearly" ? "year" : "month";
+  const preferredId = getPriceId(plan, interval, settings);
+
+  if (preferredId) {
+    try {
+      const existing = await stripe.prices.retrieve(preferredId);
+      if (
+        existing.active &&
+        existing.unit_amount === amountCents &&
+        existing.currency === BILLING_CURRENCY &&
+        existing.recurring?.interval === stripeInterval
+      ) {
+        return { priceId: existing.id, amountCents, created: false };
+      }
+    } catch {
+      /* stale / wrong-mode price id — create matching one below */
+    }
+  }
+
+  const productName = productDisplayName(def.name);
+  let productId: string | null = null;
+
+  try {
+    const found = await stripe.products.search({
+      query: `active:'true' AND name:'${productName.replace(/'/g, "\\'")}'`,
+      limit: 1,
+    });
+    productId = found.data[0]?.id || null;
+  } catch {
+    productId = null;
+  }
+
+  if (!productId) {
+    const created = await stripe.products.create({
+      name: productName,
+      metadata: { plan, currency: BILLING_CURRENCY },
+    });
+    productId = created.id;
+  }
+
+  const listed = await stripe.prices.list({ product: productId, active: true, limit: 100 });
+  const match = listed.data.find(
+    (p) =>
+      p.unit_amount === amountCents &&
+      p.currency === BILLING_CURRENCY &&
+      p.recurring?.interval === stripeInterval,
+  );
+  if (match) {
+    return { priceId: match.id, amountCents, created: false };
+  }
+
+  const created = await stripe.prices.create({
+    product: productId,
+    unit_amount: amountCents,
+    currency: BILLING_CURRENCY,
+    recurring: { interval: stripeInterval },
+    metadata: { plan, source: "cms-sync", currency: BILLING_CURRENCY },
+  });
+  return { priceId: created.id, amountCents, created: true };
+}
+
+/** Keep Mongo stripePrice* IDs aligned with CMS dollar amounts (best-effort). */
+export async function syncPlanStripePriceIds(settings: OrgSettings): Promise<OrgSettings> {
+  if (!stripeConfigured()) return settings;
+  const plans = [...(settings.plans || [])];
+  let changed = false;
+
+  for (const plan of plans) {
+    if (plan.id === "free") continue;
+    for (const interval of ["monthly", "yearly"] as const) {
+      try {
+        const resolved = await resolveCheckoutPriceId(plan.id, interval, settings);
+        if (!resolved) continue;
+        if (interval === "monthly" && plan.stripePriceMonthly !== resolved.priceId) {
+          plan.stripePriceMonthly = resolved.priceId;
+          changed = true;
+        }
+        if (interval === "yearly" && plan.stripePriceYearly !== resolved.priceId) {
+          plan.stripePriceYearly = resolved.priceId;
+          changed = true;
+        }
+      } catch (err) {
+        console.warn(
+          `[stripe] sync price failed for ${plan.id}/${interval}:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+  }
+
+  if (!changed) return settings;
+  return { ...settings, plans };
 }
 
 export function stripeConfigured() {

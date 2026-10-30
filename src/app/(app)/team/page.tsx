@@ -33,8 +33,8 @@ export default async function TeamPage() {
           <tbody className="divide-y divide-[var(--line)]">
             {members.map((m) => (
               <tr key={m.id}>
-                <td className="px-5 py-4 font-semibold">{m.name}</td>
-                <td className="px-5 py-4 text-muted">{m.email}</td>
+                <td className="px-5 py-4 font-semibold">{m.name || "Member"}</td>
+                <td className="px-5 py-4 text-muted">{m.email || ""}</td>
                 <td className="px-5 py-4">
                   <span className={statusTone(m.role === "owner" ? "completed" : "pending")}>
                     {m.role}

@@ -38,7 +38,7 @@ export default async function DocumentsPage() {
                     {doc.title}
                   </Link>
                 </td>
-                <td className="px-5 py-4 text-muted">{doc.recipients.length}</td>
+                <td className="px-5 py-4 text-muted">{(doc.recipients || []).length}</td>
                 <td className="px-5 py-4 text-muted">{formatDate(doc.updatedAt)}</td>
                 <td className="px-5 py-4">
                   <span className={statusTone(doc.status)}>{doc.status}</span>

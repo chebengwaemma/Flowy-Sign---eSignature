@@ -1,5 +1,5 @@
 import { signatureDownloadLimit } from "./plan-limits";
-import { getPlan } from "./plans";
+import { getPlanFromSettings } from "./plans";
 import { mergeSettings } from "./settings";
 import { readStore } from "./store";
 import type { PlanId, User } from "./types";
@@ -19,9 +19,9 @@ export type GeneratorQuota = {
 };
 
 export async function getGeneratorQuota(user: User): Promise<GeneratorQuota> {
-  const plan = getPlan(user.plan);
   const store = await readStore();
   const settings = mergeSettings(store.site);
+  const plan = getPlanFromSettings(user.plan, settings);
   const limit = signatureDownloadLimit(user.plan, settings);
   const month = currentMonthKey();
   const used =

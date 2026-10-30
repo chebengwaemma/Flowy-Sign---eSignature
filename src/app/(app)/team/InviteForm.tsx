@@ -22,15 +22,15 @@ export function InviteForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, name, role }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Invite failed");
+      setError(data?.error || "Invite failed");
       return;
     }
-    setMessage(
-      `Added ${data.credentials.email}. Temporary password: ${data.credentials.temporaryPassword}`,
-    );
+    const credEmail = data?.credentials?.email || email;
+    const tempPass = data?.credentials?.temporaryPassword || "welcome123";
+    setMessage(`Added ${credEmail}. Temporary password: ${tempPass}`);
     setEmail("");
     setName("");
     router.refresh();

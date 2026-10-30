@@ -1,11 +1,8 @@
 import { notFound } from "next/navigation";
 import { DetailPageView } from "@/components/marketing/DetailPageView";
-import { TEAM_PAGES } from "@/components/marketing/page-content";
 import { getMarketing } from "@/lib/get-marketing";
 
-export function generateStaticParams() {
-  return TEAM_PAGES.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function TeamDetailPage({
   params,

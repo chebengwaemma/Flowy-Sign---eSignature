@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PLANS } from "@/lib/plans";
-import type { BillingInterval, PlanId } from "@/lib/types";
+import type { BillingInterval, PlanDefinition, PlanId } from "@/lib/types";
 
 export function BillingResult({
   success,
@@ -13,6 +12,7 @@ export function BillingResult({
   plan,
   interval,
   sessionId,
+  plans = [],
 }: {
   success?: boolean;
   canceled?: boolean;
@@ -21,6 +21,7 @@ export function BillingResult({
   plan?: string;
   interval?: string;
   sessionId?: string;
+  plans?: PlanDefinition[];
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(Boolean(success && sessionId));
@@ -40,15 +41,15 @@ export function BillingResult({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (!res.ok || data.result === "unsuccess") {
-          setConfirmError(data.error || "Could not confirm payment.");
+        if (!res.ok || data?.result === "unsuccess") {
+          setConfirmError(data?.error || "Could not confirm payment.");
           setConfirming(false);
           return;
         }
-        setResolvedPlan(data.plan || plan);
-        setResolvedInterval(data.interval || interval || "monthly");
+        setResolvedPlan(data?.plan || plan);
+        setResolvedInterval(data?.interval || interval || "monthly");
         setConfirming(false);
         router.refresh();
       } catch {
@@ -63,7 +64,7 @@ export function BillingResult({
     };
   }, [success, sessionId, plan, interval, router]);
 
-  const planMeta = PLANS.find((p) => p.id === resolvedPlan);
+  const planMeta = plans.find((p) => p.id === resolvedPlan);
   const price =
     planMeta && resolvedInterval === "yearly" ? planMeta.yearly : planMeta?.monthly;
 
@@ -98,7 +99,7 @@ export function BillingResult({
             </p>
             {planMeta && (
               <ul className="mt-2 space-y-1 text-muted">
-                {planMeta.features.map((f) => (
+                {(planMeta.features || []).filter(Boolean).map((f) => (
                   <li key={f}>• {f}</li>
                 ))}
               </ul>
@@ -128,7 +129,7 @@ export function BillingResult({
         <p className="text-base font-semibold text-[var(--bad)]">Payment unsuccessful</p>
         <p className="mt-1 text-muted">
           Checkout was canceled or did not complete. No charge was made
-          {plan ? ` for ${PLANS.find((p) => p.id === plan)?.name || plan}` : ""}.
+          {plan ? ` for ${plans.find((p) => p.id === plan)?.name || plan}` : ""}.
         </p>
         <TryAgainButton plan={tryPlan} interval={tryInterval} />
       </div>
@@ -150,10 +151,10 @@ function TryAgainButton({ plan, interval }: { plan: PlanId; interval: BillingInt
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan, interval }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
-    if (!res.ok || !data.url) {
-      setError(data.error || "Could not restart checkout.");
+    if (!res.ok || !data?.url) {
+      setError(data?.error || "Could not restart checkout.");
       return;
     }
     window.location.href = data.url;

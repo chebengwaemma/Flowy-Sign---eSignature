@@ -101,7 +101,13 @@ export async function createAdminSession(adminId: string) {
 
 export async function destroyAdminSession() {
   const jar = await cookies();
-  jar.delete(COOKIE);
+  jar.set(COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export async function getAdminSession() {

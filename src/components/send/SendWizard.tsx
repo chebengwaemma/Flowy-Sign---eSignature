@@ -231,19 +231,24 @@ export function SendWizard() {
         })),
       }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      if (data.code === "PLAN_REQUIRED" || data.code === "SIGNATURE_LIMIT") {
-        setError(data.error || "Buy a plan to send signatures.");
+      if (data?.code === "PLAN_REQUIRED" || data?.code === "SIGNATURE_LIMIT") {
+        setError(data?.error || "Buy a plan to send signatures.");
         setUpgradeNeeded(true);
       } else {
-        setError(data.error || "Could not send");
+        setError(data?.error || "Could not send");
         setUpgradeNeeded(false);
       }
       return;
     }
-    router.push(`/documents/${data.document.id}`);
+    const docId = data?.document?.id;
+    if (!docId) {
+      setError("Document created but response was incomplete.");
+      return;
+    }
+    router.push(`/documents/${docId}`);
     router.refresh();
   }
 

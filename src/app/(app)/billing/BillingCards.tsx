@@ -33,10 +33,10 @@ export function BillingCards({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan, interval }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(null);
-    if (!res.ok || data.result === "unsuccess" || !data.url) {
-      setError(data.error || "Payment unsuccessful — checkout could not start.");
+    if (!res.ok || data?.result === "unsuccess" || !data?.url) {
+      setError(data?.error || "Payment unsuccessful — checkout could not start.");
       return;
     }
     window.location.href = data.url;
@@ -83,7 +83,7 @@ export function BillingCards({
                 </span>
               </p>
               <ul className="mt-4 flex-1 space-y-2 text-sm text-muted">
-                {plan.features.map((f) => (
+                {(plan.features || []).filter(Boolean).map((f) => (
                   <li key={f}>• {f}</li>
                 ))}
               </ul>

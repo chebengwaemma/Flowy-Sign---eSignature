@@ -7,6 +7,24 @@ export type DocStatus = "draft" | "sent" | "viewed" | "completed" | "void";
 export type FaxStatus = "queued" | "sending" | "delivered" | "failed" | "received";
 export type FieldType = "signature" | "initials" | "date" | "text";
 
+/** Admin-editable plan catalog entry (pricing site + billing + quotas) */
+export interface PlanDefinition {
+  id: PlanId;
+  name: string;
+  monthly: number;
+  yearly: number;
+  /** Signature sends / month (-1 unlimited) */
+  docs: number;
+  /** Generator downloads / month (-1 unlimited) */
+  downloads: number;
+  faxes: number;
+  seats: number;
+  features: string[];
+  visible: boolean;
+  stripePriceMonthly: string;
+  stripePriceYearly: string;
+}
+
 /** Handwriting fonts for the live e-signature generator */
 export type SignatureStyle =
   | "elegant"
@@ -119,6 +137,11 @@ export interface OrgSettings {
   starterFaxLimit: number;
   proFaxLimit: number;
   businessFaxLimit: number;
+  /**
+   * Full plan catalog (name, price, quotas, features, Stripe price IDs).
+   * Admin edits → public pricing + billing + enforcement.
+   */
+  plans: PlanDefinition[];
   signupEnabled: boolean;
   showGoogleLogin: boolean;
   /** Full marketing website copy — editable in admin */

@@ -7,7 +7,10 @@ import {
   IconWorkflow,
 } from "@/components/landing/FeatureIcons";
 import { IntegrationsMarquee } from "@/components/landing/IntegrationsMarquee";
-import { getMarketing } from "@/lib/get-marketing";
+import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
+import { getPlans } from "@/lib/plans";
+
+export const dynamic = "force-dynamic";
 
 const ORBIT_MARKS = [
   { name: "Drive", fg: "#4285F4", mark: "G" },
@@ -32,10 +35,13 @@ function withEsignUnderline(text: string) {
 }
 
 export default async function HomePage() {
-  const m = await getMarketing();
+  const [m, site] = await Promise.all([getMarketing(), getSiteSettings()]);
   const h = m.home;
   const STEPS = m.steps;
   const TEAMS = m.teamCards;
+  const starter = getPlans(site).find((p) => p.id === "starter");
+  const teamPrice = starter ? String(starter.monthly) : h.planTeamPrice;
+  const teamTitle = starter?.name || h.planTeamTitle;
 
   const pillars = [
     { title: h.pillar1Title, body: h.pillar1Body, icon: <IconWorkflow /> },
@@ -148,7 +154,7 @@ export default async function HomePage() {
                 <h3>{f.title}</h3>
                 <p>{f.body}</p>
                 <Link href="/features" className="lp-text-link">
-                  Learn more <ArrowRight size={14} />
+                  {h.pillarLinkLabel} <ArrowRight size={14} />
                 </Link>
               </article>
             ))}
@@ -170,7 +176,7 @@ export default async function HomePage() {
                 <h3>{t.title}</h3>
                 <p>{t.body}</p>
                 <Link href={`/teams/${t.id}`} className="lp-text-link">
-                  See the solution <ArrowRight size={14} />
+                  {h.teamLinkLabel} <ArrowRight size={14} />
                 </Link>
               </article>
             ))}
@@ -204,11 +210,11 @@ export default async function HomePage() {
             <h2 className="lp-h2">{h.toolsTitle}</h2>
             <p>{h.toolsBody}</p>
             <div className="lp-hero-ctas">
-              <Link href="/features" className="lp-btn">
-                Explore integrations
+              <Link href={h.toolsPrimaryHref || "/features"} className="lp-btn">
+                {h.toolsPrimaryCta}
               </Link>
-              <Link href="/developers" className="lp-text-link" style={{ marginTop: 0 }}>
-                Developers <ArrowRight size={14} />
+              <Link href={h.toolsSecondaryHref || "/developers"} className="lp-text-link" style={{ marginTop: 0 }}>
+                {h.toolsSecondaryCta} <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -242,9 +248,9 @@ export default async function HomePage() {
           <div className="lp-plans-inner" data-animate="stagger">
             <article className="lp-plan-card">
               <p className="eyebrow">For teams</p>
-              <h3>{h.planTeamTitle}</h3>
+              <h3>{teamTitle}</h3>
               <p className="price">
-                Starts at <strong>${h.planTeamPrice}</strong>
+                Starts at <strong>${teamPrice}</strong>
                 <span>/month</span>
               </p>
               <p className="desc">{h.planTeamBody}</p>
@@ -260,8 +266,8 @@ export default async function HomePage() {
                 <span>/month</span>
               </p>
               <p className="desc">{h.planApiBody}</p>
-              <Link href="/developers" className="lp-btn-muted">
-                Get started
+              <Link href={h.toolsSecondaryHref || "/developers"} className="lp-btn-muted">
+                {h.toolsSecondaryCta}
               </Link>
             </article>
           </div>

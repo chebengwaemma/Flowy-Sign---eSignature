@@ -23,9 +23,13 @@ export default function FaxPage() {
   const [loading, setLoading] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/fax");
-    const data = await res.json();
-    if (res.ok) setFaxes(data.faxes);
+    try {
+      const res = await fetch("/api/fax");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setFaxes(Array.isArray(data?.faxes) ? data.faxes : []);
+    } catch {
+      /* keep previous list */
+    }
   }
 
   useEffect(() => {
@@ -43,10 +47,10 @@ export default function FaxPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ toNumber, subject, pages }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Send failed");
+      setError(data?.error || "Send failed");
       return;
     }
     setSubject("");

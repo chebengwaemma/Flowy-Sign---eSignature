@@ -1,4 +1,5 @@
 import { defaultMarketing, mergeMarketing } from "./marketing";
+import { DEFAULT_PLANS, legacyLimitsFromPlans, mergePlans } from "./plans";
 import type { OrgSettings } from "./types";
 
 export const defaultSettings: OrgSettings = {
@@ -59,16 +60,57 @@ export const defaultSettings: OrgSettings = {
   starterFaxLimit: 20,
   proFaxLimit: 100,
   businessFaxLimit: -1,
+  plans: DEFAULT_PLANS.map((x) => ({ ...x, features: [...x.features] })),
   signupEnabled: true,
   showGoogleLogin: true,
   marketing: defaultMarketing,
 };
 
+function withEnvStripePrices(plans: ReturnType<typeof mergePlans>) {
+  const envMap: Record<string, { monthly?: string; yearly?: string }> = {
+    starter: {
+      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
+    },
+    pro: {
+      monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+    },
+    business: {
+      monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+    },
+  };
+  return plans.map((plan) => {
+    const env = envMap[plan.id];
+    if (!env) return plan;
+    return {
+      ...plan,
+      stripePriceMonthly: plan.stripePriceMonthly || env.monthly || "",
+      stripePriceYearly: plan.stripePriceYearly || env.yearly || "",
+    };
+  });
+}
+
 export function mergeSettings(partial?: Partial<OrgSettings> | null): OrgSettings {
-  const p = partial || {};
+  const p = partial && typeof partial === "object" ? partial : {};
+  // Drop null/undefined nested keys so they don't wipe defaults
+  const cleaned = Object.fromEntries(
+    Object.entries(p).filter(([, v]) => v !== null && v !== undefined),
+  ) as Partial<OrgSettings>;
+
+  const plans = withEnvStripePrices(
+    mergePlans(Array.isArray(cleaned.plans) ? cleaned.plans : defaultSettings.plans),
+  );
+  const legacy = legacyLimitsFromPlans(plans);
   return {
     ...defaultSettings,
-    ...p,
-    marketing: mergeMarketing(p.marketing ?? defaultSettings.marketing),
+    ...cleaned,
+    ...legacy,
+    plans,
+    brandName: cleaned.brandName || defaultSettings.brandName,
+    logoText: cleaned.logoText || defaultSettings.logoText,
+    supportEmail: cleaned.supportEmail || defaultSettings.supportEmail,
+    marketing: mergeMarketing(cleaned.marketing ?? defaultSettings.marketing),
   };
 }

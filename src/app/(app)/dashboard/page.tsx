@@ -11,15 +11,14 @@ export default async function DashboardPage() {
   if (!user) return null;
 
   const store = await readStore();
-  const org = store.organizations.find((o) => o.id === user.orgId);
-  const settings = mergeSettings(org?.settings ?? store.site);
+  const settings = mergeSettings(store.site);
   const docs = await getOrgDocuments(user.orgId);
   const quota = await getSignatureQuota(user);
   const pendingSignature = docs.filter((d) => d.status === "sent" || d.status === "viewed").length;
   const pendingYours = 0;
   const drafts = docs.filter((d) => d.status === "draft").length;
   const signed = docs.filter((d) => d.status === "completed").length;
-  const firstName = user.name.split(" ")[0];
+  const firstName = (user.name || user.email || "there").split(" ")[0];
 
   const stats = [
     { label: "Pending signature", value: pendingSignature, tone: "amber" },

@@ -50,23 +50,27 @@ export default function SignPage() {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/sign/${params.token}`);
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error || "Link unavailable");
-        return;
-      }
-      setData(json);
-      setMark({
-        mode: "typed",
-        text: json.recipient.name,
-        style: json.recipient.preferredSignatureStyle || "elegant",
-      });
-      if (json.recipient.status === "signed") {
-        setDone(true);
-        if (json.document.status === "completed" && json.fullDocument) {
-          setFullDoc(json.fullDocument);
+      try {
+        const res = await fetch(`/api/sign/${params.token}`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json?.recipient || !json?.document) {
+          setError(json?.error || "Link unavailable");
+          return;
         }
+        setData(json);
+        setMark({
+          mode: "typed",
+          text: json.recipient.name || json.recipient.email || "",
+          style: json.recipient.preferredSignatureStyle || "elegant",
+        });
+        if (json.recipient.status === "signed") {
+          setDone(true);
+          if (json.document.status === "completed" && json.fullDocument) {
+            setFullDoc(json.fullDocument);
+          }
+        }
+      } catch {
+        setError("Link unavailable");
       }
     }
     load();
@@ -88,14 +92,14 @@ export default function SignPage() {
         signatureMark: mark,
       }),
     });
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(json.error || "Could not sign");
+      setError(json?.error || "Could not sign");
       return;
     }
     setDone(true);
-    if (json.document) setFullDoc(json.document);
+    if (json?.document) setFullDoc(json.document);
     setData((prev) => {
       if (!prev || !mark) return prev;
       return {
@@ -103,8 +107,8 @@ export default function SignPage() {
         recipient: { ...prev.recipient, status: "signed" },
         document: {
           ...prev.document,
-          status: json.completed ? "completed" : prev.document.status,
-          fields: prev.document.fields.map((f) =>
+          status: json?.completed ? "completed" : prev.document.status,
+          fields: (prev.document.fields || []).map((f) =>
             f.type === "signature" || f.type === "initials"
               ? {
                   ...f,

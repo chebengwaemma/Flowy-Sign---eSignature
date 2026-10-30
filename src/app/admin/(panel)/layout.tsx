@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
+  await connection();
   const admin = await getAdminSession();
   if (!admin) redirect("/admin/login");
 
@@ -15,7 +19,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-[var(--muted)]">
-            {admin.name} · {admin.email}
+            {admin.name || "Admin"} · {admin.email || ""}
           </span>
           <Link href="/" className="source-btn" target="_blank">
             View site

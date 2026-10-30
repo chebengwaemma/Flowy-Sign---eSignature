@@ -61,9 +61,9 @@ export function MarketingCmsExtra({
 
   if (mode === "lists") {
     return (
-      <Section title="Homepage steps & team cards">
-        <p className="md:col-span-2 text-xs text-[var(--muted)]">
-          These power the Steps and Teams sections on the marketing homepage.
+      <Section title="O · Homepage steps, team cards & API blocks">
+        <p className="md:col-span-2 text-sm text-[var(--muted)]">
+          Full control of homepage Steps + Teams cards + Developers page blocks. Add/remove cards below, then Save.
         </p>
         {marketing.steps.map((step, i) => (
           <div key={i} className="md:col-span-2 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 md:grid-cols-2">

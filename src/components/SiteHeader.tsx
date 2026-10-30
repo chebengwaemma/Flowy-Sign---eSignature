@@ -41,6 +41,7 @@ function MegaPanel({
 export function SiteHeader({
   nav,
   brandLabel = "Flowy Sign - eSignature",
+  pricingLinks = PRICING_LINKS,
 }: {
   nav: {
     why: string;
@@ -53,6 +54,7 @@ export function SiteHeader({
     getStarted: string;
   };
   brandLabel?: string;
+  pricingLinks?: NavLink[];
 }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -197,7 +199,7 @@ export function SiteHeader({
       {panel === "pricing" && (
         <div className="lp-mega">
           <div className="lp-mega-inner">
-            <MegaPanel title="Plans" links={PRICING_LINKS} onNavigate={closeAll} />
+            <MegaPanel title="Plans" links={pricingLinks} onNavigate={closeAll} />
           </div>
         </div>
       )}
@@ -212,7 +214,7 @@ export function SiteHeader({
                   ["why", nav.why, WHY_LINKS],
                   ["features", nav.features, FEATURE_LINKS],
                   ["teams", nav.teams, TEAM_LINKS],
-                  ["pricing", nav.pricing, PRICING_LINKS],
+                  ["pricing", nav.pricing, pricingLinks],
                 ] as const
               ).map(([id, label, links]) => (
                 <div key={id} className="lp-menu-acc-item">

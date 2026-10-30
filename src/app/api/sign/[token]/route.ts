@@ -4,17 +4,19 @@ import { readStore, updateStore } from "@/lib/store";
 import type { Document, SignatureMark } from "@/lib/types";
 
 function publicDoc(doc: Document, recipientId: string) {
+  const fields = Array.isArray(doc.fields) ? doc.fields : [];
+  const recipients = Array.isArray(doc.recipients) ? doc.recipients : [];
   return {
     id: doc.id,
-    title: doc.title,
-    content: doc.content,
+    title: doc.title || "Document",
+    content: doc.content || "",
     status: doc.status,
     fileKind: doc.fileKind || "text",
     fileDataUrl: doc.fileDataUrl,
     fileName: doc.fileName,
     completedAt: doc.completedAt,
-    fields: doc.fields.filter((f) => f.recipientId === recipientId),
-    recipients: doc.recipients.map((r) => ({
+    fields: fields.filter((f) => f?.recipientId === recipientId),
+    recipients: recipients.map((r) => ({
       id: r.id,
       name: r.name,
       email: r.email,
@@ -31,10 +33,15 @@ export async function GET(
 ) {
   const { token } = await params;
   const store = await readStore();
-  const doc = store.documents.find((d) => d.recipients.some((r) => r.token === token));
+  const doc = store.documents.find((d) =>
+    (d.recipients || []).some((r) => r.token === token),
+  );
   if (!doc) return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
 
-  const recipient = doc.recipients.find((r) => r.token === token)!;
+  const recipient = (doc.recipients || []).find((r) => r.token === token);
+  if (!recipient) {
+    return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
+  }
   if (doc.status === "draft" || doc.status === "void") {
     return NextResponse.json({ error: "Document is not available for signing" }, { status: 400 });
   }
@@ -43,12 +50,12 @@ export async function GET(
     const d = s.documents.find((x) => x.id === doc.id);
     if (!d) return;
     if (d.status === "sent") d.status = "viewed";
-    const r = d.recipients.find((x) => x.token === token);
+    const r = (d.recipients || []).find((x) => x.token === token);
     if (r && r.status === "pending") r.status = "viewed";
     d.updatedAt = new Date().toISOString();
   });
 
-  const fresh = (await readStore()).documents.find((d) => d.id === doc.id)!;
+  const fresh = (await readStore()).documents.find((d) => d.id === doc.id) || doc;
 
   return NextResponse.json({
     document: publicDoc(fresh, recipient.id),
@@ -92,7 +99,11 @@ const signSchema = z.object({
 function sanitizeDoc(doc: Document): Document {
   return {
     ...doc,
-    recipients: doc.recipients.map((r) => ({ ...r, token: "" })),
+    fields: Array.isArray(doc.fields) ? doc.fields : [],
+    recipients: (Array.isArray(doc.recipients) ? doc.recipients : []).map((r) => ({
+      ...r,
+      token: "",
+    })),
   };
 }
 
@@ -101,7 +112,13 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const body = signSchema.safeParse(await req.json());
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const body = signSchema.safeParse(raw);
   if (!body.success) {
     return NextResponse.json({ error: "Signature required" }, { status: 400 });
   }
@@ -129,8 +146,13 @@ export async function POST(
   let result: { ok: boolean; completed?: boolean; document?: Document } = { ok: false };
 
   await updateStore((store) => {
-    const doc = store.documents.find((d) => d.recipients.some((r) => r.token === token));
+    const doc = store.documents.find((d) =>
+      (Array.isArray(d.recipients) ? d.recipients : []).some((r) => r.token === token),
+    );
     if (!doc) return;
+    if (!Array.isArray(doc.recipients)) doc.recipients = [];
+    if (!Array.isArray(doc.fields)) doc.fields = [];
+
     const recipient = doc.recipients.find((r) => r.token === token);
     if (!recipient) return;
 
@@ -138,7 +160,10 @@ export async function POST(
     recipient.status = "signed";
     recipient.signedAt = now;
 
-    const display = mark.mode === "typed" ? (mark.text || body.data.signature).trim() : mark.text || recipient.name;
+    const display =
+      mark.mode === "typed"
+        ? (mark.text || body.data.signature || "").trim()
+        : String(mark.text || recipient.name || recipient.email || "Signed").trim();
 
     for (const field of doc.fields) {
       if (field.recipientId !== recipient.id) continue;

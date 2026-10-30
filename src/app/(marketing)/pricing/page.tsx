@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { PLANS } from "@/lib/plans";
-import { getMarketing } from "@/lib/get-marketing";
+import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
+import { getPlans, planDisplayFeatures } from "@/lib/plans";
+
+export const dynamic = "force-dynamic";
 
 export default async function PricingPage() {
-  const { pricing: p, home } = await getMarketing();
-  const essentials = PLANS.find((x) => x.id === "starter" || x.monthly === 15) || PLANS[0];
-  const standard = PLANS.find((x) => x.monthly >= 20) || PLANS[1] || essentials;
+  const [{ pricing: p, home, pricingPage: pp }, site] = await Promise.all([
+    getMarketing(),
+    getSiteSettings(),
+  ]);
+  const plans = getPlans(site).filter((x) => x.visible);
+  const paid = plans.filter((x) => x.id !== "free");
+  const essentials = paid[0] || plans[0];
+  const standard = paid[1] || paid[0] || essentials;
 
   return (
     <main className="lp-page lp-sub">
@@ -25,84 +32,99 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      <section className="lp-plans" id="essentials">
-        <div className="lp-wrap lp-plans-inner" data-animate="stagger">
-          <article className="lp-plan-card" id="standard">
-            <p className="eyebrow">Essentials</p>
-            <h3>{home.planTeamTitle}</h3>
-            <p className="price">
-              Starts at <strong>${essentials?.monthly ?? home.planTeamPrice}</strong>
-              <span>/month</span>
-            </p>
-            <p className="desc">
-              {(essentials?.features || ["Unlimited templates", "Audit trail", "Reminders"]).join(
-                " · ",
-              )}
-            </p>
-            <Link href="/signup" className="lp-btn">
-              {p.cta}
-            </Link>
-          </article>
-          <article className="lp-plan-card alt">
-            <p className="eyebrow">Standard</p>
-            <h3>For growing teams</h3>
-            <p className="price">
-              Starts at <strong>${standard?.monthly ?? 25}</strong>
-              <span>/user / month</span>
-            </p>
-            <p className="desc">
-              {(standard?.features || ["Team roles", "Branding", "Bulk send"]).join(" · ")}
-            </p>
-            <Link href="/signup" className="lp-btn-muted">
-              Get started
-            </Link>
-          </article>
-        </div>
-      </section>
-
-      <section className="lp-sub-body cream" id="api">
-        <div className="lp-wrap lp-plans-inner" data-animate="stagger">
-          <article className="lp-sub-card" style={{ gridColumn: "1 / -1" }}>
-            <p className="lp-dev-kicker" style={{ color: "#0061ff" }}>
-              API plans
-            </p>
-            <h2 style={{ color: "#1e1919", fontSize: 28 }}>{home.planApiTitle}</h2>
-            <p className="extra">
-              Starts at <strong>${home.planApiPrice}/month</strong> — {home.planApiBody}
-            </p>
-            <Link href="/developers" className="lp-text-link">
-              Explore developers →
-            </Link>
-          </article>
-        </div>
-      </section>
-
-      <section className="lp-sub-body">
-        <div className="lp-wrap">
-          <h2 className="lp-h2" data-animate="up">
-            Compare plans
-          </h2>
-          <div className="lp-sub-grid" data-animate="stagger">
-            {PLANS.map((plan) => (
-              <article key={plan.id} className="lp-sub-card">
-                <h2>{plan.name}</h2>
-                <p>
-                  ${plan.monthly}
-                  <span>/mo</span>
-                </p>
-                <ul className="extra" style={{ paddingLeft: 18, marginTop: 12 }}>
-                  {plan.features.map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                </ul>
-                <Link href="/signup" className="lp-btn" style={{ marginTop: 16 }}>
-                  Get started
-                </Link>
-              </article>
-            ))}
+      {pp.showHighlightRow && (
+        <section className="lp-plans" id="essentials">
+          <div className="lp-wrap lp-plans-inner" data-animate="stagger">
+            <article className="lp-plan-card" id="standard">
+              <p className="eyebrow">{pp.essentialsEyebrow}</p>
+              <h3>{essentials?.name || home.planTeamTitle}</h3>
+              <p className="price">
+                {pp.startsAtLabel}{" "}
+                <strong>${essentials?.monthly ?? home.planTeamPrice}</strong>
+                <span>{pp.monthSuffix}</span>
+              </p>
+              <p className="desc">
+                {(essentials ? planDisplayFeatures(essentials) : [home.planTeamBody]).join(" · ")}
+              </p>
+              <Link href="/signup" className="lp-btn">
+                {p.cta}
+              </Link>
+            </article>
+            <article className="lp-plan-card alt">
+              <p className="eyebrow">{pp.standardEyebrow}</p>
+              <h3>{standard?.name || "For growing teams"}</h3>
+              <p className="price">
+                {pp.startsAtLabel}{" "}
+                <strong>${standard?.monthly ?? home.planTeamPrice ?? essentials?.monthly ?? 0}</strong>
+                <span>{pp.monthSuffix}</span>
+              </p>
+              <p className="desc">
+                {(standard
+                  ? planDisplayFeatures(standard)
+                  : essentials
+                    ? planDisplayFeatures(essentials)
+                    : [home.planTeamBody]
+                ).join(" · ")}
+              </p>
+              <Link href="/signup" className="lp-btn-muted">
+                {pp.standardCta}
+              </Link>
+            </article>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {pp.showApiBlock && (
+        <section className="lp-sub-body cream" id="api">
+          <div className="lp-wrap lp-plans-inner" data-animate="stagger">
+            <article className="lp-sub-card" style={{ gridColumn: "1 / -1" }}>
+              <p className="lp-dev-kicker" style={{ color: "var(--lp-blue)" }}>
+                {pp.apiKicker}
+              </p>
+              <h2 style={{ color: "var(--lp-ink)", fontSize: 28 }}>{home.planApiTitle}</h2>
+              <p className="extra">
+                {pp.startsAtLabel} <strong>${home.planApiPrice}{pp.monthSuffix}</strong> —{" "}
+                {home.planApiBody}
+              </p>
+              <Link href={pp.apiLinkHref || "/developers"} className="lp-text-link">
+                {pp.apiLinkLabel}
+              </Link>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {pp.showCompare && (
+        <section className="lp-sub-body">
+          <div className="lp-wrap">
+            <h2 className="lp-h2" data-animate="up">
+              {pp.compareTitle}
+            </h2>
+            <div className="lp-sub-grid" data-animate="stagger">
+              {plans.map((plan) => (
+                <article key={plan.id} className="lp-sub-card">
+                  <h2>{plan.name}</h2>
+                  <p>
+                    ${plan.monthly}
+                    <span>/mo</span>
+                    {plan.yearly > 0 ? (
+                      <span className="extra"> · ${plan.yearly}/yr</span>
+                    ) : null}
+                  </p>
+                  <ul className="extra" style={{ paddingLeft: 18, marginTop: 12 }}>
+                    {planDisplayFeatures(plan).map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                  <Link href="/signup" className="lp-btn" style={{ marginTop: 16 }}>
+                    {pp.compareCta}
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
