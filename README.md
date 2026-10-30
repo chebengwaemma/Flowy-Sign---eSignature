@@ -15,8 +15,8 @@ Original-brand eSignature + fax workspace (not a Dropbox clone).
 
 ## Demo app accounts (main site)
 
-- `admin@flowysign.com` / `admin123`
-- `user@flowysign.com` / `user123`
+- `admin@lowysign.com` / `admin123`
+f- `user@lowysign.com` / `user123`
 
 ## Hidden admin
 
