@@ -10,6 +10,7 @@ import {
   resolveCheckoutPriceId,
   stripeConfigured,
 } from "@/lib/stripe";
+import { getAppUrl } from "@/lib/app-url";
 import { updateStore } from "@/lib/store";
 import type { BillingInterval, PlanId } from "@/lib/types";
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
 
   const plan = body.data.plan as Exclude<PlanId, "free">;
   const interval = body.data.interval as BillingInterval;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
   const stripe = getStripe();
   const site = await getSiteSettings();
   const planDef = getPlanFromSettings(plan, site);

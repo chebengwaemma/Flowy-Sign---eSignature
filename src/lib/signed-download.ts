@@ -139,16 +139,23 @@ export async function downloadSignedPng(doc: Document) {
     const x = (field.x / 100) * canvas.width;
     const y = (field.y / 100) * canvas.height;
     const w = ((field.width || 28) / 100) * canvas.width;
+    const boxH = ((field.height || 8) / 100) * canvas.height;
 
     if (field.signature?.mode === "image" && field.signature.imageDataUrl) {
       const mark = await loadImage(field.signature.imageDataUrl);
-      const h = Math.min(mark.naturalHeight * (w / mark.naturalWidth), canvas.height * 0.12);
-      ctx.drawImage(mark, x, y, w, h);
+      const aspect = mark.naturalWidth / Math.max(mark.naturalHeight, 1);
+      let drawW = w;
+      let drawH = w / aspect;
+      if (drawH > boxH) {
+        drawH = boxH;
+        drawW = boxH * aspect;
+      }
+      ctx.drawImage(mark, x, y, drawW, drawH);
     } else {
       const text = field.signature?.text || field.value || "";
       const style = field.signature?.style || "elegant";
       ctx.fillStyle = "#0b1f1c";
-      const size = Math.max(20, Math.min(52, w / Math.max(text.length * 0.4, 3.5)));
+      const size = Math.max(14, Math.min(boxH * 0.85, w / Math.max(text.length * 0.35, 3)));
       const fontMap: Record<string, string> = {
         elegant: `${size}px "Great Vibes", cursive`,
         script: `${size}px "Dancing Script", cursive`,

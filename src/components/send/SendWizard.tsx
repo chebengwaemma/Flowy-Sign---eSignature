@@ -49,6 +49,16 @@ type Field = {
   signerId: string;
   x: number;
   y: number;
+  /** Percent of document canvas */
+  width: number;
+  height: number;
+};
+
+const DEFAULT_FIELD_SIZE: Record<Field["type"], { width: number; height: number }> = {
+  signature: { width: 28, height: 10 },
+  initials: { width: 12, height: 8 },
+  date: { width: 18, height: 6 },
+  text: { width: 22, height: 6 },
 };
 
 const STEPS = [
@@ -186,18 +196,104 @@ export function SendWizard() {
   function placeField(e: React.MouseEvent<HTMLDivElement>) {
     if (step !== 2 || !signers[activeSigner]) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const size = DEFAULT_FIELD_SIZE[fieldTool];
+    const x = ((e.clientX - rect.left) / rect.width) * 100 - size.width / 2;
+    const y = ((e.clientY - rect.top) / rect.height) * 100 - size.height / 2;
     setFields((prev) => [
       ...prev,
       {
         id: uid(),
         type: fieldTool,
         signerId: signers[activeSigner].id,
-        x: Math.min(88, Math.max(2, x)),
-        y: Math.min(92, Math.max(2, y)),
+        x: Math.min(100 - size.width, Math.max(0, x)),
+        y: Math.min(100 - size.height, Math.max(0, y)),
+        width: size.width,
+        height: size.height,
       },
     ]);
+  }
+
+  function startResize(
+    e: React.PointerEvent,
+    fieldId: string,
+    corner: "se" | "sw" | "ne" | "nw",
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    const canvas = (e.currentTarget as HTMLElement).closest(".doc-canvas") as HTMLElement | null;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origin = { ...field };
+    const minW = field.type === "signature" ? 12 : 8;
+    const minH = field.type === "signature" ? 6 : 4;
+
+    function onMove(ev: PointerEvent) {
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      let { x, y, width, height } = origin;
+
+      if (corner.includes("e")) width = origin.width + dx;
+      if (corner.includes("w")) {
+        width = origin.width - dx;
+        x = origin.x + dx;
+      }
+      if (corner.includes("s")) height = origin.height + dy;
+      if (corner.includes("n")) {
+        height = origin.height - dy;
+        y = origin.y + dy;
+      }
+
+      width = Math.min(70, Math.max(minW, width));
+      height = Math.min(40, Math.max(minH, height));
+      x = Math.min(100 - width, Math.max(0, x));
+      y = Math.min(100 - height, Math.max(0, y));
+
+      setFields((prev) => prev.map((f) => (f.id === fieldId ? { ...f, x, y, width, height } : f)));
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function startMove(e: React.PointerEvent, fieldId: string) {
+    if ((e.target as HTMLElement).closest(".placed-field-handle")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const canvas = (e.currentTarget as HTMLElement).closest(".doc-canvas") as HTMLElement | null;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origin = { x: field.x, y: field.y, width: field.width, height: field.height };
+
+    function onMove(ev: PointerEvent) {
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      const x = Math.min(100 - origin.width, Math.max(0, origin.x + dx));
+      const y = Math.min(100 - origin.height, Math.max(0, origin.y + dy));
+      setFields((prev) => prev.map((f) => (f.id === fieldId ? { ...f, x, y } : f)));
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   async function sendDocument() {
@@ -226,8 +322,8 @@ export function SendWizard() {
           signerIndex: Math.max(0, signerIndex(f.signerId)),
           x: f.x,
           y: f.y,
-          width: f.type === "signature" ? 28 : 18,
-          height: f.type === "signature" ? 10 : 6,
+          width: f.width,
+          height: f.height,
         })),
       }),
     });
@@ -483,7 +579,9 @@ export function SendWizard() {
           <section className="send-panel fields-layout rise">
             <div>
               <h1>Place fields</h1>
-              <p className="send-sub">Click the document to place fields for the selected signer.</p>
+              <p className="send-sub">
+                Click to place. Drag a field to move it. Drag a corner handle to make it bigger or smaller.
+              </p>
               <div className="field-tools">
                 {(["signature", "initials", "date", "text"] as const).map((t) => (
                   <button
@@ -524,24 +622,34 @@ export function SendWizard() {
               {fields.map((f) => {
                 const signer = signers.find((s) => s.id === f.signerId);
                 return (
-                  <button
+                  <div
                     key={f.id}
-                    type="button"
                     className="placed-field"
                     style={{
                       left: `${f.x}%`,
                       top: `${f.y}%`,
+                      width: `${f.width}%`,
+                      height: `${f.height}%`,
                       borderColor: signer?.color,
                       background: `${signer?.color}22`,
                     }}
-                    onClick={(e) => {
+                    onPointerDown={(e) => startMove(e, f.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
                       e.stopPropagation();
                       setFields((prev) => prev.filter((x) => x.id !== f.id));
                     }}
-                    title="Click to remove"
+                    title="Drag to move · corners to resize · double-click to remove"
                   >
-                    {f.type}
-                  </button>
+                    <span className="placed-field-label">{f.type}</span>
+                    {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                      <span
+                        key={corner}
+                        className={`placed-field-handle handle-${corner}`}
+                        onPointerDown={(e) => startResize(e, f.id, corner)}
+                      />
+                    ))}
+                  </div>
                 );
               })}
             </div>

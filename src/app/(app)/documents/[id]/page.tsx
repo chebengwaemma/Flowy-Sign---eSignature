@@ -19,7 +19,6 @@ export default async function DocumentDetailPage({
   const doc = store.documents.find((d) => d.id === id && d.orgId === user.orgId);
   if (!doc) notFound();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const recipients = doc.recipients || [];
   const fields = doc.fields || [];
   const safeDoc = {
@@ -79,7 +78,7 @@ export default async function DocumentDetailPage({
                       r.token && (
                       <a
                         className="text-xs font-semibold text-accent-deep underline"
-                        href={`${appUrl}/sign/${r.token}`}
+                        href={`/sign/${r.token}`}
                         target="_blank"
                         rel="noreferrer"
                       >

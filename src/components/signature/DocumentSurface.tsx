@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import type { DocFileKind, SignatureField } from "@/lib/types";
 import { signatureClass } from "@/lib/signature-styles";
 
@@ -64,26 +64,36 @@ export function DocumentSurface({
         {fields.map((field) => {
           const pending = !field.value && !field.signature;
           if (pending && !highlightPending && !interactive) return null;
+          const w = field.width || 28;
+          const h = Math.max(field.height || 8, 6);
+          // Scale typed signature to fill the placed field box
+          const fontPx = Math.max(14, Math.min(72, h * 4.2));
+          const markStyle: CSSProperties = {
+            left: `${field.x}%`,
+            top: `${field.y}%`,
+            width: `${w}%`,
+            height: `${h}%`,
+          };
           return (
             <div
               key={field.id}
               className={`doc-mark doc-mark-${field.type} ${pending ? "is-pending" : "is-signed"}`}
-              style={{
-                left: `${field.x}%`,
-                top: `${field.y}%`,
-                width: `${field.width || 28}%`,
-                minHeight: `${Math.max(field.height || 8, 6)}%`,
-              }}
+              style={markStyle}
             >
               {field.signature?.mode === "image" && field.signature.imageDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={field.signature.imageDataUrl} alt="" className="doc-mark-img" />
               ) : field.type === "signature" || field.type === "initials" ? (
-                <span className={signatureClass(field.signature?.style)}>
+                <span
+                  className={signatureClass(field.signature?.style)}
+                  style={{ fontSize: `${fontPx}px` }}
+                >
                   {field.signature?.text || field.value || field.type}
                 </span>
               ) : (
-                <span className="doc-mark-plain">{field.value || field.type}</span>
+                <span className="doc-mark-plain" style={{ fontSize: `${Math.max(12, fontPx * 0.45)}px` }}>
+                  {field.value || field.type}
+                </span>
               )}
             </div>
           );

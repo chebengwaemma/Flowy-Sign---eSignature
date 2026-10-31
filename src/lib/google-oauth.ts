@@ -1,10 +1,11 @@
+import { getAppUrl } from "@/lib/app-url";
+
 export function googleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
 export function googleRedirectUri() {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/api/auth/google/callback`;
+  return `${getAppUrl().replace(/\/$/, "")}/api/auth/google/callback`;
 }
 
 export function getGoogleAuthUrl(state: string) {

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSession } from "@/lib/auth";
+import { getAppUrl } from "@/lib/app-url";
 import { exchangeGoogleCode, googleConfigured } from "@/lib/google-oauth";
 import { findOrCreateGoogleUser } from "@/lib/store";
 
 export async function GET(req: Request) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
   const fail = (msg: string) =>
     NextResponse.redirect(`${appUrl}/login?error=${encodeURIComponent(msg)}`);
 
