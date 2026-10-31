@@ -132,6 +132,10 @@ export function SignatureStudio({
       casual: `${size}px Satisfy, cursive`,
       marker: `600 ${size}px Caveat, cursive`,
       classic: `${size}px Sacramento, cursive`,
+      bold: `${size}px "Permanent Marker", cursive`,
+      italic: `${size}px Parisienne, cursive`,
+      slant: `italic ${size}px Satisfy, cursive`,
+      strike: `${size}px Sacramento, cursive`,
     };
     ctx.fillStyle = "#0b1f1c";
     ctx.font = fonts[active] || fonts.elegant;

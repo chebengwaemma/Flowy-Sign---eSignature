@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
+    "hostinger:build": "npm run build && node scripts/prepare-hostinger.mjs",
     "lint": "eslint"
   },
   "dependencies": {

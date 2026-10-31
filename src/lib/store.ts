@@ -13,7 +13,10 @@ import { defaultSettings, mergeSettings } from "./settings";
 import { connectDB } from "./db";
 import { Platform } from "./models/Platform";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+/** On Vercel the app FS is read-only — use /tmp for file fallback. */
+const DATA_DIR = process.env.VERCEL
+  ? path.join("/tmp", "flowy-sign-data")
+  : path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 
 function seed(): PlatformStore {
@@ -205,20 +208,29 @@ function normalizeStore(raw: unknown): PlatformStore {
 }
 
 async function readFileStore(): Promise<PlatformStore> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
   try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
     const raw = await fs.readFile(STORE_PATH, "utf8");
     return normalizeStore(JSON.parse(raw) as PlatformStore);
   } catch {
     const initial = seed();
-    await fs.writeFile(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
+    try {
+      await fs.mkdir(DATA_DIR, { recursive: true });
+      await fs.writeFile(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
+    } catch {
+      /* ephemeral / read-only FS — keep seed in memory for this request */
+    }
+    return normalizeStore(initial);
   }
 }
 
 async function writeFileStore(store: PlatformStore): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  } catch (err) {
+    console.warn("[store] file mirror skipped:", (err as Error).message);
+  }
 }
 
 async function readMongoStore(): Promise<PlatformStore | null> {
@@ -269,10 +281,14 @@ export async function readStore(): Promise<PlatformStore> {
 
 export async function writeStore(store: PlatformStore): Promise<void> {
   const ok = await writeMongoStore(store);
-  // Always mirror to file as backup
   await writeFileStore(store);
   if (!ok) {
-    // file already written
+    // File mirror may be ephemeral on Vercel; Mongo is source of truth in production
+    if (process.env.VERCEL || process.env.MONGODB_URI) {
+      throw new Error(
+        "Database write failed. Check MONGODB_URI and Atlas Network Access (allow 0.0.0.0/0 for Vercel).",
+      );
+    }
   }
 }
 

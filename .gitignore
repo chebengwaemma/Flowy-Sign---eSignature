@@ -43,3 +43,6 @@ next-env.d.ts
 # local app data
 /data/store.json
 /data/admins.json
+
+.vercel
+.env*

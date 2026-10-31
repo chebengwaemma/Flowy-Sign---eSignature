@@ -11,25 +11,25 @@ export const SIGNATURE_STYLES: Array<{
   { id: "casual", label: "Casual", hint: "Satisfy" },
   { id: "marker", label: "Marker", hint: "Caveat" },
   { id: "classic", label: "Classic", hint: "Sacramento" },
+  { id: "bold", label: "Bold", hint: "Permanent Marker" },
+  { id: "italic", label: "Italic", hint: "Parisienne" },
+  { id: "slant", label: "Slant", hint: "Satisfy italic" },
+  { id: "strike", label: "Strike", hint: "Sacramento underline" },
 ];
 
-/** Normalize legacy style ids from older documents */
+/** Normalize unknown / empty style ids */
 export function normalizeSignatureStyle(style?: SignatureStyle | string): SignatureStyle {
   switch (style) {
-    case "bold":
-      return "marker";
-    case "italic":
-      return "script";
-    case "slant":
-      return "casual";
-    case "strike":
-      return "classic";
     case "elegant":
     case "script":
     case "formal":
     case "casual":
     case "marker":
     case "classic":
+    case "bold":
+    case "italic":
+    case "slant":
+    case "strike":
       return style;
     default:
       return "elegant";

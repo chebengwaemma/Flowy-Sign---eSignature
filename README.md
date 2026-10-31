@@ -15,8 +15,8 @@ Original-brand eSignature + fax workspace (not a Dropbox clone).
 
 ## Demo app accounts (main site)
 
-- `admin@flowysign.com` / `admin123`
-- `user@flowysign.com` / `user123`
+- `admin@lowysign.com` / `admin123`
+- f`user@lowysign.com` / `user123`
 
 ## Hidden admin
 
@@ -36,3 +36,43 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Set `MONGODB_URI` in `.env.local` (see `.env.example`).
+
+## Deploy
+
+### Vercel
+
+```bash
+npx vercel --prod
+```
+
+Set the same env vars as `.env.example` in the Vercel project (especially `MONGODB_URI`, `AUTH_SECRET`, `ADMIN_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`).
+
+### Hostinger (VPS / Node / Docker)
+
+Shared PHP hosting will not run this app. Use **VPS** or **Node.js** hosting.
+
+**Option A — Node standalone**
+
+```bash
+npm ci
+npm run hostinger:build
+```
+
+Upload the contents of `.next/standalone` to the server (it already includes `.next/static` + `public` after prepare). Then:
+
+```bash
+export PORT=3000 HOSTNAME=0.0.0.0
+# also set MONGODB_URI, AUTH_SECRET, ADMIN_AUTH_SECRET, NEXT_PUBLIC_APP_URL, Stripe keys…
+node server.js
+```
+
+Or from the project root after build: `npm run start:standalone`.
+
+**Option B — Docker**
+
+```bash
+docker build -t flowy-sign .
+docker run -p 3000:3000 --env-file .env.local flowy-sign
+```
+
+Point the Hostinger reverse proxy / domain to port `3000`.

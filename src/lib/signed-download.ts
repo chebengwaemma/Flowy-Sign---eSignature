@@ -23,10 +23,10 @@ function markHtml(field: SignatureField) {
     casual: "font-family:Satisfy,cursive;font-size:30px;",
     marker: "font-family:Caveat,cursive;font-size:32px;font-weight:600;",
     classic: "font-family:Sacramento,cursive;font-size:34px;",
-    bold: "font-family:Caveat,cursive;font-size:32px;font-weight:700;",
-    italic: "font-family:'Dancing Script',cursive;font-size:30px;",
-    slant: "font-family:Satisfy,cursive;font-size:30px;",
-    strike: "font-family:Sacramento,cursive;font-size:32px;",
+    bold: "font-family:'Permanent Marker',cursive;font-size:32px;",
+    italic: "font-family:Parisienne,cursive;font-size:34px;",
+    slant: "font-family:Satisfy,cursive;font-size:30px;font-style:italic;",
+    strike: "font-family:Sacramento,cursive;font-size:32px;text-decoration:underline;",
   };
   return `<span style="${styleMap[style] || styleMap.elegant}">${text}</span>`;
 }
@@ -156,9 +156,9 @@ export async function downloadSignedPng(doc: Document) {
         casual: `${size}px Satisfy, cursive`,
         marker: `600 ${size}px Caveat, cursive`,
         classic: `${size}px Sacramento, cursive`,
-        bold: `700 ${size}px Caveat, cursive`,
-        italic: `${size}px "Dancing Script", cursive`,
-        slant: `${size}px Satisfy, cursive`,
+        bold: `${size}px "Permanent Marker", cursive`,
+        italic: `${size}px Parisienne, cursive`,
+        slant: `italic ${size}px Satisfy, cursive`,
         strike: `${size}px Sacramento, cursive`,
       };
       ctx.font = fontMap[style] || fontMap.elegant;

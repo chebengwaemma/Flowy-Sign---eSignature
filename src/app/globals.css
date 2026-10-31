@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --ink: #062925;
@@ -2113,26 +2113,27 @@ body:has(.admin-nav-mobile) {
   font-size: clamp(1.7rem, 5vw, 2.55rem);
 }
 
-/* legacy aliases */
 .sig-bold {
-  font-family: var(--font-sig-marker), cursive;
-  font-weight: 700;
+  font-family: var(--font-sig-bold), cursive;
   font-size: clamp(1.45rem, 4vw, 2.1rem);
 }
 
 .sig-italic {
-  font-family: var(--font-sig-script), cursive;
-  font-size: clamp(1.4rem, 4vw, 2.1rem);
+  font-family: var(--font-sig-italic), cursive;
+  font-size: clamp(1.55rem, 4.5vw, 2.35rem);
 }
 
 .sig-slant {
   font-family: var(--font-sig-casual), cursive;
   font-size: clamp(1.4rem, 4vw, 2.1rem);
+  font-style: italic;
 }
 
 .sig-strike {
   font-family: var(--font-sig-classic), cursive;
   font-size: clamp(1.4rem, 4vw, 2.1rem);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
 
 /* Live e-signature generator */
