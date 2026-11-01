@@ -100,7 +100,7 @@ export default async function HomePage() {
                 </div>
                 <div className="lp-sign-box">
                   <span className="label">Sign here</span>
-                  <span className="sig">Alex Morgan</span>
+                  <span className="sig">sayeed sheikh</span>
                   <div className="meta">
                     <span className="dot" /> Signed · Today 2:14 PM
                   </div>
@@ -114,10 +114,10 @@ export default async function HomePage() {
               </div>
               <strong>2 new signature requests</strong>
               <div className="lp-float-people">
-                <span className="av a1">A</span>
+                <span className="av a1">S</span>
                 <span className="av a2">J</span>
                 <span className="av a3">M</span>
-                <span className="who">Alex, Jordan +1</span>
+                <span className="who">sayeed sheikh, Jordan +1</span>
               </div>
             </div>
           </div>
