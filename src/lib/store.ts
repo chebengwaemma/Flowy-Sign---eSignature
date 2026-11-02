@@ -45,6 +45,11 @@ function seed(): PlatformStore {
       plan: "pro",
       billingInterval: "monthly",
       createdAt: now,
+      packageType: "personal",
+      subscriptionStatus: "active",
+      activeDevicesCount: 0,
+      maxConcurrentSessions: 5,
+      packageActivatedAt: now,
     },
     {
       id: memberId,
@@ -56,6 +61,11 @@ function seed(): PlatformStore {
       plan: "pro",
       billingInterval: "monthly",
       createdAt: now,
+      packageType: "personal",
+      subscriptionStatus: "active",
+      activeDevicesCount: 0,
+      maxConcurrentSessions: 5,
+      packageActivatedAt: now,
     },
   ];
 
@@ -137,6 +147,7 @@ function seed(): PlatformStore {
     documents,
     faxes,
     invites: [],
+    deviceSessions: [],
     site: { ...defaultSettings },
   };
 }
@@ -157,6 +168,19 @@ function normalizeStore(raw: unknown): PlatformStore {
       orgId: u?.orgId || "",
       plan: u?.plan || "free",
       createdAt: u?.createdAt || new Date().toISOString(),
+      packageType: u?.packageType || (u?.plan === "business" ? "unlimited_muscle" : u?.plan === "free" || !u?.plan ? "none" : "personal"),
+      subscriptionStatus: u?.subscriptionStatus || (u?.plan && u.plan !== "free" ? "active" : "inactive"),
+      activeDevicesCount: typeof u?.activeDevicesCount === "number" ? u.activeDevicesCount : 0,
+      maxConcurrentSessions:
+        u?.maxConcurrentSessions === null
+          ? null
+          : typeof u?.maxConcurrentSessions === "number"
+            ? u.maxConcurrentSessions
+            : u?.plan === "business"
+              ? null
+              : u?.plan === "starter" || u?.plan === "pro"
+                ? 5
+                : 1,
     })),
     organizations: Array.isArray(base.organizations) ? base.organizations : [],
     documents: (Array.isArray(base.documents) ? base.documents : []).map((d) => ({
@@ -179,6 +203,9 @@ function normalizeStore(raw: unknown): PlatformStore {
       createdAt: f?.createdAt || new Date().toISOString(),
     })),
     invites: Array.isArray(base.invites) ? base.invites : [],
+    deviceSessions: Array.isArray(base.deviceSessions)
+      ? base.deviceSessions.filter((s) => s?.userId && s?.sessionId)
+      : [],
     site: mergeSettings(base.site),
   };
 
@@ -334,6 +361,10 @@ export async function createUser(input: {
     billingInterval: null,
     authProvider: "password",
     createdAt: now,
+    packageType: "none",
+    subscriptionStatus: "inactive",
+    activeDevicesCount: 0,
+    maxConcurrentSessions: 1,
   };
 
   const org: Organization = {
@@ -391,6 +422,10 @@ export async function findOrCreateGoogleUser(input: {
     googleId: input.googleId,
     authProvider: "google",
     createdAt: now,
+    packageType: "none",
+    subscriptionStatus: "inactive",
+    activeDevicesCount: 0,
+    maxConcurrentSessions: 1,
   };
   const org: Organization = {
     id: orgId,

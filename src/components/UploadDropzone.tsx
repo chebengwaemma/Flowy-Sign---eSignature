@@ -29,7 +29,7 @@ export function UploadDropzone() {
       <div className="dropzone-icon">
         <FileUp size={28} strokeWidth={1.5} />
       </div>
-      <p className="mt-3 text-[15px] font-medium text-[#1e1919]">
+      <p className="mt-3 text-[15px] font-medium text-[var(--ink)]">
         Drop documents to get signed here
       </p>
       <button type="button" className="btn-upload mt-4" onClick={goNew}>

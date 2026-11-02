@@ -18,11 +18,12 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const address = settings.companyAddress || m.footerTagline || "Austell GA, USA";
   const pricingLinks = buildPricingLinks(getPlans(settings), m.home?.planApiPrice);
 
+  const accent = settings.accentColor || "#0284c7";
   const theme = {
-    ["--lp-ink"]: settings.primaryColor || "#1e1919",
-    ["--lp-blue"]: settings.accentColor || "#0061ff",
-    ["--lp-blue-hover"]: settings.accentColor || "#0052d6",
-    ["--lp-signal"]: settings.signalColor || "#FF6B35",
+    ["--lp-ink"]: settings.primaryColor || "#0b1f33",
+    ["--lp-blue"]: accent,
+    ["--lp-blue-hover"]: accent,
+    ["--lp-signal"]: settings.signalColor || "#e85d04",
   } as CSSProperties;
 
   return (

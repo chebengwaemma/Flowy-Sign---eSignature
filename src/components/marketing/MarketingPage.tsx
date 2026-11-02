@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 
 export function MarketingHero({
   kicker,
@@ -20,7 +22,7 @@ export function MarketingHero({
 }) {
   return (
     <section className="lp-sub-hero">
-      <div className="lp-wrap" data-animate="up">
+      <ScrollMeetSplit className="lp-wrap lp-meet-stack" itemClassName="lp-meet-item" distance={90} stagger={0.1}>
         <p className="lp-dev-kicker">{kicker}</p>
         <h1>{title}</h1>
         <p className="lead">{lead}</p>
@@ -40,7 +42,7 @@ export function MarketingHero({
             </Link>
           )}
         </div>
-      </div>
+      </ScrollMeetSplit>
     </section>
   );
 }
@@ -54,7 +56,7 @@ export function MarketingCards({
 }) {
   return (
     <section className={`lp-sub-body${cream ? " cream" : ""}`}>
-      <div className="lp-wrap lp-sub-grid" data-animate="stagger">
+      <ScrollMeetSplit className="lp-wrap lp-sub-grid lp-meet-grid" itemClassName="lp-meet-item" distance={120} stagger={0.12}>
         {items.map((item) => (
           <article key={item.id || item.title} id={item.id} className="lp-sub-card">
             <h2>{item.title}</h2>
@@ -71,7 +73,7 @@ export function MarketingCards({
               ))}
           </article>
         ))}
-      </div>
+      </ScrollMeetSplit>
     </section>
   );
 }
@@ -83,7 +85,7 @@ export function MarketingCta({
 }) {
   return (
     <section className="lp-bottom-cta">
-      <div className="lp-wrap" data-animate="up">
+      <ScrollMeetBlock side="left" className="lp-wrap">
         <h2>{title}</h2>
         <div className="lp-hero-ctas">
           <Link href="/signup" className="lp-btn lp-btn-lg">
@@ -93,7 +95,7 @@ export function MarketingCta({
             Contact sales
           </Link>
         </div>
-      </div>
+      </ScrollMeetBlock>
     </section>
   );
 }

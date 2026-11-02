@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createSession } from "@/lib/auth";
+import { tryCreateSession } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
+import { deviceLabelFromRequest } from "@/lib/device-sessions";
 import { exchangeGoogleCode, googleConfigured } from "@/lib/google-oauth";
 import { findOrCreateGoogleUser } from "@/lib/store";
 
@@ -30,7 +31,27 @@ export async function GET(req: Request) {
   try {
     const profile = await exchangeGoogleCode(code);
     const user = await findOrCreateGoogleUser(profile);
-    await createSession(user.id);
+    const session = await tryCreateSession(user.id, deviceLabelFromRequest(req));
+    if (!session.ok) {
+      jar.set(
+        "flowy_session_limit",
+        JSON.stringify({
+          error: session.error,
+          code: session.code,
+          max_sessions: session.max_sessions,
+          active_sessions: session.active_sessions,
+          pending_login_token: session.pending_login_token,
+        }),
+        {
+          httpOnly: false,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+          maxAge: 300,
+        },
+      );
+      return NextResponse.redirect(`${appUrl}/login?session_limit=1`);
+    }
     return NextResponse.redirect(`${appUrl}/dashboard`);
   } catch (err) {
     console.error("[google-oauth]", err);

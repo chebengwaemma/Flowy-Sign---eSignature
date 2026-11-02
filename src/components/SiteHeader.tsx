@@ -110,7 +110,7 @@ export function SiteHeader({
     <header className={`lp-header${panel ? " lp-header-open" : ""}`} ref={headerRef}>
       <div className="lp-header-inner">
         <div className="lp-header-left">
-          <Logo href="/" label={brandLabel} blue light />
+          <Logo href="/" label={brandLabel} />
           <nav className="lp-nav" aria-label="Primary">
             <button
               type="button"

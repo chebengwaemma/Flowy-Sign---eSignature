@@ -92,7 +92,7 @@ export function Sidebar({
           )}
         </div>
 
-        <nav className="mt-4 flex flex-1 flex-col gap-0.5">
+        <nav className="mt-5 flex flex-1 flex-col gap-1">
           {primaryLinks.map(({ href, label, icon: Icon, chevron }) => {
             const active =
               href === "/dashboard"
@@ -113,7 +113,7 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="mt-auto space-y-1 border-t border-[#ebe8e5] pt-3">
+        <div className="sidebar-foot space-y-1">
           {settings.billingEnabled && (
             <Link href="/billing" className="nav-link !text-[13px]" onClick={go}>
               {settings.navPricing}
@@ -128,9 +128,12 @@ export function Sidebar({
               <span className="flex-1 text-left">Sign out</span>
             </button>
           </form>
-          <p className="truncate px-3 pt-1 text-[11px] text-[#8a847d]" title={userEmail}>
-            {userEmail}
-          </p>
+          <div className="sidebar-user" title={userEmail}>
+            <span className="sidebar-user-av" aria-hidden>
+              {(userEmail || "?").charAt(0).toUpperCase()}
+            </span>
+            <span className="sidebar-user-mail">{userEmail}</span>
+          </div>
         </div>
       </aside>
 

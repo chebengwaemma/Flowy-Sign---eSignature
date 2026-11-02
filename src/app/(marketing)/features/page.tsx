@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { MarketingCards, MarketingCta, MarketingHero } from "@/components/marketing/MarketingPage";
 import { getMarketing } from "@/lib/get-marketing";
 
@@ -25,11 +26,11 @@ export default async function FeaturesPage() {
         }))}
       />
       <section className="lp-sub-body cream">
-        <div className="lp-wrap" data-animate="up">
+        <ScrollMeetBlock side="right" className="lp-wrap">
           <Link href="/why" className="lp-btn">
             {navWhy}
           </Link>
-        </div>
+        </ScrollMeetBlock>
       </section>
       <MarketingCta title={home.bottomTitle} />
     </main>

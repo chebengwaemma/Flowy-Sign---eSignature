@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { MarketingCards, MarketingCta, MarketingHero } from "@/components/marketing/MarketingPage";
 import { getMarketing } from "@/lib/get-marketing";
 
@@ -18,11 +19,11 @@ export default async function PressPage() {
       />
       <MarketingCards items={pressCards} />
       <section className="lp-sub-body cream">
-        <div className="lp-wrap" data-animate="up">
+        <ScrollMeetBlock side="left" className="lp-wrap">
           <Link href="/about" className="lp-btn">
             Read our story
           </Link>
-        </div>
+        </ScrollMeetBlock>
       </section>
       <MarketingCta title={home.bottomTitle} />
     </main>

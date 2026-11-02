@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSession, publicUser } from "@/lib/auth";
+import { publicUser, tryCreateSession } from "@/lib/auth";
+import { deviceLabelFromRequest } from "@/lib/device-sessions";
 import { findUserByEmail } from "@/lib/store";
 
 const schema = z.object({
@@ -27,6 +28,19 @@ export async function POST(req: Request) {
     );
   }
 
-  await createSession(user.id);
+  const session = await tryCreateSession(user.id, deviceLabelFromRequest(req));
+  if (!session.ok) {
+    return NextResponse.json(
+      {
+        error: session.error,
+        code: session.code,
+        max_sessions: session.max_sessions,
+        active_sessions: session.active_sessions,
+        pending_login_token: session.pending_login_token,
+      },
+      { status: 409 },
+    );
+  }
+
   return NextResponse.json({ user: publicUser(user) });
 }

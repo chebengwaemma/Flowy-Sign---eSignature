@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { BillingInterval, PlanId } from "@/lib/types";
 
 type PlanCard = {
@@ -43,39 +45,62 @@ export function BillingCards({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="app-meet-page space-y-5">
       {error && (
-        <div className="panel border-[var(--bad)]/25 bg-[#fff5f3] px-5 py-4 text-sm" data-billing-result="unsuccess" role="alert">
-          <p className="font-semibold text-[var(--bad)]">Payment unsuccessful</p>
-          <p className="mt-1 text-muted">{error}</p>
-          <button type="button" className="btn btn-primary mt-3" onClick={() => setError("")}>
-            Try again
-          </button>
-        </div>
-      )}
-      <div className="inline-flex rounded-full border border-[var(--line)] bg-white/70 p-1">
-        {(["monthly", "yearly"] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${
-              interval === item ? "bg-ink text-white" : "text-muted"
-            }`}
-            onClick={() => setInterval(item)}
+        <ScrollMeetBlock side="right" distance={90}>
+          <div
+            className="panel border-[var(--bad)]/25 bg-[#fff5f3] px-5 py-4 text-sm"
+            data-billing-result="unsuccess"
+            role="alert"
           >
-            {item}
-            {item === "yearly" ? " · save ~20%" : ""}
-          </button>
-        ))}
-      </div>
+            <p className="font-semibold text-[var(--bad)]">Payment unsuccessful</p>
+            <p className="mt-1 text-muted">{error}</p>
+            <button type="button" className="btn btn-primary mt-3" onClick={() => setError("")}>
+              Try again
+            </button>
+          </div>
+        </ScrollMeetBlock>
+      )}
+      <ScrollMeetBlock side="left" distance={80}>
+        <div className="inline-flex rounded-full border border-[var(--line)] bg-white/70 p-1">
+          {(["monthly", "yearly"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${
+                interval === item ? "bg-ink text-white" : "text-muted"
+              }`}
+              onClick={() => setInterval(item)}
+            >
+              {item}
+              {item === "yearly" ? " · save ~20%" : ""}
+            </button>
+          ))}
+        </div>
+      </ScrollMeetBlock>
 
-      <div className="grid gap-4 lg:grid-cols-4">
+      <ScrollMeetSplit
+        className="grid gap-4 lg:grid-cols-4 app-meet-grid"
+        itemClassName="app-meet-item"
+        distance={140}
+        stagger={0.1}
+      >
         {plans.map((plan) => {
           const price = interval === "monthly" ? plan.monthly : plan.yearly;
           const active = currentPlan === plan.id;
           return (
-            <div key={plan.id} className={`panel flex flex-col p-5 ${active ? "ring-2 ring-accent" : ""}`}>
+            <div
+              key={plan.id}
+              className={`panel flex h-full flex-col p-5 ${active ? "ring-2 ring-accent" : ""}`}
+            >
               <p className="text-sm font-semibold uppercase tracking-wide text-muted">{plan.name}</p>
+              <p className="mt-1 text-xs text-muted">
+                {plan.id === "business"
+                  ? "Unlimited Muscle · no session caps"
+                  : plan.id === "starter" || plan.id === "pro"
+                    ? "Personal rules · max 5 devices"
+                    : null}
+              </p>
               <p className="display mt-2 text-4xl">
                 ${price}
                 <span className="text-base text-muted">
@@ -98,7 +123,7 @@ export function BillingCards({
             </div>
           );
         })}
-      </div>
+      </ScrollMeetSplit>
     </div>
   );
 }

@@ -3,6 +3,9 @@ import type { MarketingSite } from "./marketing";
 export type Role = "owner" | "admin" | "member";
 export type PlanId = "free" | "starter" | "pro" | "business";
 export type BillingInterval = "monthly" | "yearly";
+/** Fitness-style access packages (mapped from PlanId; API plan ids unchanged) */
+export type PackageType = "none" | "unlimited_muscle" | "personal";
+export type SubscriptionStatus = "inactive" | "active" | "past_due" | "canceled";
 export type DocStatus = "draft" | "sent" | "viewed" | "completed" | "void";
 export type FaxStatus = "queued" | "sending" | "delivered" | "failed" | "received";
 export type FieldType = "signature" | "initials" | "date" | "text";
@@ -67,6 +70,26 @@ export interface User {
   /** Monthly PNG downloads from Signature generator (YYYY-MM) */
   generatorDownloadMonth?: string;
   generatorDownloadCount?: number;
+  /** Access package (Unlimited Muscle / Personal) — synced from plan on payment */
+  packageType?: PackageType;
+  subscriptionStatus?: SubscriptionStatus;
+  activeDevicesCount?: number;
+  /** null = unlimited concurrent sessions (Unlimited Muscle) */
+  maxConcurrentSessions?: number | null;
+  packageActivatedAt?: string;
+  packageExpiresAt?: string | null;
+}
+
+/** Concurrent login / device tracking */
+export interface DeviceSession {
+  id: string;
+  userId: string;
+  /** JWT jti */
+  sessionId: string;
+  deviceLabel: string;
+  createdAt: string;
+  lastSeenAt: string;
+  revokedAt?: string;
 }
 
 export interface Organization {
@@ -228,5 +251,6 @@ export interface PlatformStore {
   documents: Document[];
   faxes: FaxMessage[];
   invites: TeamInvite[];
+  deviceSessions: DeviceSession[];
   site: OrgSettings;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { formatDate, statusTone } from "@/lib/utils";
 
 type Fax = {
@@ -58,78 +59,94 @@ export default function FaxPage() {
   }
 
   return (
-    <div className="space-y-6 rise">
-      <div>
+    <div className="app-meet-page space-y-6">
+      <ScrollMeetBlock side="left" distance={90}>
         <h1 className="display text-4xl">Fax</h1>
         <p className="mt-1 text-muted">Send and receive faxes from the same workspace inbox.</p>
-      </div>
+      </ScrollMeetBlock>
 
-      <form onSubmit={send} className="panel grid gap-4 p-6 md:grid-cols-3">
-        <div>
-          <label className="label" htmlFor="to">
-            To number
-          </label>
-          <input id="to" className="field" value={toNumber} onChange={(e) => setToNumber(e.target.value)} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="subject">
-            Subject
-          </label>
-          <input id="subject" className="field" value={subject} onChange={(e) => setSubject(e.target.value)} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="pages">
-            Pages
-          </label>
-          <input
-            id="pages"
-            type="number"
-            min={1}
-            max={50}
-            className="field"
-            value={pages}
-            onChange={(e) => setPages(Number(e.target.value))}
-          />
-        </div>
-        {error && <p className="text-sm text-[var(--bad)] md:col-span-3">{error}</p>}
-        <div className="md:col-span-3">
-          <button className="btn btn-accent" disabled={loading}>
-            {loading ? "Queuing…" : "Send fax"}
-          </button>
-        </div>
-      </form>
+      <ScrollMeetBlock side="right" distance={110}>
+        <form onSubmit={send} className="panel grid gap-4 p-6 md:grid-cols-3">
+          <div>
+            <label className="label" htmlFor="to">
+              To number
+            </label>
+            <input
+              id="to"
+              className="field"
+              value={toNumber}
+              onChange={(e) => setToNumber(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="subject">
+              Subject
+            </label>
+            <input
+              id="subject"
+              className="field"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="pages">
+              Pages
+            </label>
+            <input
+              id="pages"
+              type="number"
+              min={1}
+              max={50}
+              className="field"
+              value={pages}
+              onChange={(e) => setPages(Number(e.target.value))}
+            />
+          </div>
+          {error && <p className="text-sm text-[var(--bad)] md:col-span-3">{error}</p>}
+          <div className="md:col-span-3">
+            <button className="btn btn-accent" disabled={loading}>
+              {loading ? "Queuing…" : "Send fax"}
+            </button>
+          </div>
+        </form>
+      </ScrollMeetBlock>
 
-      <div className="panel overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--line)] text-muted">
-            <tr>
-              <th className="px-5 py-3">Direction</th>
-              <th className="px-5 py-3">Subject</th>
-              <th className="px-5 py-3">Numbers</th>
-              <th className="px-5 py-3">Date</th>
-              <th className="px-5 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--line)]">
-            {faxes.map((fax) => (
-              <tr key={fax.id}>
-                <td className="px-5 py-4 capitalize">{fax.direction}</td>
-                <td className="px-5 py-4 font-semibold">
-                  {fax.subject}
-                  <span className="ml-2 text-xs font-normal text-muted">{fax.pages}p</span>
-                </td>
-                <td className="px-5 py-4 text-muted">
-                  {fax.direction === "outbound" ? fax.toNumber : fax.fromNumber}
-                </td>
-                <td className="px-5 py-4 text-muted">{formatDate(fax.createdAt)}</td>
-                <td className="px-5 py-4">
-                  <span className={statusTone(fax.status)}>{fax.status}</span>
-                </td>
+      <ScrollMeetBlock side="left" distance={120}>
+        <div className="panel overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[var(--line)] text-muted">
+              <tr>
+                <th className="px-5 py-3">Direction</th>
+                <th className="px-5 py-3">Subject</th>
+                <th className="px-5 py-3">Numbers</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[var(--line)]">
+              {faxes.map((fax) => (
+                <tr key={fax.id}>
+                  <td className="px-5 py-4 capitalize">{fax.direction}</td>
+                  <td className="px-5 py-4 font-semibold">
+                    {fax.subject}
+                    <span className="ml-2 text-xs font-normal text-muted">{fax.pages}p</span>
+                  </td>
+                  <td className="px-5 py-4 text-muted">
+                    {fax.direction === "outbound" ? fax.toNumber : fax.fromNumber}
+                  </td>
+                  <td className="px-5 py-4 text-muted">{formatDate(fax.createdAt)}</td>
+                  <td className="px-5 py-4">
+                    <span className={statusTone(fax.status)}>{fax.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollMeetBlock>
     </div>
   );
 }

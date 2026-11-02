@@ -21,10 +21,10 @@ export function Logo({
         }`}
         style={{
           background: blue
-            ? "#0061ff"
+            ? "#0284c7"
             : light
               ? "rgba(255,255,255,0.14)"
-              : "linear-gradient(135deg, #0b3d38 0%, #1fa97a 100%)",
+              : "linear-gradient(145deg, #0284c7 0%, #0ea5e9 100%)",
         }}
         aria-hidden
       >

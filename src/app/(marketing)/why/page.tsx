@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { MarketingCards, MarketingCta, MarketingHero } from "@/components/marketing/MarketingPage";
 import { getMarketing } from "@/lib/get-marketing";
 
@@ -26,17 +28,17 @@ export default async function WhyPage() {
       />
       <section className="lp-sub-body cream">
         <div className="lp-wrap">
-          <h2 className="lp-h2" data-animate="up">
-            Built for every team
-          </h2>
-          <div className="lp-mega-grid" data-animate="stagger">
+          <ScrollMeetBlock side="left" className="lp-meet-heading">
+            <h2 className="lp-h2">Built for every team</h2>
+          </ScrollMeetBlock>
+          <ScrollMeetSplit className="lp-mega-grid lp-meet-grid" itemClassName="lp-meet-item" distance={120}>
             {teamPages.map((t) => (
               <Link key={t.slug} href={`/teams/${t.slug}`} className="lp-mega-item on-light">
                 <span className="lp-mega-item-title">{t.title.replace("eSignatures for ", "")}</span>
                 <span className="lp-mega-item-desc">{t.lead}</span>
               </Link>
             ))}
-          </div>
+          </ScrollMeetSplit>
         </div>
       </section>
       <MarketingCta title={home.bottomTitle} />

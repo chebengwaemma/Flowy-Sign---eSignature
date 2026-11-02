@@ -1,3 +1,4 @@
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
 import { getPlans, planDisplayFeatures } from "@/lib/plans";
@@ -25,12 +26,12 @@ export default async function BillingPage({
   const plans = getPlans(site).filter((p) => p.visible && p.id !== "free");
 
   return (
-    <div className="space-y-6 rise">
-      <div>
+    <div className="app-meet-page space-y-6">
+      <ScrollMeetBlock side="left" distance={90}>
         <h1 className="display text-4xl">Billing</h1>
         <p className="mt-1 text-muted">
-          Plan prices below are in USD. At checkout, Stripe shows your local currency (e.g. Bangladesh →
-          BDT, India → INR, Pakistan → PKR) when Adaptive Pricing is on
+          Personal Package = up to 5 devices · Unlimited Muscle = no device caps. Prices in USD; Stripe
+          may show local currency at checkout
           {stripeStatus.testMode
             ? " · test mode."
             : stripeStatus.chargesEnabled
@@ -39,25 +40,47 @@ export default async function BillingPage({
                 ? " · card charges pending."
                 : " · demo mode."}
         </p>
-      </div>
+        <p className="mt-2 text-sm text-muted">
+          Current package:{" "}
+          <strong className="text-ink">
+            {user.packageType === "unlimited_muscle"
+              ? "Unlimited Muscle"
+              : user.packageType === "personal"
+                ? "Personal"
+                : "None"}
+          </strong>
+          {user.packageType === "personal"
+            ? ` · ${user.activeDevicesCount ?? 0}/5 devices active`
+            : user.packageType === "unlimited_muscle"
+              ? " · unlimited devices"
+              : ""}
+          {user.packageActivatedAt
+            ? ` · activated ${new Date(user.packageActivatedAt).toLocaleDateString()}`
+            : ""}
+        </p>
+      </ScrollMeetBlock>
 
       {stripeStatus.testMode && (
-        <div className="panel border-accent/30 bg-mist/80 px-5 py-4 text-sm" role="status">
-          <p className="font-semibold text-accent-deep">Stripe test mode</p>
-          <p className="mt-1 text-muted">{stripeStatus.message}</p>
-        </div>
+        <ScrollMeetBlock side="right" distance={90}>
+          <div className="panel border-accent/30 bg-mist/80 px-5 py-4 text-sm" role="status">
+            <p className="font-semibold text-accent-deep">Stripe test mode</p>
+            <p className="mt-1 text-muted">{stripeStatus.message}</p>
+          </div>
+        </ScrollMeetBlock>
       )}
 
-      <BillingResult
-        success={params.success === "1"}
-        canceled={params.canceled === "1"}
-        demo={params.demo === "1"}
-        stripePending={params.stripePending === "1"}
-        plan={params.plan}
-        interval={params.interval}
-        sessionId={params.session_id}
-        plans={getPlans(site)}
-      />
+      <ScrollMeetBlock side="left" distance={100}>
+        <BillingResult
+          success={params.success === "1"}
+          canceled={params.canceled === "1"}
+          demo={params.demo === "1"}
+          stripePending={params.stripePending === "1"}
+          plan={params.plan}
+          interval={params.interval}
+          sessionId={params.session_id}
+          plans={getPlans(site)}
+        />
+      </ScrollMeetBlock>
 
       <BillingCards
         currentPlan={user.plan}

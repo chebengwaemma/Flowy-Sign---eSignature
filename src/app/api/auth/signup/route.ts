@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSession, publicUser } from "@/lib/auth";
+import { publicUser, tryCreateSession } from "@/lib/auth";
+import { deviceLabelFromRequest } from "@/lib/device-sessions";
 import { mergeSettings } from "@/lib/settings";
 import { createUser, findUserByEmail, readStore } from "@/lib/store";
 
@@ -60,7 +61,10 @@ export async function POST(req: Request) {
     }
 
     const user = await createUser(body.data);
-    await createSession(user.id);
+    const session = await tryCreateSession(user.id, deviceLabelFromRequest(req));
+    if (!session.ok) {
+      return NextResponse.json({ user: publicUser(user), warning: session.error });
+    }
     return NextResponse.json({ user: publicUser(user) });
   } catch (err) {
     console.error("[signup]", err);

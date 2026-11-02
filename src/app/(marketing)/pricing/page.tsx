@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPlans, planDisplayFeatures } from "@/lib/plans";
 
@@ -17,7 +19,7 @@ export default async function PricingPage() {
   return (
     <main className="lp-page lp-sub">
       <section className="lp-sub-hero">
-        <div className="lp-wrap" data-animate="up">
+        <ScrollMeetSplit className="lp-wrap lp-meet-stack" itemClassName="lp-meet-item" distance={90} stagger={0.1}>
           <p className="lp-dev-kicker">{p.kicker}</p>
           <h1>{p.title}</h1>
           <p className="lead">{p.lead}</p>
@@ -29,12 +31,12 @@ export default async function PricingPage() {
               {p.secondary}
             </Link>
           </div>
-        </div>
+        </ScrollMeetSplit>
       </section>
 
       {pp.showHighlightRow && (
         <section className="lp-plans" id="essentials">
-          <div className="lp-wrap lp-plans-inner" data-animate="stagger">
+          <ScrollMeetSplit className="lp-wrap lp-plans-inner lp-meet-grid" itemClassName="lp-meet-item" distance={160} stagger={0.14}>
             <article className="lp-plan-card" id="standard">
               <p className="eyebrow">{pp.essentialsEyebrow}</p>
               <h3>{essentials?.name || home.planTeamTitle}</h3>
@@ -70,46 +72,48 @@ export default async function PricingPage() {
                 {pp.standardCta}
               </Link>
             </article>
-          </div>
+          </ScrollMeetSplit>
         </section>
       )}
 
       {pp.showApiBlock && (
         <section className="lp-sub-body cream" id="api">
-          <div className="lp-wrap lp-plans-inner" data-animate="stagger">
+          <ScrollMeetBlock side="right" className="lp-wrap">
             <article className="lp-sub-card" style={{ gridColumn: "1 / -1" }}>
               <p className="lp-dev-kicker" style={{ color: "var(--lp-blue)" }}>
                 {pp.apiKicker}
               </p>
               <h2 style={{ color: "var(--lp-ink)", fontSize: 28 }}>{home.planApiTitle}</h2>
               <p className="extra">
-                {pp.startsAtLabel} <strong>${home.planApiPrice}{pp.monthSuffix}</strong> —{" "}
-                {home.planApiBody}
+                {pp.startsAtLabel}{" "}
+                <strong>
+                  ${home.planApiPrice}
+                  {pp.monthSuffix}
+                </strong>{" "}
+                — {home.planApiBody}
               </p>
               <Link href={pp.apiLinkHref || "/developers"} className="lp-text-link">
                 {pp.apiLinkLabel}
               </Link>
             </article>
-          </div>
+          </ScrollMeetBlock>
         </section>
       )}
 
       {pp.showCompare && (
         <section className="lp-sub-body">
           <div className="lp-wrap">
-            <h2 className="lp-h2" data-animate="up">
-              {pp.compareTitle}
-            </h2>
-            <div className="lp-sub-grid" data-animate="stagger">
+            <ScrollMeetBlock side="left" className="lp-meet-heading">
+              <h2 className="lp-h2">{pp.compareTitle}</h2>
+            </ScrollMeetBlock>
+            <ScrollMeetSplit className="lp-sub-grid lp-meet-grid" itemClassName="lp-meet-item" distance={120} stagger={0.12}>
               {plans.map((plan) => (
                 <article key={plan.id} className="lp-sub-card">
                   <h2>{plan.name}</h2>
                   <p>
                     ${plan.monthly}
                     <span>/mo</span>
-                    {plan.yearly > 0 ? (
-                      <span className="extra"> · ${plan.yearly}/yr</span>
-                    ) : null}
+                    {plan.yearly > 0 ? <span className="extra"> · ${plan.yearly}/yr</span> : null}
                   </p>
                   <ul className="extra" style={{ paddingLeft: 18, marginTop: 12 }}>
                     {planDisplayFeatures(plan).map((f) => (
@@ -121,7 +125,7 @@ export default async function PricingPage() {
                   </Link>
                 </article>
               ))}
-            </div>
+            </ScrollMeetSplit>
           </div>
         </section>
       )}

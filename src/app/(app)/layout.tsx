@@ -36,9 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       className="app-shell"
       style={
         {
-          "--ink": settings.primaryColor || "#062925",
-          "--accent": settings.accentColor || "#1FA97A",
-          "--signal": settings.signalColor || "#FF6B35",
+          "--ink": settings.primaryColor || "#0b1220",
+          "--accent": settings.accentColor || "#0284c7",
+          "--signal": settings.signalColor || "#0ea5e9",
         } as React.CSSProperties
       }
     >
