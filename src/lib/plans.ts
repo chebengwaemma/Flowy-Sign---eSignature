@@ -323,12 +323,6 @@ export function planStripePriceId(
   return fromAdmin || envFallback || null;
 }
 
-function qtyLabel(n: number, singular: string, plural: string) {
-  if (n < 0) return `Unlimited ${plural}`;
-  if (n === 0) return `No ${plural}`;
-  return `${n} ${n === 1 ? singular : plural}`;
-}
-
 /** True if a feature line is auto-generated from quota / standard paid copy */
 export function isQuotaFeatureLine(line: string) {
   return /signature request|signature download|generator download|\bfaxes?\b|\bseats?\b|team seats|concurrent device|templates?\s*&\s*audit|audit trail|buy a plan|invite teammates/i.test(
