@@ -87,7 +87,10 @@ function LoginForm() {
       setError(data?.error || "Login failed");
       return;
     }
-    router.push("/dashboard");
+    const next = searchParams.get("next");
+    const safeNext =
+      next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    router.push(safeNext);
     router.refresh();
   }
 

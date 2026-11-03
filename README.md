@@ -47,6 +47,8 @@ npx vercel --prod
 
 Set the same env vars as `.env.example` in the Vercel project (especially `MONGODB_URI`, `AUTH_SECRET`, `ADMIN_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`).
 
+Optional email (document-ready download links): `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `Flowy Sign <hello@yourdomain.com>`). Without Resend, emails are logged as dry-run in server logs.
+
 ### Hostinger (VPS / Node / Docker)
 
 Shared PHP hosting will not run this app. Use **VPS** or **Node.js** hosting.

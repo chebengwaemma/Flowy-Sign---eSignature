@@ -31,7 +31,13 @@ const required = [
   "STRIPE_PRICE_BUSINESS_5_YEARLY",
 ];
 
-const optional = ["STRIPE_WEBHOOK_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"];
+const optional = [
+  "STRIPE_WEBHOOK_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "RESEND_API_KEY",
+  "EMAIL_FROM",
+];
 
 const raw = readFileSync(envPath, "utf8");
 const env = Object.fromEntries(

@@ -99,7 +99,7 @@
   --lp-black: #0b1f33;
   --lp-muted: #5a6b7c;
   --lp-max: min(1400px, 94vw);
-  --lp-pad: clamp(32px, calc(2.5vw + 16px), 48px); /* +1rem sitewide breathing room */
+  --lp-pad: clamp(16px, 2.5vw, 32px);
   min-height: 100vh;
   width: 100%;
   display: flex;
@@ -1206,8 +1206,7 @@ body:has(.lp-shell) {
     radial-gradient(900px 360px at 10% 0%, color-mix(in srgb, var(--lp-blue) 18%, transparent), transparent 55%),
     linear-gradient(180deg, #eaf3fa 0%, #f5f9fc 100%);
   color: var(--lp-ink);
-  padding: calc(72px + 1rem) var(--lp-pad) calc(60px + 1rem);
-  margin: 1rem 0;
+  padding: 72px var(--lp-pad) 60px;
 }
 
 .lp-sub-hero h1 {
@@ -1231,8 +1230,8 @@ body:has(.lp-shell) {
 .lp-sub-body {
   background: #fff;
   color: var(--lp-ink);
-  padding: calc(56px + 1rem) 0;
-  margin: 1rem 0;
+  padding: 0.25rem;
+  margin: 0.25rem;
 }
 
 .lp-sub-body.cream {
@@ -1248,8 +1247,8 @@ body:has(.lp-shell) {
 .lp-sub-card {
   border: 1px solid rgba(11, 31, 51, 0.08);
   border-radius: 16px;
-  padding: calc(26px + 1rem);
-  margin: 1rem;
+  padding: 0.25rem;
+  margin: 0.25rem;
   background: #fff;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -1545,8 +1544,7 @@ body:has(.lp-shell) {
     radial-gradient(800px 360px at 80% 0%, color-mix(in srgb, var(--lp-blue) 16%, transparent), transparent 55%),
     #eaf3fa;
   color: var(--lp-ink);
-  padding: calc(72px + 1rem) var(--lp-pad);
-  margin: 1rem 0;
+  padding: 72px var(--lp-pad);
   width: 100%;
 }
 
@@ -1560,8 +1558,8 @@ body:has(.lp-shell) {
   background: linear-gradient(165deg, #fff 0%, #f4f9fc 100%);
   border: none;
   border-radius: 36px 20px 32px 24px;
-  padding: calc(34px + 1rem) calc(30px + 1rem);
-  margin: 1rem;
+  padding: 0.25rem;
+  margin: 0.25rem;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
   box-shadow: 0 18px 44px rgba(11, 31, 51, 0.1);
 }
@@ -1631,8 +1629,7 @@ body:has(.lp-shell) {
 /* —— Stories —— */
 .lp-stories {
   background: var(--lp-cream);
-  padding: calc(72px + 1rem) 0;
-  margin: 1rem 0;
+  padding: 72px 0;
   width: 100%;
 }
 

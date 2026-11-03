@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
+import { sendDocumentReadyEmail } from "@/lib/document-ready-email";
 import { getSignatureQuota, quotaBlockedResponse } from "@/lib/plan-usage";
 import { getOrgDocuments, updateStore } from "@/lib/store";
 import type { Document, Recipient, SignatureField } from "@/lib/types";
@@ -140,6 +141,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Place at least one signature field" }, { status: 400 });
   }
 
+  const downloadToken = `dl_${nanoid(24)}`;
   const doc: Document = {
     id: `doc_${nanoid(10)}`,
     orgId: user.orgId,
@@ -154,11 +156,27 @@ export async function POST(req: Request) {
     recipients,
     createdAt: now,
     updatedAt: now,
+    downloadToken,
   };
 
   await updateStore((store) => {
     store.documents.unshift(doc);
   });
 
-  return NextResponse.json({ document: doc });
+  // Automatic email: document ready + payment-gated download link
+  const mail = await sendDocumentReadyEmail(user, doc);
+  if (mail.ok) {
+    await updateStore((store) => {
+      const row = store.documents.find((d) => d.id === doc.id);
+      if (row) row.readyEmailSentAt = new Date().toISOString();
+    });
+  } else {
+    console.warn("[documents] ready email failed:", mail.error);
+  }
+
+  return NextResponse.json({
+    document: doc,
+    emailSent: Boolean(mail.ok),
+    emailDryRun: Boolean(mail.dryRun),
+  });
 }

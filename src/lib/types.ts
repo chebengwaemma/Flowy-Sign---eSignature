@@ -221,6 +221,9 @@ export interface Document {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  /** Opaque token for email download links (payment-gated) */
+  downloadToken?: string;
+  readyEmailSentAt?: string;
 }
 
 export interface FaxMessage {

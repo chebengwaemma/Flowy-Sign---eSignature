@@ -17,6 +17,8 @@ export default async function BillingPage({
     plan?: string;
     interval?: string;
     session_id?: string;
+    reason?: string;
+    token?: string;
   }>;
 }) {
   const user = await getSessionUser();
@@ -26,6 +28,8 @@ export default async function BillingPage({
   const plans = getPaidPlans(site);
   const current = getPlanFromSettings(user.plan, site);
   const maxDevices = current.maxDevices || user.maxConcurrentSessions || 1;
+  const needsPayForDownload = params.reason === "download";
+  const downloadToken = params.token || "";
 
   return (
     <div className="app-meet-page space-y-6">
@@ -53,6 +57,18 @@ export default async function BillingPage({
             : ""}
         </p>
       </ScrollMeetBlock>
+
+      {needsPayForDownload && (
+        <div className="panel border-accent/30 bg-mist/80 px-5 py-4 text-sm" role="status">
+          <p className="font-semibold text-accent-deep">Subscription required to download</p>
+          <p className="mt-1 text-muted">
+            Your document is ready. Choose a Pro or Business plan to unlock the download link from your email.
+            {downloadToken
+              ? " After payment, open the same email link again — download will start for paid accounts."
+              : ""}
+          </p>
+        </div>
+      )}
 
       {stripeStatus.testMode && (
         <ScrollMeetBlock side="right" distance={90}>
