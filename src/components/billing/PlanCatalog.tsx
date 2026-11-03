@@ -143,7 +143,20 @@ export function PlanCatalog({
                 interval === "yearly" && plan.yearly > 0
                   ? Math.round((plan.yearly / 12) * 100) / 100
                   : null;
-              const features = (plan.features || []).filter(Boolean);
+              const features = (() => {
+                const seen = new Set<string>();
+                return (plan.features || [])
+                  .map((f) => f.trim())
+                  .filter(Boolean)
+                  .filter((f) => {
+                    // Device line already shown under the title
+                    if (/concurrent device/i.test(f)) return false;
+                    const key = f.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+              })();
 
               return (
                 <article

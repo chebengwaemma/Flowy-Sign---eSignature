@@ -20,7 +20,7 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 4;
+export const PLAN_CATALOG_VERSION = 5;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -57,7 +57,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     downloads: -1,
     faxes: -1,
     seats: -1,
-    features: [...UNLIMITED_FEATURES, "1 concurrent device"],
+    features: [...UNLIMITED_FEATURES],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
@@ -73,7 +73,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     downloads: -1,
     faxes: -1,
     seats: -1,
-    features: [...UNLIMITED_FEATURES, "Up to 5 concurrent devices"],
+    features: [...UNLIMITED_FEATURES],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
@@ -89,7 +89,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     downloads: -1,
     faxes: -1,
     seats: -1,
-    features: [...UNLIMITED_FEATURES, "1 concurrent device", "Priority support"],
+    features: [...UNLIMITED_FEATURES, "Priority support"],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
@@ -105,7 +105,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     downloads: -1,
     faxes: -1,
     seats: -1,
-    features: [...UNLIMITED_FEATURES, "Up to 5 concurrent devices", "Priority support"],
+    features: [...UNLIMITED_FEATURES, "Priority support"],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
@@ -329,14 +329,14 @@ function qtyLabel(n: number, singular: string, plural: string) {
   return `${n} ${n === 1 ? singular : plural}`;
 }
 
-/** True if a feature line is auto-generated from quota numbers */
+/** True if a feature line is auto-generated from quota / standard paid copy */
 export function isQuotaFeatureLine(line: string) {
-  return /signature request|signature download|generator download|\bfaxes?\b|\bseats?\b|team seats|concurrent device/i.test(
+  return /signature request|signature download|generator download|\bfaxes?\b|\bseats?\b|team seats|concurrent device|templates?\s*&\s*audit|audit trail|buy a plan|invite teammates/i.test(
     line,
   );
 }
 
-/** Build the quota bullets that should always match docs/downloads/faxes/seats/devices */
+/** Build the quota bullets that should always match docs/downloads/faxes/seats */
 export function quotaFeatureLines(plan: PlanDefinition): string[] {
   if (plan.id === "free") {
     return [
@@ -346,25 +346,48 @@ export function quotaFeatureLines(plan: PlanDefinition): string[] {
       "1 seat — invite teammates after upgrade",
     ];
   }
-  const devices =
-    plan.maxDevices <= 1 ? "1 concurrent device" : `Up to ${plan.maxDevices} concurrent devices`;
+  // Device tier is shown on the card header — keep the list to unlimited features only
   return [
     "Unlimited signature requests",
     "Unlimited signature downloads",
     "Unlimited faxes",
     "Unlimited team seats",
     "Unlimited templates & audit trail",
-    devices,
   ];
+}
+
+function dedupeFeatures(lines: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const key = line.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
 }
 
 /**
  * Features shown on /pricing and /billing.
- * Quota numbers always win; extra custom bullets are kept.
+ * Quota lines win; only unique non-quota extras (e.g. Priority support) are kept.
  */
 export function planDisplayFeatures(plan: PlanDefinition): string[] {
-  const extras = (plan.features || []).filter((f) => f.trim() && !isQuotaFeatureLine(f));
-  return [...quotaFeatureLines(plan), ...extras];
+  const quota = quotaFeatureLines(plan);
+  const quotaKeys = new Set(quota.map((l) => l.toLowerCase()));
+  const extras = (plan.features || [])
+    .map((f) => f.trim())
+    .filter((f) => f && !isQuotaFeatureLine(f) && !quotaKeys.has(f.toLowerCase()));
+  // Priority support for Business — keep once if present or category implies it
+  const wantsPriority =
+    plan.category === "business" ||
+    extras.some((f) => /priority support/i.test(f)) ||
+    (plan.features || []).some((f) => /priority support/i.test(f));
+  const cleanedExtras = extras.filter((f) => !/priority support/i.test(f));
+  if (wantsPriority && plan.id !== "free") cleanedExtras.push("Priority support");
+  return dedupeFeatures([...quota, ...cleanedExtras]);
 }
 
 /** Keep stored features array aligned when admin edits numeric quotas */
