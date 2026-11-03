@@ -22,7 +22,7 @@ const KB: Array<{ keys: string[]; answer: string }> = [
   {
     keys: ["plan", "pricing", "billing", "stripe", "subscription", "upgrade", "free"],
     answer:
-      "You need a paid plan to send signatures. Free cannot send. Starter, Pro, and Business each include a monthly signature limit. Open Billing to buy a package.",
+      "You need a paid plan to send signatures. Free cannot send. Every Pro and Business plan includes unlimited signatures, downloads, faxes, and seats. Open Billing to buy a package.",
   },
   {
     keys: ["fax"],

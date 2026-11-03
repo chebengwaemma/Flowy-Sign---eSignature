@@ -20,7 +20,7 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 2;
+export const PLAN_CATALOG_VERSION = 3;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -230,6 +230,7 @@ export function mergePlans(
   return DEFAULT_PLANS.map((base) => {
     const over = byId.get(base.id);
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });
+    const paid = base.id !== "free";
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
@@ -238,10 +239,11 @@ export function mergePlans(
       maxDevices: numOr(over.maxDevices, base.maxDevices),
       monthly: numOr(over.monthly, base.monthly),
       yearly: numOr(over.yearly, base.yearly),
-      docs: numOr(over.docs, base.docs),
-      downloads: numOr(over.downloads, base.downloads),
-      faxes: numOr(over.faxes, base.faxes),
-      seats: numOr(over.seats, base.seats),
+      // Paid catalog is always unlimited quotas (device tier is the only cap)
+      docs: paid ? -1 : numOr(over.docs, base.docs),
+      downloads: paid ? -1 : numOr(over.downloads, base.downloads),
+      faxes: paid ? -1 : numOr(over.faxes, base.faxes),
+      seats: paid ? -1 : numOr(over.seats, base.seats),
       features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
       stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
       stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
@@ -267,8 +269,8 @@ export function legacyLimitsFromPlans(plans: PlanDefinition[]) {
 }
 
 export function getPlans(settings?: OrgSettings | null): PlanDefinition[] {
-  if (!settings?.plans?.length) return mergePlans(null);
-  return mergePlans(settings.plans);
+  if (!settings?.plans?.length) return mergePlans(null, settings?.planCatalogVersion);
+  return mergePlans(settings.plans, settings.planCatalogVersion);
 }
 
 export function getPaidPlans(settings?: OrgSettings | null): PlanDefinition[] {
@@ -328,10 +330,11 @@ export function quotaFeatureLines(plan: PlanDefinition): string[] {
   const devices =
     plan.maxDevices <= 1 ? "1 concurrent device" : `Up to ${plan.maxDevices} concurrent devices`;
   return [
-    qtyLabel(plan.docs, "signature request / month", "signature requests / month"),
-    qtyLabel(plan.downloads, "signature download / month", "signature downloads / month"),
-    qtyLabel(plan.faxes, "fax", "faxes"),
-    plan.seats === 1 ? "1 team seat" : qtyLabel(plan.seats, "team seat", "team seats"),
+    "Unlimited signature requests",
+    "Unlimited signature downloads",
+    "Unlimited faxes",
+    "Unlimited team seats",
+    "Unlimited templates & audit trail",
     devices,
   ];
 }
