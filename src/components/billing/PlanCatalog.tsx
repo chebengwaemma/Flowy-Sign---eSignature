@@ -17,6 +17,19 @@ export type CatalogPlan = {
   features: string[];
 };
 
+function shortName(plan: CatalogPlan) {
+  if (plan.category === "pro") return "Pro";
+  if (plan.category === "business") return "Business";
+  return plan.name;
+}
+
+function yearlySavePct(monthly: number, yearly: number) {
+  if (monthly <= 0 || yearly <= 0) return 0;
+  const full = monthly * 12;
+  if (full <= yearly) return 0;
+  return Math.round(((full - yearly) / full) * 100);
+}
+
 export function PlanCatalog({
   plans,
   mode = "marketing",
@@ -42,7 +55,10 @@ export function PlanCatalog({
       .map((category) => ({
         category,
         label: planCategoryLabel(category),
-        items: plans.filter((p) => p.category === category),
+        items: plans
+          .filter((p) => p.category === category)
+          .slice()
+          .sort((a, b) => a.maxDevices - b.maxDevices),
       }))
       .filter((g) => g.items.length > 0);
   }, [plans]);
@@ -66,17 +82,17 @@ export function PlanCatalog({
   }
 
   return (
-    <div className="app-meet-page space-y-8">
+    <div className="pkg-catalog app-meet-page">
       {error && (
         <ScrollMeetBlock side="right" distance={90}>
           <div
-            className="panel border-[var(--bad)]/25 bg-[#fff5f3] px-5 py-4 text-sm"
+            className="pkg-alert"
             data-billing-result="unsuccess"
             role="alert"
           >
-            <p className="font-semibold text-[var(--bad)]">Payment unsuccessful</p>
-            <p className="mt-1 text-muted">{error}</p>
-            <button type="button" className="btn btn-primary mt-3" onClick={() => setError("")}>
+            <p className="pkg-alert-title">Payment unsuccessful</p>
+            <p className="pkg-alert-body">{error}</p>
+            <button type="button" className="btn btn-primary" onClick={() => setError("")}>
               Try again
             </button>
           </div>
@@ -84,41 +100,36 @@ export function PlanCatalog({
       )}
 
       <ScrollMeetBlock side="left" distance={80}>
-        <div className="inline-flex rounded-full border border-[var(--line)] bg-white/70 p-1">
+        <div className="pkg-billing-toggle" role="group" aria-label="Billing interval">
           {(["monthly", "yearly"] as const).map((item) => (
             <button
               key={item}
               type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${
-                interval === item ? "bg-ink text-white" : "text-muted"
-              }`}
+              className={`pkg-billing-btn${interval === item ? " is-active" : ""}`}
               onClick={() => setInterval(item)}
+              aria-pressed={interval === item}
             >
-              {item}
-              {item === "yearly" ? " · save ~20%" : ""}
+              <span>{item === "monthly" ? "Monthly" : "Yearly"}</span>
+              {item === "yearly" ? <em>Save ~20%</em> : null}
             </button>
           ))}
         </div>
       </ScrollMeetBlock>
 
       {groups.map((group) => (
-        <section key={group.category} className="space-y-4">
+        <section key={group.category} className="pkg-group">
           <ScrollMeetBlock side={group.category === "pro" ? "left" : "right"} distance={90}>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-deep">
-                {group.label}
+            <header className="pkg-group-head">
+              <p className="pkg-group-kicker">{group.label}</p>
+              <h2 className="pkg-group-title">{group.label} packages</h2>
+              <p className="pkg-group-lead">
+                Everything unlimited after purchase — pick 1 device or up to 5.
               </p>
-              <h2 className="display mt-1 text-3xl text-ink">
-                {group.label} plans
-              </h2>
-              <p className="mt-1 text-sm text-muted">
-                All features unlimited · choose 1 device or up to 5 devices
-              </p>
-            </div>
+            </header>
           </ScrollMeetBlock>
 
           <ScrollMeetSplit
-            className="grid gap-4 md:grid-cols-2 app-meet-grid"
+            className="pkg-grid app-meet-grid"
             itemClassName="app-meet-item"
             distance={120}
             stagger={0.1}
@@ -126,41 +137,79 @@ export function PlanCatalog({
             {group.items.map((plan) => {
               const price = interval === "monthly" ? plan.monthly : plan.yearly;
               const active = mode === "billing" && currentPlan === plan.id;
+              const featured = plan.maxDevices > 1;
+              const save = yearlySavePct(plan.monthly, plan.yearly);
+              const perMonth =
+                interval === "yearly" && plan.yearly > 0
+                  ? Math.round((plan.yearly / 12) * 100) / 100
+                  : null;
+              const features = (plan.features || []).filter(Boolean);
+
               return (
                 <article
                   key={plan.id}
-                  className={`panel flex h-full flex-col p-5 ${active ? "ring-2 ring-accent" : ""}`}
+                  className={[
+                    "pkg-card",
+                    featured ? "pkg-card-featured" : "",
+                    group.category === "business" ? "pkg-card-business" : "",
+                    active ? "is-current" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
-                  <p className="text-sm font-semibold uppercase tracking-wide text-muted">
-                    {plan.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {plan.maxDevices <= 1
-                      ? "Single user / 1 concurrent device"
-                      : `Up to ${plan.maxDevices} concurrent devices`}
-                  </p>
-                  <p className="display mt-3 text-4xl">
-                    ${price}
-                    <span className="text-base text-muted">
+                  <div className="pkg-card-top">
+                    <div className="pkg-card-badges">
+                      <span className="pkg-chip">{shortName(plan)}</span>
+                      <span className="pkg-chip pkg-chip-device">
+                        {plan.maxDevices <= 1 ? "1 device" : `${plan.maxDevices} devices`}
+                      </span>
+                      {featured ? <span className="pkg-chip pkg-chip-hot">Best value</span> : null}
+                    </div>
+                    <h3 className="pkg-card-name">{plan.name}</h3>
+                    <p className="pkg-card-device">
+                      {plan.maxDevices <= 1
+                        ? "Single user · 1 concurrent signed-in device"
+                        : `Team ready · up to ${plan.maxDevices} concurrent devices`}
+                    </p>
+                  </div>
+
+                  <div className="pkg-card-price">
+                    <span className="pkg-price-amount">${price}</span>
+                    <span className="pkg-price-unit">
                       /{interval === "monthly" ? "mo" : "yr"}
                     </span>
-                  </p>
-                  <ul className="mt-4 flex-1 space-y-2 text-sm text-muted">
-                    {(plan.features || []).filter(Boolean).map((f) => (
-                      <li key={f}>• {f}</li>
+                    {interval === "yearly" && perMonth != null ? (
+                      <span className="pkg-price-note">
+                        ≈ ${perMonth}/mo
+                        {save > 0 ? ` · save ${save}%` : ""}
+                      </span>
+                    ) : (
+                      <span className="pkg-price-note">Billed {interval}</span>
+                    )}
+                  </div>
+
+                  <ul className="pkg-features">
+                    {features.map((f) => (
+                      <li key={f}>
+                        <span className="pkg-check" aria-hidden>
+                          ✓
+                        </span>
+                        <span>{f}</span>
+                      </li>
                     ))}
                   </ul>
+
                   {mode === "billing" ? (
                     <button
                       type="button"
-                      className={`btn mt-5 w-full ${active ? "btn-ghost" : "btn-primary"}`}
+                      className={`pkg-cta${active ? " is-ghost" : ""}`}
                       disabled={active || loading === plan.id}
                       onClick={() => checkout(plan.id)}
                     >
                       {active ? "Current plan" : loading === plan.id ? "Redirecting…" : "Choose plan"}
                     </button>
                   ) : (
-                    <Link href="/signup" className="btn btn-primary mt-5 inline-flex w-full justify-center">
+                    <Link href="/signup" className="pkg-cta">
                       {compareCta || ctaLabel}
                     </Link>
                   )}

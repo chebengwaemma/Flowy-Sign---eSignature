@@ -43,7 +43,8 @@ export default async function PricingPage() {
       <section className="lp-sub-body" id="plans">
         <div className="lp-wrap">
           <ScrollMeetBlock side="left" className="lp-meet-heading">
-            <h2 className="lp-h2">{pp.compareTitle || "Pro & Business"}</h2>
+            <p className="lp-dev-kicker">{pp.compareTitle || "Compare packages"}</p>
+            <h2 className="lp-h2">Pick Pro or Business, then your device tier</h2>
           </ScrollMeetBlock>
           <PlanCatalog
             mode="marketing"
