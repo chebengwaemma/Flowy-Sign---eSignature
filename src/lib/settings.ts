@@ -57,7 +57,7 @@ export const defaultSettings: OrgSettings = {
   navAdmin: "Admin",
   signatureGeneratorEnabled: true,
   navSignatureGenerator: "Signature generator",
-  generatorFreeDownloads: 1,
+  generatorFreeDownloads: 0,
   sendFreeLimit: 0,
   starterSignatureLimit: 50,
   proSignatureLimit: 250,

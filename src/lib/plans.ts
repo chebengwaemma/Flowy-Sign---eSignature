@@ -20,7 +20,7 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 3;
+export const PLAN_CATALOG_VERSION = 4;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -30,13 +30,15 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     maxDevices: 1,
     monthly: 0,
     yearly: 0,
+    // No paid features until checkout — all usage quotas stay 0
     docs: 0,
-    downloads: 1,
+    downloads: 0,
     faxes: 0,
     seats: 1,
     features: [
-      "1 signature generator download / month",
-      "Buy a plan to send signature requests",
+      "No signature requests until you buy a plan",
+      "No signature downloads until you buy a plan",
+      "No faxes until you buy a plan",
       "Browse templates",
       "Email support",
     ],
@@ -173,17 +175,17 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] 
       return withSyncedPlanFeatures({
         ...base,
         name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
-        monthly: numOr(over.monthly, base.monthly),
-        yearly: numOr(over.yearly, base.yearly),
-        docs: numOr(over.docs, base.docs),
-        downloads: numOr(over.downloads, base.downloads),
-        faxes: numOr(over.faxes, base.faxes),
-        seats: numOr(over.seats, base.seats),
-        maxDevices: numOr(over.maxDevices, base.maxDevices),
-        features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
-        stripePriceMonthly: String(over.stripePriceMonthly ?? ""),
-        stripePriceYearly: String(over.stripePriceYearly ?? ""),
-        visible: over.visible ?? base.visible,
+        monthly: 0,
+        yearly: 0,
+        docs: 0,
+        downloads: 0,
+        faxes: 0,
+        seats: 1,
+        maxDevices: 1,
+        features: [...base.features],
+        stripePriceMonthly: "",
+        stripePriceYearly: "",
+        visible: false,
       });
     }
     // Only keep prices from classic pro/business rows — never inherit Starter $ onto pro_5
@@ -231,6 +233,23 @@ export function mergePlans(
     const over = byId.get(base.id);
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });
     const paid = base.id !== "free";
+    if (!paid) {
+      return withSyncedPlanFeatures({
+        ...base,
+        name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
+        monthly: 0,
+        yearly: 0,
+        docs: 0,
+        downloads: 0,
+        faxes: 0,
+        seats: 1,
+        maxDevices: 1,
+        features: [...base.features],
+        visible: false,
+        stripePriceMonthly: "",
+        stripePriceYearly: "",
+      });
+    }
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
@@ -240,10 +259,10 @@ export function mergePlans(
       monthly: numOr(over.monthly, base.monthly),
       yearly: numOr(over.yearly, base.yearly),
       // Paid catalog is always unlimited quotas (device tier is the only cap)
-      docs: paid ? -1 : numOr(over.docs, base.docs),
-      downloads: paid ? -1 : numOr(over.downloads, base.downloads),
-      faxes: paid ? -1 : numOr(over.faxes, base.faxes),
-      seats: paid ? -1 : numOr(over.seats, base.seats),
+      docs: -1,
+      downloads: -1,
+      faxes: -1,
+      seats: -1,
       features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
       stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
       stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
@@ -321,10 +340,10 @@ export function isQuotaFeatureLine(line: string) {
 export function quotaFeatureLines(plan: PlanDefinition): string[] {
   if (plan.id === "free") {
     return [
-      qtyLabel(plan.downloads, "signature generator download / month", "signature generator downloads / month"),
-      plan.docs <= 0
-        ? "Buy a plan to send signature requests"
-        : qtyLabel(plan.docs, "signature request / month", "signature requests / month"),
+      "No signature requests (buy a plan)",
+      "No signature downloads (buy a plan)",
+      "No faxes (buy a plan)",
+      "1 seat — invite teammates after upgrade",
     ];
   }
   const devices =
