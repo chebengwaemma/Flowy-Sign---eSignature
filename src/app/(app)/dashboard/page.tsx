@@ -35,7 +35,7 @@ export default async function DashboardPage() {
         : `${quota.remaining} of ${quota.limit} signatures left`;
 
   return (
-    <div className="home-page">
+    <div className="home-page" data-no-motion="true">
       <div className="home-hello">
         <h1>
           Hello, {firstName}!{" "}

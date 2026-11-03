@@ -508,6 +508,22 @@ textarea.field {
   max-width: 960px;
 }
 
+/* Home: no enter / scroll / hover motion */
+.app-main > .home-page,
+.home-page,
+.home-page * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.home-page .panel:hover,
+.home-page .card-lift:hover,
+.home-page .stat-item:hover,
+.home-page .template-banner:hover,
+.home-page .dropzone:hover {
+  transform: none !important;
+}
+
 /* Meet motion is transform-only — never soft-focus / blur */
 [data-scroll-meet-block],
 [data-meet-item],
