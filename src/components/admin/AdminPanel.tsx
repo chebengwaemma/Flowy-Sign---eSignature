@@ -551,6 +551,20 @@ export function AdminPanel({
             {section === "E" && (
               <Section title="Email & support">
                 <Field label="Support email" value={form.supportEmail} onChange={(v) => set("supportEmail", v)} />
+                <Field
+                  label="Email From (Resend)"
+                  value={form.emailFrom || ""}
+                  onChange={(v) => set("emailFrom", v)}
+                />
+                <Field
+                  label="Resend API key (document-ready emails)"
+                  value={form.resendApiKey || ""}
+                  onChange={(v) => set("resendApiKey", v)}
+                />
+                <p className="text-xs text-muted md:col-span-2">
+                  Create a free key at resend.com → API Keys. Until saved, users still get Home notifications +
+                  payment-gated download links.
+                </p>
               </Section>
             )}
 

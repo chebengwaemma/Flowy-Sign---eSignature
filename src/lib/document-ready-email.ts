@@ -1,6 +1,7 @@
 import { getAppUrl } from "./app-url";
 import { sendEmail } from "./email";
 import { createUserNotification } from "./notifications";
+import { getSiteSettings } from "./get-marketing";
 import type { Document, User } from "./types";
 
 export function documentDownloadPath(token: string) {
@@ -60,7 +61,15 @@ export async function sendDocumentReadyEmail(user: User, doc: Document) {
     documentId: doc.id,
   });
 
-  return sendEmail({ to: user.email, subject, html, text });
+  const site = await getSiteSettings();
+  return sendEmail({
+    to: user.email,
+    subject,
+    html,
+    text,
+    apiKey: site.resendApiKey,
+    from: site.emailFrom || `Flowy Sign <${site.supportEmail || "help@flowysign.com"}>`,
+  });
 }
 
 function escapeHtml(s: string) {

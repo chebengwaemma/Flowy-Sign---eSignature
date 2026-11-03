@@ -15,6 +15,8 @@ const schema = z.object({
   accentColor: z.string().optional(),
   signalColor: z.string().optional(),
   supportEmail: z.string().email().optional(),
+  resendApiKey: z.string().optional(),
+  emailFrom: z.string().optional(),
   landingHeadline: z.string().optional(),
   landingSubhead: z.string().optional(),
   landingCta: z.string().optional(),

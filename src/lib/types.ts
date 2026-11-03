@@ -117,6 +117,10 @@ export interface OrgSettings {
   accentColor: string;
   signalColor: string;
   supportEmail: string;
+  /** Resend API key for document-ready emails (falls back to RESEND_API_KEY env) */
+  resendApiKey?: string;
+  /** From header, e.g. Flowy Sign <hello@flowysign.com> */
+  emailFrom?: string;
   landingHeadline: string;
   landingSubhead: string;
   landingCta: string;

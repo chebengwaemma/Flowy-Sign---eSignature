@@ -3,11 +3,15 @@ export type SendEmailInput = {
   subject: string;
   html: string;
   text: string;
+  /** Optional overrides (Admin CMS); else env */
+  apiKey?: string;
+  from?: string;
 };
 
 /**
- * Sends email via Resend when RESEND_API_KEY is set.
- * Without a key, logs a dry-run so local/demo still exercises the flow.
+ * Sends email via Resend.
+ * Priority: input.apiKey → RESEND_API_KEY env.
+ * Without a key, returns dryRun (in-app notification still works).
  */
 export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; dryRun?: boolean; error?: string }> {
   const to = (input.to || "").trim().toLowerCase();
@@ -15,9 +19,9 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; d
     return { ok: false, error: "Invalid recipient" };
   }
 
-  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+  const apiKey = (input.apiKey || process.env.RESEND_API_KEY || "").trim();
   const from =
-    (process.env.EMAIL_FROM || "").trim() || "Flowy Sign <onboarding@resend.dev>";
+    (input.from || process.env.EMAIL_FROM || "").trim() || "Flowy Sign <onboarding@resend.dev>";
 
   if (!apiKey) {
     console.info("[email:dry-run]", {
