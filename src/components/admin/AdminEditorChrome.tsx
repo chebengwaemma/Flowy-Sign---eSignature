@@ -168,7 +168,7 @@ export const SECTION_META: Record<
   },
   W: {
     title: "Pricing page & plans",
-    controls: "Full /pricing layout + plan name/price/quotas/features/Stripe IDs + /billing.",
+    controls: "Pro/Business × 1 or 5 devices — name/price/quotas/maxDevices/Stripe IDs + /billing.",
     preview: "/pricing",
   },
   X: {

@@ -14,7 +14,7 @@ export async function GET() {
 const patchSchema = z.object({
   userId: z.string(),
   role: z.enum(["owner", "admin", "member"]).optional(),
-  plan: z.enum(["free", "starter", "pro", "business"]).optional(),
+  plan: z.enum(["free", "pro", "pro_5", "business", "business_5"]).optional(),
   name: z.string().min(1).optional(),
 });
 

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const plan = (session.metadata?.plan || "") as PlanId;
     const interval = (session.metadata?.interval || "monthly") as BillingInterval;
-    if (!["starter", "pro", "business"].includes(plan)) {
+    if (!["pro", "pro_5", "business", "business_5"].includes(plan)) {
       return NextResponse.json({ error: "Unknown plan on session", result: "unsuccess" }, { status: 400 });
     }
 

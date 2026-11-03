@@ -1,4 +1,6 @@
 import { promises as fs } from "fs";
+import { normalizePlanId } from "./plans";
+import { packageFromPlan } from "./packages";
 import path from "path";
 import { nanoid } from "nanoid";
 import type {
@@ -166,21 +168,21 @@ function normalizeStore(raw: unknown): PlatformStore {
       name: u?.name || u?.email || "User",
       role: u?.role || "member",
       orgId: u?.orgId || "",
-      plan: u?.plan || "free",
+      plan: normalizePlanId(u?.plan || "free"),
       createdAt: u?.createdAt || new Date().toISOString(),
-      packageType: u?.packageType || (u?.plan === "business" ? "unlimited_muscle" : u?.plan === "free" || !u?.plan ? "none" : "personal"),
-      subscriptionStatus: u?.subscriptionStatus || (u?.plan && u.plan !== "free" ? "active" : "inactive"),
+      packageType:
+        u?.packageType ||
+        packageFromPlan(normalizePlanId(u?.plan || "free")).packageType,
+      subscriptionStatus:
+        u?.subscriptionStatus ||
+        (normalizePlanId(u?.plan || "free") !== "free" ? "active" : "inactive"),
       activeDevicesCount: typeof u?.activeDevicesCount === "number" ? u.activeDevicesCount : 0,
       maxConcurrentSessions:
         u?.maxConcurrentSessions === null
           ? null
           : typeof u?.maxConcurrentSessions === "number"
             ? u.maxConcurrentSessions
-            : u?.plan === "business"
-              ? null
-              : u?.plan === "starter" || u?.plan === "pro"
-                ? 5
-                : 1,
+            : packageFromPlan(normalizePlanId(u?.plan || "free")).maxConcurrentSessions,
     })),
     organizations: Array.isArray(base.organizations) ? base.organizations : [],
     documents: (Array.isArray(base.documents) ? base.documents : []).map((d) => ({

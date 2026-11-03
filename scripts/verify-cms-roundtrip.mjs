@@ -39,7 +39,7 @@ data.site.marketing.home = data.site.marketing.home || {};
 data.site.marketing.home.heroTitle = marker;
 data.site.brandName = "Flowy CMS Test Brand";
 data.site.plans = (data.site.plans || []).map((p) =>
-  p.id === "starter" ? { ...p, monthly: 88, name: p.name || "Starter" } : p,
+  p.id === "pro" ? { ...p, monthly: 88, name: p.name || "Pro · 1 device" } : p,
 );
 
 await col.updateOne({ key: "main" }, { $set: { data } });

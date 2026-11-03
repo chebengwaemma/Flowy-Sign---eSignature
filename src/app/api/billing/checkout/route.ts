@@ -15,7 +15,7 @@ import { updateStore } from "@/lib/store";
 import type { BillingInterval, PlanId } from "@/lib/types";
 
 const schema = z.object({
-  plan: z.enum(["starter", "pro", "business"]),
+  plan: z.enum(["pro", "pro_5", "business", "business_5"]),
   interval: z.enum(["monthly", "yearly"]),
 });
 

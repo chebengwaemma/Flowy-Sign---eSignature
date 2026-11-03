@@ -1,11 +1,30 @@
-import type { BillingInterval, OrgSettings, PlanDefinition, PlanId } from "./types";
+import type {
+  BillingInterval,
+  OrgSettings,
+  PlanCategory,
+  PlanDefinition,
+  PlanId,
+} from "./types";
 
 export type { PlanDefinition };
+
+const UNLIMITED_FEATURES = [
+  "Unlimited signature requests",
+  "Unlimited signature downloads",
+  "Unlimited faxes",
+  "Unlimited seats",
+  "Unlimited templates & audit trail",
+];
+
+export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const;
+export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
     id: "free",
     name: "Free",
+    category: "free",
+    maxDevices: 1,
     monthly: 0,
     yearly: 0,
     docs: 0,
@@ -18,69 +37,70 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
       "Browse templates",
       "Email support",
     ],
-    visible: true,
-    stripePriceMonthly: "",
-    stripePriceYearly: "",
-  },
-  {
-    id: "starter",
-    name: "Personal Package",
-    monthly: 15,
-    yearly: 144,
-    docs: 50,
-    downloads: 50,
-    faxes: 20,
-    seats: 3,
-    features: [
-      "Personal access (monthly or yearly)",
-      "Up to 5 devices signed in at once",
-      "Unlimited session time per device",
-      "50 signature requests / month",
-      "50 signature downloads / month",
-      "Audit trail",
-    ],
-    visible: true,
+    visible: false,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
   {
     id: "pro",
-    name: "Personal Plus",
-    monthly: 39,
-    yearly: 372,
-    docs: 250,
-    downloads: 250,
-    faxes: 100,
-    seats: 10,
-    features: [
-      "Personal package rules (5 devices)",
-      "Unlimited session time per device",
-      "250 signature requests / month",
-      "250 signature downloads / month",
-      "Priority support",
-      "Custom branding",
-    ],
+    name: "Pro · 1 device",
+    category: "pro",
+    maxDevices: 1,
+    monthly: 29,
+    yearly: 278,
+    docs: -1,
+    downloads: -1,
+    faxes: -1,
+    seats: -1,
+    features: [...UNLIMITED_FEATURES, "1 concurrent device"],
+    visible: true,
+    stripePriceMonthly: "",
+    stripePriceYearly: "",
+  },
+  {
+    id: "pro_5",
+    name: "Pro · 5 devices",
+    category: "pro",
+    maxDevices: 5,
+    monthly: 49,
+    yearly: 470,
+    docs: -1,
+    downloads: -1,
+    faxes: -1,
+    seats: -1,
+    features: [...UNLIMITED_FEATURES, "Up to 5 concurrent devices"],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
   {
     id: "business",
-    name: "Unlimited Muscle Package",
-    monthly: 79,
-    yearly: 756,
+    name: "Business · 1 device",
+    category: "business",
+    maxDevices: 1,
+    monthly: 59,
+    yearly: 566,
     docs: -1,
     downloads: -1,
     faxes: -1,
-    seats: 50,
-    features: [
-      "Unlimited access — no device/session caps",
-      "Unlimited signature requests",
-      "Unlimited signature downloads",
-      "Unlimited faxes",
-      "50 seats",
-      "Admin controls",
-    ],
+    seats: -1,
+    features: [...UNLIMITED_FEATURES, "1 concurrent device", "Priority support"],
+    visible: true,
+    stripePriceMonthly: "",
+    stripePriceYearly: "",
+  },
+  {
+    id: "business_5",
+    name: "Business · 5 devices",
+    category: "business",
+    maxDevices: 5,
+    monthly: 89,
+    yearly: 854,
+    docs: -1,
+    downloads: -1,
+    faxes: -1,
+    seats: -1,
+    features: [...UNLIMITED_FEATURES, "Up to 5 concurrent devices", "Priority support"],
     visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
@@ -94,15 +114,51 @@ function numOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+/** Map legacy plan ids (starter / old pro / business) onto the new catalog. */
+export function normalizePlanId(id: string | null | undefined): PlanId {
+  switch (id) {
+    case "pro":
+    case "pro_5":
+    case "business":
+    case "business_5":
+    case "free":
+      return id;
+    case "starter":
+      return "pro_5";
+    default:
+      return "free";
+  }
+}
+
+export function isPaidPlanId(id: string): id is PaidPlanId {
+  return (PAID_PLAN_IDS as readonly string[]).includes(id);
+}
+
+export function planCategoryLabel(category: PlanCategory): string {
+  if (category === "pro") return "Pro";
+  if (category === "business") return "Business";
+  return "Free";
+}
+
 export function mergePlans(partial?: Partial<PlanDefinition>[] | null): PlanDefinition[] {
-  const byId = new Map((partial || []).filter((p) => p?.id).map((p) => [p.id!, p]));
+  const byId = new Map(
+    (partial || [])
+      .filter((p) => p?.id)
+      .map((p) => {
+        const id = normalizePlanId(String(p!.id));
+        return [id, { ...p, id }] as const;
+      }),
+  );
+  // Prefer latest overlay when multiple legacy rows collapse onto one id
   return DEFAULT_PLANS.map((base) => {
     const over = byId.get(base.id);
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
+      category: base.category,
       name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
+      maxDevices: numOr(over.maxDevices, base.maxDevices),
       monthly: numOr(over.monthly, base.monthly),
       yearly: numOr(over.yearly, base.yearly),
       docs: numOr(over.docs, base.docs),
@@ -119,16 +175,15 @@ export function mergePlans(partial?: Partial<PlanDefinition>[] | null): PlanDefi
 
 export function legacyLimitsFromPlans(plans: PlanDefinition[]) {
   const free = plans.find((p) => p.id === "free") ?? DEFAULT_PLANS[0];
-  const starter = plans.find((p) => p.id === "starter") ?? DEFAULT_PLANS[1];
-  const pro = plans.find((p) => p.id === "pro") ?? DEFAULT_PLANS[2];
+  const pro = plans.find((p) => p.id === "pro") ?? DEFAULT_PLANS[1];
   const business = plans.find((p) => p.id === "business") ?? DEFAULT_PLANS[3];
   return {
     sendFreeLimit: free.docs,
     generatorFreeDownloads: Math.max(0, free.downloads === -1 ? 999999 : free.downloads),
-    starterSignatureLimit: starter.docs,
+    starterSignatureLimit: pro.docs,
     proSignatureLimit: pro.docs,
     businessSignatureLimit: business.docs,
-    starterFaxLimit: starter.faxes,
+    starterFaxLimit: pro.faxes,
     proFaxLimit: pro.faxes,
     businessFaxLimit: business.faxes,
   };
@@ -139,8 +194,20 @@ export function getPlans(settings?: OrgSettings | null): PlanDefinition[] {
   return mergePlans(settings.plans);
 }
 
-export function getPlanFromSettings(id: PlanId, settings?: OrgSettings | null): PlanDefinition {
-  return getPlans(settings).find((p) => p.id === id) ?? DEFAULT_PLANS[0];
+export function getPaidPlans(settings?: OrgSettings | null): PlanDefinition[] {
+  return getPlans(settings).filter((p) => p.id !== "free" && p.visible);
+}
+
+export function getPlansByCategory(
+  category: "pro" | "business",
+  settings?: OrgSettings | null,
+): PlanDefinition[] {
+  return getPaidPlans(settings).filter((p) => p.category === category);
+}
+
+export function getPlanFromSettings(id: PlanId | string, settings?: OrgSettings | null): PlanDefinition {
+  const nid = normalizePlanId(id);
+  return getPlans(settings).find((p) => p.id === nid) ?? DEFAULT_PLANS[0];
 }
 
 /** @deprecated Prefer getPlanFromSettings(id, site) so admin CMS quotas apply */
@@ -166,12 +233,12 @@ function qtyLabel(n: number, singular: string, plural: string) {
 
 /** True if a feature line is auto-generated from quota numbers */
 export function isQuotaFeatureLine(line: string) {
-  return /signature request|signature download|generator download|\bfaxes?\b|\bseats?\b|team seats/i.test(
+  return /signature request|signature download|generator download|\bfaxes?\b|\bseats?\b|team seats|concurrent device/i.test(
     line,
   );
 }
 
-/** Build the quota bullets that should always match docs/downloads/faxes/seats */
+/** Build the quota bullets that should always match docs/downloads/faxes/seats/devices */
 export function quotaFeatureLines(plan: PlanDefinition): string[] {
   if (plan.id === "free") {
     return [
@@ -181,19 +248,20 @@ export function quotaFeatureLines(plan: PlanDefinition): string[] {
         : qtyLabel(plan.docs, "signature request / month", "signature requests / month"),
     ];
   }
+  const devices =
+    plan.maxDevices <= 1 ? "1 concurrent device" : `Up to ${plan.maxDevices} concurrent devices`;
   return [
     qtyLabel(plan.docs, "signature request / month", "signature requests / month"),
     qtyLabel(plan.downloads, "signature download / month", "signature downloads / month"),
     qtyLabel(plan.faxes, "fax", "faxes"),
-    plan.seats === 1
-      ? "1 team seat"
-      : qtyLabel(plan.seats, "team seat", "team seats"),
+    plan.seats === 1 ? "1 team seat" : qtyLabel(plan.seats, "team seat", "team seats"),
+    devices,
   ];
 }
 
 /**
  * Features shown on /pricing and /billing.
- * Quota numbers always win; extra custom bullets (Audit trail, SSO…) are kept.
+ * Quota numbers always win; extra custom bullets are kept.
  */
 export function planDisplayFeatures(plan: PlanDefinition): string[] {
   const extras = (plan.features || []).filter((f) => f.trim() && !isQuotaFeatureLine(f));

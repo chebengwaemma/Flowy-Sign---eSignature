@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getPlanFromSettings, planStripePriceId } from "./plans";
+import { getPlanFromSettings, isPaidPlanId, planStripePriceId } from "./plans";
 import type { BillingInterval, OrgSettings, PlanId } from "./types";
 
 /** Global billing currency — dashboard + Checkout always USD (no SGD/local FX). */
@@ -17,22 +17,26 @@ export function getStripe() {
 }
 
 const priceEnv: Record<Exclude<PlanId, "free">, Record<BillingInterval, string | undefined>> = {
-  starter: {
-    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-    yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
-  },
   pro: {
     monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
     yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+  },
+  pro_5: {
+    monthly: process.env.STRIPE_PRICE_PRO_5_MONTHLY || process.env.STRIPE_PRICE_STARTER_MONTHLY,
+    yearly: process.env.STRIPE_PRICE_PRO_5_YEARLY || process.env.STRIPE_PRICE_STARTER_YEARLY,
   },
   business: {
     monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
     yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
   },
+  business_5: {
+    monthly: process.env.STRIPE_PRICE_BUSINESS_5_MONTHLY,
+    yearly: process.env.STRIPE_PRICE_BUSINESS_5_YEARLY,
+  },
 };
 
 export function getPriceId(plan: PlanId, interval: BillingInterval, settings?: OrgSettings | null) {
-  if (plan === "free") return null;
+  if (plan === "free" || !isPaidPlanId(plan)) return null;
   const envId = priceEnv[plan][interval] || null;
   if (!settings) return envId;
   return planStripePriceId(getPlanFromSettings(plan, settings), interval, envId);
@@ -45,7 +49,7 @@ function productDisplayName(planName: string) {
 
 /**
  * Resolve a Stripe Price whose unit_amount matches the live CMS plan amount.
- * Stale env/CMS price IDs (e.g. $15) are ignored when admin set monthly to $12.
+ * Stale env/CMS price IDs are ignored when admin changes dollar amounts.
  */
 export async function resolveCheckoutPriceId(
   plan: Exclude<PlanId, "free">,
@@ -205,7 +209,6 @@ export async function getStripePaymentsStatus(): Promise<StripePaymentsStatus> {
     }
     const cardPayments = account.capabilities?.card_payments || null;
     const liveReady = Boolean(account.charges_enabled) && cardPayments !== "inactive";
-    // Test/sandbox keys can open Checkout even before full live activation
     if (testMode) {
       return {
         configured: true,

@@ -44,9 +44,10 @@ async function stripe(path, method = "GET", body) {
 }
 
 const catalog = [
-  { plan: "starter", name: "Flowy Sign Starter", monthly: 1500, yearly: 14400 },
-  { plan: "pro", name: "Flowy Sign Pro", monthly: 3900, yearly: 37200 },
-  { plan: "business", name: "Flowy Sign Business", monthly: 7900, yearly: 75600 },
+  { plan: "pro", name: "Flowy Sign Pro 1 device", monthly: 2900, yearly: 27800 },
+  { plan: "pro_5", name: "Flowy Sign Pro 5 devices", monthly: 4900, yearly: 47000 },
+  { plan: "business", name: "Flowy Sign Business 1 device", monthly: 5900, yearly: 56600 },
+  { plan: "business_5", name: "Flowy Sign Business 5 devices", monthly: 8900, yearly: 85400 },
 ];
 
 const out = {};

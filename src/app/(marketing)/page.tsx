@@ -42,12 +42,12 @@ export default async function HomePage() {
   const STEPS = m.steps;
   const TEAMS = m.teamCards;
   const plans = getPlans(site);
-  const starter = plans.find((p) => p.id === "starter");
-  const business = plans.find((p) => p.id === "business");
-  const teamPrice = starter ? String(starter.monthly) : h.planTeamPrice;
-  const teamTitle = starter?.name || h.planTeamTitle || "Personal Package";
+  const pro = plans.find((p) => p.id === "pro");
+  const business = plans.find((p) => p.id === "business_5") || plans.find((p) => p.id === "business");
+  const teamPrice = pro ? String(pro.monthly) : h.planTeamPrice;
+  const teamTitle = pro?.name || h.planTeamTitle || "Pro · 1 device";
   const musclePrice = business ? String(business.monthly) : h.planApiPrice;
-  const muscleTitle = business?.name || h.planApiTitle || "Unlimited Muscle Package";
+  const muscleTitle = business?.name || h.planApiTitle || "Business · 5 devices";
 
   const pillars = [
     { title: h.pillar1Title, body: h.pillar1Body, icon: <IconWorkflow /> },
@@ -249,7 +249,7 @@ export default async function HomePage() {
           </ScrollMeetBlock>
           <ScrollMeetSplit className="lp-plans-inner lp-meet-grid" itemClassName="lp-meet-item" distance={180} stagger={0.16}>
             <article className="lp-plan-card">
-              <p className="eyebrow">Personal · monthly or yearly</p>
+              <p className="eyebrow">Pro · monthly or yearly</p>
               <h3>{teamTitle}</h3>
               <p className="price">
                 Starts at <strong>${teamPrice}</strong>
@@ -257,24 +257,25 @@ export default async function HomePage() {
               </p>
               <p className="desc">
                 {h.planTeamBody ||
-                  "Sign in from up to 5 devices at once. Unlimited session time once you are logged in."}
+                  "Unlimited signatures on a single device. Upgrade to Pro · 5 devices anytime."}
               </p>
-              <Link href="/signup" className="lp-btn">
+              <Link href="/pricing" className="lp-btn">
                 {h.heroCta}
               </Link>
             </article>
             <article className="lp-plan-card alt">
-              <p className="eyebrow">Unlimited Muscle</p>
+              <p className="eyebrow">Business · monthly or yearly</p>
               <h3>{muscleTitle}</h3>
               <p className="price">
                 Starts at <strong>${musclePrice}</strong>
                 <span>/month</span>
               </p>
               <p className="desc">
-                {h.planApiBody || "Unlimited signing access with no multi-device or session caps."}
+                {h.planApiBody ||
+                  "Unlimited everything for teams — pick 1 device or up to 5 concurrent devices."}
               </p>
-              <Link href="/signup" className="lp-btn-muted">
-                Get Unlimited Muscle
+              <Link href="/pricing" className="lp-btn-muted">
+                See all plans
               </Link>
             </article>
           </ScrollMeetSplit>

@@ -63,8 +63,10 @@ const schema = z.object({
   plans: z
     .array(
       z.object({
-        id: z.enum(["free", "starter", "pro", "business"]),
+        id: z.enum(["free", "pro", "pro_5", "business", "business_5"]),
         name: z.string().min(1),
+        category: z.enum(["free", "pro", "business"]),
+        maxDevices: z.number().int().min(1).max(50),
         monthly: z.number(),
         yearly: z.number(),
         docs: z.number().int(),

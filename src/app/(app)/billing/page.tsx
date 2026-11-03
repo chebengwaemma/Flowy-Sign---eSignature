@@ -1,7 +1,7 @@
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
-import { getPlans, planDisplayFeatures } from "@/lib/plans";
+import { getPaidPlans, getPlanFromSettings, getPlans, planDisplayFeatures } from "@/lib/plans";
 import { getStripePaymentsStatus } from "@/lib/stripe";
 import { BillingCards } from "./BillingCards";
 import { BillingResult } from "./BillingResult";
@@ -23,15 +23,17 @@ export default async function BillingPage({
   if (!user) return null;
   const params = await searchParams;
   const [stripeStatus, site] = await Promise.all([getStripePaymentsStatus(), getSiteSettings()]);
-  const plans = getPlans(site).filter((p) => p.visible && p.id !== "free");
+  const plans = getPaidPlans(site);
+  const current = getPlanFromSettings(user.plan, site);
+  const maxDevices = current.maxDevices || user.maxConcurrentSessions || 1;
 
   return (
     <div className="app-meet-page space-y-6">
       <ScrollMeetBlock side="left" distance={90}>
         <h1 className="display text-4xl">Billing</h1>
         <p className="mt-1 text-muted">
-          Personal Package = up to 5 devices · Unlimited Muscle = no device caps. Prices in USD; Stripe
-          may show local currency at checkout
+          Pro and Business — each with a 1-device or 5-device tier. All paid features are unlimited. Prices in
+          USD
           {stripeStatus.testMode
             ? " · test mode."
             : stripeStatus.chargesEnabled
@@ -41,19 +43,11 @@ export default async function BillingPage({
                 : " · demo mode."}
         </p>
         <p className="mt-2 text-sm text-muted">
-          Current package:{" "}
-          <strong className="text-ink">
-            {user.packageType === "unlimited_muscle"
-              ? "Unlimited Muscle"
-              : user.packageType === "personal"
-                ? "Personal"
-                : "None"}
-          </strong>
-          {user.packageType === "personal"
-            ? ` · ${user.activeDevicesCount ?? 0}/5 devices active`
-            : user.packageType === "unlimited_muscle"
-              ? " · unlimited devices"
-              : ""}
+          Current plan:{" "}
+          <strong className="text-ink">{user.plan === "free" ? "None" : current.name}</strong>
+          {user.plan !== "free"
+            ? ` · ${user.activeDevicesCount ?? 0}/${maxDevices} devices active`
+            : ""}
           {user.packageActivatedAt
             ? ` · activated ${new Date(user.packageActivatedAt).toLocaleDateString()}`
             : ""}
@@ -88,6 +82,8 @@ export default async function BillingPage({
         plans={plans.map((p) => ({
           id: p.id,
           name: p.name,
+          category: p.category,
+          maxDevices: p.maxDevices,
           monthly: p.monthly,
           yearly: p.yearly,
           features: planDisplayFeatures(p),

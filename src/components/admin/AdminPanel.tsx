@@ -275,14 +275,14 @@ export function AdminPanel({
     e.preventDefault();
     setLoading(true);
     setMessage("");
-    const starter = form.plans?.find((p) => p.id === "starter");
+    const proPlan = form.plans?.find((p) => p.id === "pro");
     // Keep legacy landing* fields in sync with the real website hero (marketing.home)
     const home = {
       ...form.marketing.home,
-      ...(starter
+      ...(proPlan
         ? {
-            planTeamPrice: String(starter.monthly),
-            planTeamTitle: starter.name,
+            planTeamPrice: String(proPlan.monthly),
+            planTeamTitle: proPlan.name,
           }
         : null),
     };
@@ -1121,11 +1121,12 @@ export function AdminPanel({
               />
             </Section>
 
-            <Section title="Plans (compare grid + billing)">
+            <Section title="Plans (Pro / Business · device tiers)">
               <p className="text-sm text-muted">
-                Change <strong>Signature sends / downloads / faxes / seats</strong> — Billing &amp; Pricing
-                feature lists update automatically from those numbers. Extra lines (Audit trail, SSO…) stay.
-                Use <strong>-1</strong> for unlimited. Scroll down and press <strong>Save pricing page</strong>.
+                Catalog is <strong>Pro</strong> and <strong>Business</strong>, each with a{" "}
+                <strong>1 device</strong> and <strong>5 devices</strong> tier. Use <strong>-1</strong> for
+                unlimited quotas. Prices, names, Stripe IDs, and visibility are all admin-controlled. Press{" "}
+                <strong>Save pricing page</strong> after edits.
               </p>
               {form.plans.map((plan, idx) => {
                 const patchPlan = (next: PlanDefinition, syncQuota = false) => {
@@ -1139,7 +1140,14 @@ export function AdminPanel({
                   className="space-y-3 rounded-xl border border-[var(--line)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-semibold capitalize">{plan.id} plan</h3>
+                    <h3 className="font-semibold">
+                      {plan.category === "pro"
+                        ? "Pro"
+                        : plan.category === "business"
+                          ? "Business"
+                          : "Free"}{" "}
+                      · {plan.id}
+                    </h3>
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
@@ -1156,7 +1164,17 @@ export function AdminPanel({
                       onChange={(v) => patchPlan({ ...plan, name: v })}
                     />
                     <Field
-                      label="Seats"
+                      label="Max concurrent devices"
+                      value={String(plan.maxDevices ?? 1)}
+                      onChange={(v) =>
+                        patchPlan(
+                          { ...plan, maxDevices: Math.max(1, Number(v) || 1) },
+                          true,
+                        )
+                      }
+                    />
+                    <Field
+                      label="Seats (-1 = unlimited)"
                       value={String(plan.seats)}
                       onChange={(v) => patchPlan({ ...plan, seats: Number(v) || 0 }, true)}
                     />
@@ -1171,17 +1189,17 @@ export function AdminPanel({
                       onChange={(v) => patchPlan({ ...plan, yearly: Number(v) || 0 })}
                     />
                     <Field
-                      label="Signature sends / month"
+                      label="Signature sends / month (-1 unlimited)"
                       value={String(plan.docs)}
                       onChange={(v) => patchPlan({ ...plan, docs: Number(v) }, true)}
                     />
                     <Field
-                      label="Generator downloads / month"
+                      label="Generator downloads / month (-1 unlimited)"
                       value={String(plan.downloads)}
                       onChange={(v) => patchPlan({ ...plan, downloads: Number(v) }, true)}
                     />
                     <Field
-                      label="Faxes / month"
+                      label="Faxes / month (-1 unlimited)"
                       value={String(plan.faxes)}
                       onChange={(v) => patchPlan({ ...plan, faxes: Number(v) }, true)}
                     />
@@ -1335,9 +1353,10 @@ export function AdminPanel({
                           onChange={(e) => patchUser(u.id, { plan: e.target.value as PlanId })}
                         >
                           <option value="free">free</option>
-                          <option value="starter">starter</option>
-                          <option value="pro">pro</option>
-                          <option value="business">business</option>
+                          <option value="pro">pro · 1 device</option>
+                          <option value="pro_5">pro · 5 devices</option>
+                          <option value="business">business · 1 device</option>
+                          <option value="business_5">business · 5 devices</option>
                         </select>
                       </td>
                       <td className="py-3">

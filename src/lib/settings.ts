@@ -68,17 +68,21 @@ export const defaultSettings: OrgSettings = {
 
 function withEnvStripePrices(plans: ReturnType<typeof mergePlans>) {
   const envMap: Record<string, { monthly?: string; yearly?: string }> = {
-    starter: {
-      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
-    },
     pro: {
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
     },
+    pro_5: {
+      monthly: process.env.STRIPE_PRICE_PRO_5_MONTHLY || process.env.STRIPE_PRICE_STARTER_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_PRO_5_YEARLY || process.env.STRIPE_PRICE_STARTER_YEARLY,
+    },
     business: {
       monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
       yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY,
+    },
+    business_5: {
+      monthly: process.env.STRIPE_PRICE_BUSINESS_5_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_BUSINESS_5_YEARLY,
     },
   };
   return plans.map((plan) => {

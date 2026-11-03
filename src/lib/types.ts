@@ -1,9 +1,11 @@
 import type { MarketingSite } from "./marketing";
 
 export type Role = "owner" | "admin" | "member";
-export type PlanId = "free" | "starter" | "pro" | "business";
+/** free + Pro/Business × (1 device | 5 devices). Legacy "starter" normalized away. */
+export type PlanId = "free" | "pro" | "pro_5" | "business" | "business_5";
+export type PlanCategory = "free" | "pro" | "business";
 export type BillingInterval = "monthly" | "yearly";
-/** Fitness-style access packages (mapped from PlanId; API plan ids unchanged) */
+/** Access package rules derived from plan device tiers */
 export type PackageType = "none" | "unlimited_muscle" | "personal";
 export type SubscriptionStatus = "inactive" | "active" | "past_due" | "canceled";
 export type DocStatus = "draft" | "sent" | "viewed" | "completed" | "void";
@@ -14,6 +16,10 @@ export type FieldType = "signature" | "initials" | "date" | "text";
 export interface PlanDefinition {
   id: PlanId;
   name: string;
+  /** Marketing category grouping on /pricing */
+  category: PlanCategory;
+  /** Concurrent signed-in devices (1 or 5 for paid plans) */
+  maxDevices: number;
   monthly: number;
   yearly: number;
   /** Signature sends / month (-1 unlimited) */

@@ -1,17 +1,24 @@
-import type { BillingInterval, PackageType, PlanId, User } from "./types";
+import { getPlanFromSettings, normalizePlanId } from "./plans";
+import type { BillingInterval, OrgSettings, PackageType, PlanId, User } from "./types";
 
-/** Map existing PlanId → package rules (checkout API plan ids unchanged). */
-export function packageFromPlan(plan: PlanId): {
+/** Map PlanId → concurrent device rules (admin maxDevices is source of truth). */
+export function packageFromPlan(
+  plan: PlanId | string,
+  settings?: OrgSettings | null,
+): {
   packageType: PackageType;
   maxConcurrentSessions: number | null;
 } {
-  if (plan === "business") {
-    return { packageType: "unlimited_muscle", maxConcurrentSessions: null };
+  const id = normalizePlanId(plan);
+  if (id === "free") {
+    return { packageType: "none", maxConcurrentSessions: 1 };
   }
-  if (plan === "starter" || plan === "pro") {
-    return { packageType: "personal", maxConcurrentSessions: 5 };
-  }
-  return { packageType: "none", maxConcurrentSessions: 1 };
+  const def = getPlanFromSettings(id, settings);
+  const max = Math.max(1, def.maxDevices || 1);
+  return {
+    packageType: "personal",
+    maxConcurrentSessions: max,
+  };
 }
 
 export function packageExpiresAt(
@@ -29,21 +36,24 @@ export function packageExpiresAt(
 
 export function applyPackageFields(
   user: User,
-  plan: PlanId,
+  plan: PlanId | string,
   interval: BillingInterval | null,
+  settings?: OrgSettings | null,
 ): void {
-  const { packageType, maxConcurrentSessions } = packageFromPlan(plan);
+  const id = normalizePlanId(plan);
+  const { packageType, maxConcurrentSessions } = packageFromPlan(id, settings);
   const now = new Date().toISOString();
+  user.plan = id;
   user.packageType = packageType;
   user.maxConcurrentSessions = maxConcurrentSessions;
-  user.subscriptionStatus = plan === "free" ? "inactive" : "active";
-  user.packageActivatedAt = plan === "free" ? undefined : now;
+  user.subscriptionStatus = id === "free" ? "inactive" : "active";
+  user.packageActivatedAt = id === "free" ? undefined : now;
   user.packageExpiresAt = packageExpiresAt(packageType, interval);
 }
 
-export function effectiveMaxSessions(user: User): number | null {
+export function effectiveMaxSessions(user: User, settings?: OrgSettings | null): number | null {
   if (typeof user.maxConcurrentSessions === "number" || user.maxConcurrentSessions === null) {
     return user.maxConcurrentSessions;
   }
-  return packageFromPlan(user.plan || "free").maxConcurrentSessions;
+  return packageFromPlan(user.plan || "free", settings).maxConcurrentSessions;
 }

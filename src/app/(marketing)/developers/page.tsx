@@ -12,10 +12,12 @@ export default async function DevelopersPage() {
     getMarketing(),
     getSiteSettings(),
   ]);
-  const starter = getPlans(site).find((p) => p.id === "starter");
-  const teamPrice = starter ? String(starter.monthly) : home.planTeamPrice;
-  const teamTitle = starter?.name || home.planTeamTitle;
-  const apiPrice = home.planApiPrice || teamPrice;
+  const pro = getPlans(site).find((p) => p.id === "pro");
+  const business =
+    getPlans(site).find((p) => p.id === "business_5") || getPlans(site).find((p) => p.id === "business");
+  const teamPrice = pro ? String(pro.monthly) : home.planTeamPrice;
+  const teamTitle = pro?.name || home.planTeamTitle || "Pro · 1 device";
+  const apiPrice = business ? String(business.monthly) : home.planApiPrice || teamPrice;
 
   return (
     <main className="lp-page lp-dev">
@@ -71,27 +73,31 @@ Authorization: Bearer sk_live_••••
       <section className="lp-plans">
         <ScrollMeetSplit className="lp-wrap lp-plans-inner lp-meet-grid" itemClassName="lp-meet-item" distance={160} stagger={0.14}>
           <article className="lp-plan-card">
-            <p className="eyebrow">For teams</p>
+            <p className="eyebrow">Pro</p>
             <h3>{teamTitle}</h3>
             <p className="price">
               Starts at <strong>${teamPrice}</strong>
               <span>/month</span>
             </p>
-            <p className="desc">{home.planTeamBody}</p>
-            <Link href="/signup" className="lp-btn">
+            <p className="desc">
+              {home.planTeamBody || "Unlimited features on a single device — monthly or yearly."}
+            </p>
+            <Link href="/pricing" className="lp-btn">
               {home.heroCta}
             </Link>
           </article>
           <article className="lp-plan-card alt">
-            <p className="eyebrow">For developers</p>
-            <h3>{home.planApiTitle}</h3>
+            <p className="eyebrow">Business</p>
+            <h3>{business?.name || home.planApiTitle || "Business · 5 devices"}</h3>
             <p className="price">
               Starts at <strong>${apiPrice}</strong>
               <span>/month</span>
             </p>
-            <p className="desc">{home.planApiBody}</p>
-            <Link href="/developers" className="lp-btn-muted">
-              Get started <ArrowRight size={16} />
+            <p className="desc">
+              {home.planApiBody || "Unlimited everything with 1 or 5 concurrent devices."}
+            </p>
+            <Link href="/pricing" className="lp-btn-muted">
+              See pricing <ArrowRight size={16} />
             </Link>
           </article>
         </ScrollMeetSplit>
