@@ -662,23 +662,11 @@ textarea.field {
   display: inline-block;
 }
 
-.dot-amber {
-  background: #e6a817;
-  box-shadow: none;
-}
-
-.dot-coral {
-  background: #e6a817;
-  box-shadow: none;
-}
-
-.dot-grey {
-  background: #9a948e;
-  box-shadow: none;
-}
-
+.dot-amber,
+.dot-coral,
+.dot-grey,
 .dot-green {
-  background: #2f9e62;
+  background: #0284c7;
   box-shadow: none;
 }
 

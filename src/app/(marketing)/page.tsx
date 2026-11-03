@@ -57,9 +57,9 @@ export default async function HomePage() {
   ];
 
   const stories = [
-    { metric: h.story1Metric, quote: h.story1Quote, by: h.story1By, tone: "plum" },
-    { metric: h.story2Metric, quote: h.story2Quote, by: h.story2By, tone: "navy" },
-    { metric: h.story3Metric, quote: h.story3Quote, by: h.story3By, tone: "violet" },
+    { metric: h.story1Metric, quote: h.story1Quote, by: h.story1By, tone: "" },
+    { metric: h.story2Metric, quote: h.story2Quote, by: h.story2By, tone: "" },
+    { metric: h.story3Metric, quote: h.story3Quote, by: h.story3By, tone: "" },
   ];
 
   return (
@@ -288,7 +288,7 @@ export default async function HomePage() {
           </ScrollMeetBlock>
           <ScrollMeetSplit className="lp-story-grid lp-meet-grid" itemClassName="lp-meet-item" distance={130} stagger={0.14}>
             {stories.map((s) => (
-              <article key={s.metric} className={`lp-story ${s.tone}`}>
+              <article key={s.metric} className="lp-story">
                 <h3>{s.metric}</h3>
                 <p>“{s.quote}”</p>
                 <span className="by">{s.by}</span>
