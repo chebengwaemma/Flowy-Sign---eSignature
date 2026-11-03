@@ -6,6 +6,8 @@ import { Logo } from "@/components/Logo";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { SignaturePad } from "@/components/signature/SignaturePad";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
 
 type Payload = {
@@ -145,17 +147,21 @@ export default function SignPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-4xl px-6 py-10">
-      <Logo />
-      <h1 className="display mt-8 text-4xl">{data.document.title}</h1>
-      <p className="mt-2 text-muted">
-        Signing as {data.recipient.name} ({data.recipient.email})
-      </p>
-      <p className="mt-1 text-sm text-muted">
-        Your signature is placed on the document as an overlay — the original file stays unchanged.
-      </p>
+    <div className="mx-auto min-h-screen max-w-4xl px-6 py-10 app-meet-page">
+      <ScrollMeetSplit className="app-meet-stack" itemClassName="app-meet-item" distance={90} stagger={0.1}>
+        <Logo />
+        <div>
+          <h1 className="display mt-8 text-4xl">{data.document.title}</h1>
+          <p className="mt-2 text-muted">
+            Signing as {data.recipient.name} ({data.recipient.email})
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Your signature is placed on the document as an overlay — the original file stays unchanged.
+          </p>
+        </div>
+      </ScrollMeetSplit>
 
-      <div className="mt-8">
+      <ScrollMeetBlock side="left" distance={110} className="app-meet-block mt-8">
         <DocumentSurface
           content={data.document.content}
           fileKind={data.document.fileKind}
@@ -168,42 +174,44 @@ export default function SignPage() {
           }))}
           highlightPending={!done}
         />
-      </div>
+      </ScrollMeetBlock>
 
-      <div className="panel mt-6 space-y-4 p-6">
-        {done ? (
-          <div>
-            <p className="tone-ok">Signed</p>
-            <p className="mt-2 text-sm text-muted">
-              Thank you. The original document was not modified — only signature marks were added.
-            </p>
-            {fullDoc?.status === "completed" && (
-              <div className="mt-4">
-                <DownloadSignedButton document={fullDoc} />
-              </div>
-            )}
-            {!fullDoc && (
-              <p className="mt-3 text-sm text-muted">
-                When all parties have signed, the completed document can be downloaded from the sender’s
-                Documents page.
+      <ScrollMeetBlock side="right" distance={120} className="app-meet-block mt-6">
+        <div className="panel space-y-4 p-6">
+          {done ? (
+            <div>
+              <p className="tone-ok">Signed</p>
+              <p className="mt-2 text-sm text-muted">
+                Thank you. The original document was not modified — only signature marks were added.
               </p>
-            )}
-          </div>
-        ) : (
-          <>
-            <h2 className="font-semibold text-lg">Create your signature</h2>
-            <SignaturePad defaultName={data.recipient.name} value={mark} onChange={setMark} />
-            {error && <p className="text-[var(--bad)] text-sm">{error}</p>}
-            <button
-              className="btn btn-accent"
-              disabled={loading || !canSubmit}
-              onClick={submit}
-            >
-              {loading ? "Submitting…" : "Adopt & sign"}
-            </button>
-          </>
-        )}
-      </div>
+              {fullDoc?.status === "completed" && (
+                <div className="mt-4">
+                  <DownloadSignedButton document={fullDoc} />
+                </div>
+              )}
+              {!fullDoc && (
+                <p className="mt-3 text-sm text-muted">
+                  When all parties have signed, the completed document can be downloaded from the sender’s
+                  Documents page.
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <h2 className="font-semibold text-lg">Create your signature</h2>
+              <SignaturePad defaultName={data.recipient.name} value={mark} onChange={setMark} />
+              {error && <p className="text-[var(--bad)] text-sm">{error}</p>}
+              <button
+                className="btn btn-accent"
+                disabled={loading || !canSubmit}
+                onClick={submit}
+              >
+                {loading ? "Submitting…" : "Adopt & sign"}
+              </button>
+            </>
+          )}
+        </div>
+      </ScrollMeetBlock>
     </div>
   );
 }

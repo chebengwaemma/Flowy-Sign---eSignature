@@ -5,6 +5,8 @@ import { readStore } from "@/lib/store";
 import { formatDate, statusTone } from "@/lib/utils";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { SendActions } from "./SendActions";
 
 export default async function DocumentDetailPage({
@@ -28,28 +30,35 @@ export default async function DocumentDetailPage({
   };
 
   return (
-    <div className="space-y-6 rise">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link href="/documents" className="text-sm font-semibold text-accent-deep">
-            ← Documents
-          </Link>
-          <h1 className="display mt-2 text-4xl">{doc.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className={statusTone(doc.status)}>{doc.status}</span>
-            <span className="text-sm text-muted">Updated {formatDate(doc.updatedAt)}</span>
-            {doc.fileKind && doc.fileKind !== "text" && (
-              <span className="text-sm text-muted">· {doc.fileKind.toUpperCase()} original preserved</span>
-            )}
+    <div className="space-y-6 app-meet-page">
+      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Link href="/documents" className="text-sm font-semibold text-accent-deep">
+              ← Documents
+            </Link>
+            <h1 className="display mt-2 text-4xl">{doc.title}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <span className={statusTone(doc.status)}>{doc.status}</span>
+              <span className="text-sm text-muted">Updated {formatDate(doc.updatedAt)}</span>
+              {doc.fileKind && doc.fileKind !== "text" && (
+                <span className="text-sm text-muted">· {doc.fileKind.toUpperCase()} original preserved</span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <DownloadSignedButton document={safeDoc} />
+            <SendActions id={doc.id} status={doc.status} />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DownloadSignedButton document={safeDoc} />
-          <SendActions id={doc.id} status={doc.status} />
-        </div>
-      </div>
+      </ScrollMeetBlock>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+      <ScrollMeetSplit
+        className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr] app-meet-grid"
+        itemClassName="app-meet-item"
+        distance={120}
+        stagger={0.12}
+      >
         <div className="space-y-4">
           <DocumentSurface
             content={doc.content}
@@ -91,7 +100,7 @@ export default async function DocumentDetailPage({
             </ul>
           </div>
         </aside>
-      </div>
+      </ScrollMeetSplit>
     </div>
   );
 }

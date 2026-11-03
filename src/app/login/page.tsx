@@ -6,6 +6,8 @@ import { Suspense, useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { SessionLimitModal } from "@/components/SessionLimitModal";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 
 type LimitState = {
   error: string;
@@ -113,61 +115,69 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12 rise">
-      <Logo label={brandName} />
-      <h1 className="display mt-8 text-4xl">Welcome back</h1>
-      <p className="mt-2 text-muted">Sign in to {brandName}.</p>
+    <div className="mx-auto flex w-full max-w-md flex-col justify-center px-6 py-12 app-meet-page">
+      <ScrollMeetSplit className="app-meet-stack" itemClassName="app-meet-item" distance={90} stagger={0.1}>
+        <Logo label={brandName} />
+        <div>
+          <h1 className="display mt-8 text-4xl">Welcome back</h1>
+          <p className="mt-2 text-muted">Sign in to {brandName}.</p>
+        </div>
+      </ScrollMeetSplit>
 
-      <div className="panel mt-8 space-y-4 p-6">
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className="field"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="field"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
-          <button className="btn btn-primary w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Log in"}
-          </button>
-        </form>
-
-        {showGoogle && (
-          <>
-            <div className="auth-divider">
-              <span>or</span>
+      <ScrollMeetBlock side="right" distance={100} className="app-meet-block mt-8">
+        <div className="panel space-y-4 p-6">
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="field"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-            <GoogleLoginButton />
-          </>
-        )}
-      </div>
+            <div>
+              <label className="label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className="field"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
+            <button className="btn btn-primary w-full" disabled={loading}>
+              {loading ? "Signing in…" : "Log in"}
+            </button>
+          </form>
+
+          {showGoogle && (
+            <>
+              <div className="auth-divider">
+                <span>or</span>
+              </div>
+              <GoogleLoginButton />
+            </>
+          )}
+        </div>
+      </ScrollMeetBlock>
 
       {signupEnabled && (
-        <p className="mt-6 text-sm text-muted">
-          <Link href="/signup" className="font-semibold text-accent-deep">
-            Create account
-          </Link>
-        </p>
+        <ScrollMeetBlock side="left" distance={80} className="app-meet-block">
+          <p className="mt-6 text-sm text-muted">
+            <Link href="/signup" className="font-semibold text-accent-deep">
+              Create account
+            </Link>
+          </p>
+        </ScrollMeetBlock>
       )}
 
       <SessionLimitModal

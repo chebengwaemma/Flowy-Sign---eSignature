@@ -9,6 +9,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { meetTravel } from "./meet-travel";
 
 type ScrollMeetSplitProps = {
   children: ReactNode;
@@ -20,8 +21,7 @@ type ScrollMeetSplitProps = {
 };
 
 /**
- * Each child slides in from alternating sides toward center on scroll-down,
- * and parts outward again on scroll-up (scrubbed).
+ * Alternating side meet/split on scroll — mobile, tablet, and desktop.
  */
 export function ScrollMeetSplit({
   children,
@@ -37,10 +37,11 @@ export function ScrollMeetSplit({
     const root = rootRef.current;
     if (!root) return;
 
-    const items = Array.from(root.querySelectorAll<HTMLElement>("[data-meet-item]"));
+    const items = () =>
+      Array.from(root.querySelectorAll<HTMLElement>("[data-meet-item]"));
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      items.forEach((el) => {
+      items().forEach((el) => {
         el.style.opacity = "1";
         el.style.transform = "none";
       });
@@ -49,52 +50,66 @@ export function ScrollMeetSplit({
 
     gsap.registerPlugin(ScrollTrigger);
 
-    const narrow = window.matchMedia("(max-width: 768px)").matches;
-    const travel = narrow ? Math.min(Math.abs(distance), 36) : distance;
+    let ctx: gsap.Context | null = null;
 
-    const ctx = gsap.context(() => {
-      items.forEach((el, i) => {
-        const fromLeft = i % 2 === 0;
-        gsap.fromTo(
-          el,
-          {
-            x: fromLeft ? -travel : travel,
-            y: narrow ? 14 : 0,
-            opacity: 0,
-            rotate: narrow ? 0 : fromLeft ? -3 : 3,
-          },
-          {
-            x: 0,
-            y: 0,
-            opacity: 1,
-            rotate: 0,
-            ease: "none",
-            scrollTrigger: {
-              trigger: el,
-              start: `top ${Math.max(78, 90 - i * stagger * 30)}%`,
-              end: "top 45%",
-              scrub,
-              invalidateOnRefresh: true,
+    const play = () => {
+      ctx?.revert();
+      const { travel, lift } = meetTravel(distance);
+      const narrow = window.innerWidth <= 1024;
+
+      ctx = gsap.context(() => {
+        items().forEach((el, i) => {
+          const fromLeft = i % 2 === 0;
+          gsap.fromTo(
+            el,
+            {
+              x: fromLeft ? -travel : travel,
+              y: lift,
+              opacity: 0,
+              rotate: narrow ? 0 : fromLeft ? -3 : 3,
             },
-          },
-        );
-      });
-    }, root);
+            {
+              x: 0,
+              y: 0,
+              opacity: 1,
+              rotate: 0,
+              ease: "none",
+              scrollTrigger: {
+                trigger: el,
+                start: `top ${Math.max(78, 90 - i * stagger * 30)}%`,
+                end: "top 45%",
+                scrub,
+                invalidateOnRefresh: true,
+              },
+            },
+          );
+        });
+        ScrollTrigger.refresh();
+      }, root);
+    };
 
-    ScrollTrigger.refresh();
+    play();
+    let resizeTimer = 0;
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(play, 180);
+    };
+    window.addEventListener("resize", onResize);
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 300);
 
     return () => {
       window.clearTimeout(t);
-      ctx.revert();
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener("resize", onResize);
+      ctx?.revert();
     };
   }, [distance, scrub, stagger]);
 
-  const items = Children.toArray(children).filter(isValidElement);
+  const childItems = Children.toArray(children).filter(isValidElement);
 
   return (
     <div ref={rootRef} className={className} data-scroll-meet-split>
-      {items.map((child, i) => (
+      {childItems.map((child, i) => (
         <div
           key={child.key ?? i}
           data-meet-item

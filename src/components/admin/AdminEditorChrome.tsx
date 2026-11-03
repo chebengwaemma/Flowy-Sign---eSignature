@@ -46,7 +46,7 @@ export function AdminStickySave({
   label?: string;
 }) {
   return (
-    <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-white/95 p-3 shadow-lg backdrop-blur">
+    <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-white/95 p-3 shadow-lg">
       {message ? <p className="text-sm font-semibold text-accent-deep">{message}</p> : (
         <p className="text-xs text-muted">Changes apply to the live website after save.</p>
       )}

@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { mergeSettings } from "@/lib/settings";
 import { readStore } from "@/lib/store";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 
 export const dynamic = "force-dynamic";
 
@@ -19,17 +20,21 @@ export default async function HiddenAdminPage() {
   }));
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-[var(--muted)]">
-        Changes save to MongoDB and update the live website immediately (home, templates, documents,
-        teams, integrations, API, fax, pricing, and more).
-      </p>
-      <AdminPanel
-        settings={settings}
-        orgName="Global site"
-        users={users}
-        documents={documents}
-      />
+    <div className="space-y-4 app-meet-page">
+      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
+        <p className="text-sm text-[var(--muted)]">
+          Changes save to MongoDB and update the live website immediately (home, templates, documents,
+          teams, integrations, API, fax, pricing, and more).
+        </p>
+      </ScrollMeetBlock>
+      <ScrollMeetBlock side="right" distance={110} className="app-meet-block">
+        <AdminPanel
+          settings={settings}
+          orgName="Global site"
+          users={users}
+          documents={documents}
+        />
+      </ScrollMeetBlock>
     </div>
   );
 }

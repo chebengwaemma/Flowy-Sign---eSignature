@@ -3,10 +3,11 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { meetTravel } from "./meet-travel";
 
 type Side = "left" | "right" | "auto";
 
-/** Single block meet/split from one side (scrubbed with scroll). */
+/** Single block meet/split from one side (scrubbed with scroll) — mobile, tablet, desktop. */
 export function ScrollMeetBlock({
   children,
   className,
@@ -34,40 +35,54 @@ export function ScrollMeetBlock({
 
     gsap.registerPlugin(ScrollTrigger);
 
-    const narrow = window.matchMedia("(max-width: 768px)").matches;
-    // Keep motion on mobile, but cap travel so content does not clip.
-    const travel = narrow ? Math.min(Math.abs(distance), 36) : distance;
+    let ctx: gsap.Context | null = null;
 
-    const resolved =
-      side === "auto"
-        ? el.getBoundingClientRect().left < window.innerWidth / 2
-          ? "left"
-          : "right"
-        : side;
-    const fromX = resolved === "left" ? -travel : travel;
+    const play = () => {
+      ctx?.revert();
+      const { travel, lift } = meetTravel(distance);
+      const resolved =
+        side === "auto"
+          ? el.getBoundingClientRect().left < window.innerWidth / 2
+            ? "left"
+            : "right"
+          : side;
+      const fromX = resolved === "left" ? -travel : travel;
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        { x: fromX, y: narrow ? 18 : 0, opacity: 0 },
-        {
-          x: 0,
-          y: 0,
-          opacity: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 92%",
-            end: "top 55%",
-            scrub,
-            invalidateOnRefresh: true,
+      ctx = gsap.context(() => {
+        gsap.fromTo(
+          el,
+          { x: fromX, y: lift, opacity: 0 },
+          {
+            x: 0,
+            y: 0,
+            opacity: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: el,
+              start: "top 92%",
+              end: "top 55%",
+              scrub,
+              invalidateOnRefresh: true,
+            },
           },
-        },
-      );
-      ScrollTrigger.refresh();
-    }, el);
+        );
+        ScrollTrigger.refresh();
+      }, el);
+    };
 
-    return () => ctx.revert();
+    play();
+    let resizeTimer = 0;
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(play, 180);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener("resize", onResize);
+      ctx?.revert();
+    };
   }, [distance, scrub, side]);
 
   return (
