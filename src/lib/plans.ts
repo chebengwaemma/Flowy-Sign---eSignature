@@ -19,6 +19,9 @@ const UNLIMITED_FEATURES = [
 export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const;
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
+/** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
+export const PLAN_CATALOG_VERSION = 2;
+
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
     id: "free",
@@ -141,14 +144,19 @@ export function planCategoryLabel(category: PlanCategory): string {
 }
 
 /** Old CMS had free/starter/pro/business — never overlay "starter" onto pro_5. */
-export function isLegacyPlanCatalog(partial?: Partial<PlanDefinition>[] | null): boolean {
+export function isLegacyPlanCatalog(
+  partial?: Partial<PlanDefinition>[] | null,
+  version?: number | null,
+): boolean {
+  if (typeof version === "number" && version >= PLAN_CATALOG_VERSION) return false;
   const rows = (partial || []).filter((p) => p?.id);
-  if (!rows.length) return false;
+  if (!rows.length) return true;
   const ids = new Set(rows.map((p) => String(p!.id)));
   if (ids.has("starter")) return true;
   if (!ids.has("pro_5") || !ids.has("business_5")) return true;
-  // Broken mid-migration: starter name/limits stuck on a new id
   if (rows.some((p) => /starter/i.test(String(p!.name || "")))) return true;
+  // version missing/outdated → re-run migration (fixes Starter $ stuck on pro_5)
+  if (typeof version !== "number" || version < PLAN_CATALOG_VERSION) return true;
   return false;
 }
 
@@ -178,30 +186,38 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] 
         visible: over.visible ?? base.visible,
       });
     }
-    // Paid: keep admin prices/Stripe; force unlimited quotas + catalog names/devices
+    // Only keep prices from classic pro/business rows — never inherit Starter $ onto pro_5
+    const keepPrice = base.id === "pro" || base.id === "business";
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
       category: base.category,
       name: base.name,
       maxDevices: base.maxDevices,
-      monthly: numOr(over.monthly, base.monthly),
-      yearly: numOr(over.yearly, base.yearly),
+      monthly: keepPrice ? numOr(over.monthly, base.monthly) : base.monthly,
+      yearly: keepPrice ? numOr(over.yearly, base.yearly) : base.yearly,
       docs: -1,
       downloads: -1,
       faxes: -1,
       seats: -1,
       features: [...base.features],
-      stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
-      stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
+      stripePriceMonthly: keepPrice
+        ? String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? "")
+        : String(base.stripePriceMonthly ?? ""),
+      stripePriceYearly: keepPrice
+        ? String(over.stripePriceYearly ?? base.stripePriceYearly ?? "")
+        : String(base.stripePriceYearly ?? ""),
       visible: true,
     });
   });
 }
 
-export function mergePlans(partial?: Partial<PlanDefinition>[] | null): PlanDefinition[] {
+export function mergePlans(
+  partial?: Partial<PlanDefinition>[] | null,
+  version?: number | null,
+): PlanDefinition[] {
   const rows = (partial || []).filter((p) => p?.id);
-  if (isLegacyPlanCatalog(rows)) {
+  if (isLegacyPlanCatalog(rows, version)) {
     return mergeLegacyPlans(rows);
   }
 

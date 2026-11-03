@@ -1,5 +1,10 @@
 import { defaultMarketing, mergeMarketing } from "./marketing";
-import { DEFAULT_PLANS, legacyLimitsFromPlans, mergePlans } from "./plans";
+import {
+  DEFAULT_PLANS,
+  PLAN_CATALOG_VERSION,
+  legacyLimitsFromPlans,
+  mergePlans,
+} from "./plans";
 import type { OrgSettings } from "./types";
 
 export const defaultSettings: OrgSettings = {
@@ -61,6 +66,7 @@ export const defaultSettings: OrgSettings = {
   proFaxLimit: 100,
   businessFaxLimit: -1,
   plans: DEFAULT_PLANS.map((x) => ({ ...x, features: [...x.features] })),
+  planCatalogVersion: PLAN_CATALOG_VERSION,
   signupEnabled: true,
   showGoogleLogin: true,
   marketing: defaultMarketing,
@@ -104,7 +110,10 @@ export function mergeSettings(partial?: Partial<OrgSettings> | null): OrgSetting
   ) as Partial<OrgSettings>;
 
   const plans = withEnvStripePrices(
-    mergePlans(Array.isArray(cleaned.plans) ? cleaned.plans : defaultSettings.plans),
+    mergePlans(
+      Array.isArray(cleaned.plans) ? cleaned.plans : defaultSettings.plans,
+      typeof cleaned.planCatalogVersion === "number" ? cleaned.planCatalogVersion : 0,
+    ),
   );
   const legacy = legacyLimitsFromPlans(plans);
   return {
@@ -112,6 +121,7 @@ export function mergeSettings(partial?: Partial<OrgSettings> | null): OrgSetting
     ...cleaned,
     ...legacy,
     plans,
+    planCatalogVersion: PLAN_CATALOG_VERSION,
     brandName: cleaned.brandName || defaultSettings.brandName,
     logoText: cleaned.logoText || defaultSettings.logoText,
     supportEmail: cleaned.supportEmail || defaultSettings.supportEmail,

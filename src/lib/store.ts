@@ -279,7 +279,10 @@ async function readMongoStore(): Promise<PlatformStore | null> {
       }
     }
     const raw = doc.data as PlatformStore;
-    const legacyPlans = isLegacyPlanCatalog(raw?.site?.plans);
+    const legacyPlans = isLegacyPlanCatalog(
+      raw?.site?.plans,
+      raw?.site?.planCatalogVersion,
+    );
     const store = normalizeStore(raw);
     if (legacyPlans) {
       try {

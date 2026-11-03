@@ -171,6 +171,8 @@ export interface OrgSettings {
    * Admin edits → public pricing + billing + enforcement.
    */
   plans: PlanDefinition[];
+  /** Bump when catalog shape changes so legacy Mongo rows re-migrate once */
+  planCatalogVersion?: number;
   signupEnabled: boolean;
   showGoogleLogin: boolean;
   /** Full marketing website copy — editable in admin */
