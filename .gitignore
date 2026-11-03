@@ -46,3 +46,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Hostinger CLI link (contains account/domain)
+.hostinger/
