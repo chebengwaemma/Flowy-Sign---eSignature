@@ -21,7 +21,7 @@ type ScrollMeetSplitProps = {
 
 /**
  * Each child slides in from alternating sides toward center on scroll-down,
- * and parts outward again on scroll-up (scrubbed).
+ * and parts outward again on scroll-up (scrubbed). Disabled on narrow viewports.
  */
 export function ScrollMeetSplit({
   children,
@@ -38,9 +38,10 @@ export function ScrollMeetSplit({
     if (!root) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const narrow = window.matchMedia("(max-width: 768px)").matches;
     const items = Array.from(root.querySelectorAll<HTMLElement>("[data-meet-item]"));
 
-    if (reduce) {
+    if (reduce || narrow) {
       items.forEach((el) => {
         el.style.opacity = "1";
         el.style.transform = "none";
@@ -60,13 +61,11 @@ export function ScrollMeetSplit({
             x: fromLeft ? -distance : distance,
             opacity: 0,
             rotate: fromLeft ? -3 : 3,
-            filter: "blur(5px)",
           },
           {
             x: 0,
             opacity: 1,
             rotate: 0,
-            filter: "blur(0px)",
             ease: "none",
             scrollTrigger: {
               trigger: el,

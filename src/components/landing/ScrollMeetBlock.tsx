@@ -26,9 +26,14 @@ export function ScrollMeetBlock({
     const el = ref.current;
     if (!el) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const narrow = window.matchMedia("(max-width: 768px)").matches;
+
+    // Mobile: no horizontal slide — it overflows the viewport and clips content.
+    if (reduce || narrow) {
       el.style.opacity = "1";
       el.style.transform = "none";
+      el.style.filter = "none";
       return;
     }
 
@@ -45,11 +50,10 @@ export function ScrollMeetBlock({
     const ctx = gsap.context(() => {
       gsap.fromTo(
         el,
-        { x: fromX, opacity: 0, filter: "blur(5px)" },
+        { x: fromX, opacity: 0 },
         {
           x: 0,
           opacity: 1,
-          filter: "blur(0px)",
           ease: "none",
           scrollTrigger: {
             trigger: el,
