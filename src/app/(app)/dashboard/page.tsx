@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { X } from "lucide-react";
-import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
-import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { UploadDropzone } from "@/components/UploadDropzone";
 import { getSessionUser } from "@/lib/auth";
 import { getSignatureQuota } from "@/lib/plan-usage";
@@ -37,47 +35,41 @@ export default async function DashboardPage() {
         : `${quota.remaining} of ${quota.limit} signatures left`;
 
   return (
-    <div className="home-page app-meet-page">
-      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
-        <div className="home-hello">
-          <h1>
-            Hello, {firstName}!{" "}
-            <span className="home-hello-sub">{settings.homeGreetingSuffix}</span>
-          </h1>
-        </div>
-      </ScrollMeetBlock>
+    <div className="home-page">
+      <div className="home-hello">
+        <h1>
+          Hello, {firstName}!{" "}
+          <span className="home-hello-sub">{settings.homeGreetingSuffix}</span>
+        </h1>
+      </div>
 
       {!quota.allowed && (
-        <ScrollMeetBlock side="right" distance={100} className="app-meet-block">
-          <div className="mb-5 rounded-2xl border border-[#f0d9c8] bg-[#fff8f3] px-5 py-4">
-            <p className="font-semibold text-ink">
-              {quota.requiresPurchase ? "Buy a plan to send signatures" : "Signature limit reached"}
-            </p>
-            <p className="mt-1 text-sm text-muted">{quota.message}</p>
-            <Link href="/billing" className="btn btn-primary mt-3 inline-flex">
-              View packages & buy
-            </Link>
-          </div>
-        </ScrollMeetBlock>
+        <div className="mb-5 rounded-2xl border border-[#f0d9c8] bg-[#fff8f3] px-5 py-4">
+          <p className="font-semibold text-ink">
+            {quota.requiresPurchase ? "Buy a plan to send signatures" : "Signature limit reached"}
+          </p>
+          <p className="mt-1 text-sm text-muted">{quota.message}</p>
+          <Link href="/billing" className="btn btn-primary mt-3 inline-flex">
+            View packages & buy
+          </Link>
+        </div>
       )}
 
       {quota.allowed && (
-        <ScrollMeetBlock side="right" distance={90} className="app-meet-block">
-          <div className="home-quota">
-            <p className="text-ink">
-              <span className="font-semibold">{quota.planName}</span>
-              <span className="text-muted"> · {quotaLabel}</span>
-            </p>
-            {settings.billingEnabled && (
-              <Link href="/billing" className="font-semibold text-accent-deep underline underline-offset-2">
-                Manage plan
-              </Link>
-            )}
-          </div>
-        </ScrollMeetBlock>
+        <div className="home-quota">
+          <p className="text-ink">
+            <span className="font-semibold">{quota.planName}</span>
+            <span className="text-muted"> · {quotaLabel}</span>
+          </p>
+          {settings.billingEnabled && (
+            <Link href="/billing" className="font-semibold text-accent-deep underline underline-offset-2">
+              Manage plan
+            </Link>
+          )}
+        </div>
       )}
 
-      <ScrollMeetSplit className="stat-row app-meet-grid" itemClassName="app-meet-item" distance={120} stagger={0.1}>
+      <div className="stat-row">
         {stats.map((stat) => (
           <div key={stat.label} className={`stat-item tone-${stat.tone}`}>
             <p className="stat-value">{stat.value}</p>
@@ -87,37 +79,33 @@ export default async function DashboardPage() {
             </p>
           </div>
         ))}
-      </ScrollMeetSplit>
+      </div>
 
-      <ScrollMeetBlock side="left" distance={110} className="app-meet-block">
-        <UploadDropzone />
-      </ScrollMeetBlock>
+      <UploadDropzone />
 
-      <ScrollMeetBlock side="right" distance={120} className="app-meet-block">
-        <div className="template-banner">
-          <div className="template-banner-copy">
-            <p className="font-semibold text-[var(--ink)]">
-              Sign faster with pre-made templates <span className="new-pill">New!</span>
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Expertly designed templates. Customised by you.{" "}
-              <Link
-                href="/templates"
-                className="font-semibold text-[var(--ink)] underline underline-offset-2"
-              >
-                Browse all templates
-              </Link>
-            </p>
-          </div>
-          <div className="template-banner-art" aria-hidden>
-            <div className="mini-doc">PDF</div>
-            <div className="mini-sig">Sign</div>
-          </div>
-          <Link href="/templates" className="banner-close" aria-label="Browse templates">
-            <X size={16} />
-          </Link>
+      <div className="template-banner">
+        <div className="template-banner-copy">
+          <p className="font-semibold text-[var(--ink)]">
+            Sign faster with pre-made templates <span className="new-pill">New!</span>
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Expertly designed templates. Customised by you.{" "}
+            <Link
+              href="/templates"
+              className="font-semibold text-[var(--ink)] underline underline-offset-2"
+            >
+              Browse all templates
+            </Link>
+          </p>
         </div>
-      </ScrollMeetBlock>
+        <div className="template-banner-art" aria-hidden>
+          <div className="mini-doc">PDF</div>
+          <div className="mini-sig">Sign</div>
+        </div>
+        <Link href="/templates" className="banner-close" aria-label="Browse templates">
+          <X size={16} />
+        </Link>
+      </div>
     </div>
   );
 }
