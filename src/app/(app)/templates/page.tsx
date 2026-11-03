@@ -1,46 +1,84 @@
 import Link from "next/link";
-import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
-import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 
 const samples = [
-  { title: "Mutual NDA", type: "Legal" },
-  { title: "Offer letter", type: "HR" },
-  { title: "Vendor agreement", type: "Sales" },
-  { title: "Service SOW", type: "Ops" },
+  {
+    title: "Mutual NDA",
+    type: "Legal",
+    blurb: "Two-party confidentiality for deals and partnerships.",
+  },
+  {
+    title: "Offer letter",
+    type: "HR",
+    blurb: "Role, start date, and compensation in one clean letter.",
+  },
+  {
+    title: "Vendor agreement",
+    type: "Sales",
+    blurb: "Scope, payment terms, and signature blocks for vendors.",
+  },
+  {
+    title: "Service SOW",
+    type: "Ops",
+    blurb: "Deliverables, timeline, and acceptance criteria.",
+  },
 ];
+
+const tabs = ["All", "Legal", "HR", "Sales", "Ops"] as const;
 
 export default function TemplatesPage() {
   return (
-    <div className="home-page app-meet-page space-y-6">
-      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
+    <div className="templates-page">
+      <header className="templates-head">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1e1919]">Templates</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Pre-made layouts you can customise and reuse.
+          <h1 className="display text-3xl text-ink">Templates</h1>
+          <p className="mt-1 text-sm text-muted">
+            Pre-made layouts you can customise and reuse for signature requests.
           </p>
         </div>
-      </ScrollMeetBlock>
+        <Link href="/documents/new" className="btn btn-primary">
+          Start from blank
+        </Link>
+      </header>
 
-      <ScrollMeetSplit
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 app-meet-grid"
-        itemClassName="app-meet-item"
-        distance={110}
-        stagger={0.1}
-      >
+      <div className="template-banner">
+        <div>
+          <p className="text-sm font-semibold text-ink">
+            Pick a template <span className="new-pill">Ready</span>
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Each template opens a new document you can edit, add signers to, and send.
+          </p>
+        </div>
+        <div className="template-banner-art" aria-hidden>
+          <div className="mini-doc">PDF</div>
+          <div className="mini-sig">Sign</div>
+        </div>
+      </div>
+
+      <div className="template-tabs" role="tablist" aria-label="Template categories">
+        {tabs.map((tab, i) => (
+          <span key={tab} className={`template-tab${i === 0 ? " active" : ""}`} role="tab">
+            {tab}
+          </span>
+        ))}
+      </div>
+
+      <div className="templates-grid">
         {samples.map((t) => (
-          <Link
-            key={t.title}
-            href="/documents/new"
-            className="rounded-xl border border-[var(--line)] bg-white p-5 transition hover:border-[#1e1919]/20 hover:shadow-sm"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              {t.type}
-            </p>
-            <p className="mt-2 font-semibold text-[#1e1919]">{t.title}</p>
-            <p className="mt-4 text-sm font-medium text-[#1fa97a]">Use template →</p>
+          <Link key={t.title} href="/documents/new" className="template-card">
+            <div className="template-card-preview" aria-hidden>
+              <span className="template-card-lines" />
+              <span className="template-card-lines short" />
+              <span className="template-card-lines" />
+              <span className="template-card-sig">✎</span>
+            </div>
+            <p className="template-card-type">{t.type}</p>
+            <h2 className="template-card-title">{t.title}</h2>
+            <p className="template-card-blurb">{t.blurb}</p>
+            <span className="template-card-cta">Use template</span>
           </Link>
         ))}
-      </ScrollMeetSplit>
+      </div>
     </div>
   );
 }

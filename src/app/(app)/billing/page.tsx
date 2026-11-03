@@ -28,7 +28,7 @@ export default async function BillingPage({
   const maxDevices = current.maxDevices || user.maxConcurrentSessions || 1;
 
   return (
-    <div className="app-meet-page space-y-1 p-1 m-1">
+    <div className="app-meet-page space-y-6">
       <ScrollMeetBlock side="left" distance={90}>
         <h1 className="display text-4xl">Billing</h1>
         <p className="mt-1 text-muted">
