@@ -60,15 +60,25 @@ npm ci
 npm run hostinger:build
 ```
 
-Upload the contents of `.next/standalone` to the server (it already includes `.next/static` + `public` after prepare). Then:
+Upload the contents of `.next/standalone` to the server (it already includes `.next/static` + `public` + a generated `.env` after prepare). In Hostinger hPanel set the **startup file** to:
+
+```bash
+hostinger-server.js
+```
+
+That wrapper loads `.env` (including `RESEND_API_KEY` / `EMAIL_FROM`) then starts Next on `PORT=3000`.
+
+Or manually:
 
 ```bash
 export PORT=3000 HOSTNAME=0.0.0.0
-# also set MONGODB_URI, AUTH_SECRET, ADMIN_AUTH_SECRET, NEXT_PUBLIC_APP_URL, Stripe keys…
-node server.js
+# also set MONGODB_URI, AUTH_SECRET, ADMIN_AUTH_SECRET, NEXT_PUBLIC_APP_URL, RESEND_API_KEY, EMAIL_FROM…
+node hostinger-server.js
 ```
 
 Or from the project root after build: `npm run start:standalone`.
+
+**GitHub Actions FTP** (`.github/workflows/deploy-hostinger.yml`) needs repo secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_DIR`, plus optional `RESEND_API_KEY` / `EMAIL_FROM`.
 
 **Option B — Docker**
 

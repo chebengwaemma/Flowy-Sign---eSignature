@@ -12,6 +12,8 @@
 #   NEXT_PUBLIC_APP_URL
 #   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 #   AUTH_SECRET, ADMIN_AUTH_SECRET, MONGODB_URI, Stripe keys, etc. (set on Hostinger too)
+# Email (set as Hostinger Node runtime env AND/OR Admin CMS Resend fields):
+#   RESEND_API_KEY, EMAIL_FROM
 
 name: Deploy to Hostinger (FTP)
 
@@ -55,6 +57,8 @@ jobs:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           ADMIN_AUTH_SECRET: ${{ secrets.ADMIN_AUTH_SECRET }}
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         run: |
           set -euo pipefail
           # package.json "build" is already: next build --webpack
