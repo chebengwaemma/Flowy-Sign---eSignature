@@ -2,6 +2,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { UploadDropzone } from "@/components/UploadDropzone";
 import { getSessionUser } from "@/lib/auth";
+import { listUserNotifications } from "@/lib/notifications";
 import { getSignatureQuota } from "@/lib/plan-usage";
 import { mergeSettings } from "@/lib/settings";
 import { getOrgDocuments, readStore } from "@/lib/store";
@@ -13,6 +14,8 @@ export default async function DashboardPage() {
   const store = await readStore();
   const settings = mergeSettings(store.site);
   const docs = await getOrgDocuments(user.orgId);
+  const notices = await listUserNotifications(user.id, 8);
+  const unreadReady = notices.filter((n) => n.type === "document_ready" && !n.readAt);
   const quota = await getSignatureQuota(user);
   const pendingSignature = docs.filter((d) => d.status === "sent" || d.status === "viewed").length;
   const pendingYours = 0;
@@ -42,6 +45,25 @@ export default async function DashboardPage() {
           <span className="home-hello-sub">{settings.homeGreetingSuffix}</span>
         </h1>
       </div>
+
+      {unreadReady.length > 0 && (
+        <div className="mb-5 space-y-3">
+          {unreadReady.map((n) => (
+            <div
+              key={n.id}
+              className="rounded-2xl border border-[rgba(2,132,199,0.25)] bg-[#f0f9ff] px-5 py-4"
+            >
+              <p className="font-semibold text-ink">{n.title}</p>
+              <p className="mt-1 text-sm text-muted">{n.body}</p>
+              {n.href ? (
+                <Link href={n.href} className="btn btn-primary mt-3 inline-flex">
+                  Open download link
+                </Link>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
 
       {!quota.allowed && (
         <div className="mb-5 rounded-2xl border border-[#f0d9c8] bg-[#fff8f3] px-5 py-4">

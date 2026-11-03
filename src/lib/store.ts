@@ -150,6 +150,7 @@ function seed(): PlatformStore {
     faxes,
     invites: [],
     deviceSessions: [],
+    notifications: [],
     site: { ...defaultSettings },
   };
 }
@@ -213,6 +214,9 @@ function normalizeStore(raw: unknown): PlatformStore {
     invites: Array.isArray(base.invites) ? base.invites : [],
     deviceSessions: Array.isArray(base.deviceSessions)
       ? base.deviceSessions.filter((s) => s?.userId && s?.sessionId)
+      : [],
+    notifications: Array.isArray(base.notifications)
+      ? base.notifications.filter((n) => n?.id && n?.userId)
       : [],
     site: mergeSettings(base.site),
   };

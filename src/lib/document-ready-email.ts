@@ -1,5 +1,6 @@
 import { getAppUrl } from "./app-url";
 import { sendEmail } from "./email";
+import { createUserNotification } from "./notifications";
 import type { Document, User } from "./types";
 
 export function documentDownloadPath(token: string) {
@@ -10,11 +11,12 @@ export function documentDownloadUrl(token: string) {
   return `${getAppUrl()}${documentDownloadPath(token)}`;
 }
 
-/** Email the account owner that their uploaded document is ready, with a gated download link. */
+/** Notify the account owner that their uploaded document is ready (in-app + email). */
 export async function sendDocumentReadyEmail(user: User, doc: Document) {
   const token = doc.downloadToken;
   if (!token) return { ok: false, error: "Missing download token" };
 
+  const path = documentDownloadPath(token);
   const link = documentDownloadUrl(token);
   const brand = "Flowy Sign - eSignature";
   const subject = `${doc.title} is ready to download`;
@@ -47,6 +49,16 @@ export async function sendDocumentReadyEmail(user: User, doc: Document) {
       <p>— ${escapeHtml(brand)}</p>
     </div>
   `;
+
+  // Always deliver in-app so the flow works without an email provider key
+  await createUserNotification({
+    userId: user.id,
+    type: "document_ready",
+    title: subject,
+    body: `Your document "${doc.title}" is ready. Open the download link — a paid plan is required to save the file.`,
+    href: path,
+    documentId: doc.id,
+  });
 
   return sendEmail({ to: user.email, subject, html, text });
 }

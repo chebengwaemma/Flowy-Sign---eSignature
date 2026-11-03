@@ -256,6 +256,19 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+/** In-app copy of outbound emails / alerts (always stored; email provider optional) */
+export interface UserNotification {
+  id: string;
+  userId: string;
+  type: "document_ready" | "system";
+  title: string;
+  body: string;
+  href?: string;
+  documentId?: string;
+  createdAt: string;
+  readAt?: string;
+}
+
 export interface PlatformStore {
   users: User[];
   organizations: Organization[];
@@ -263,5 +276,6 @@ export interface PlatformStore {
   faxes: FaxMessage[];
   invites: TeamInvite[];
   deviceSessions: DeviceSession[];
+  notifications: UserNotification[];
   site: OrgSettings;
 }
