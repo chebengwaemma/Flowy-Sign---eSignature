@@ -1230,7 +1230,8 @@ body:has(.lp-shell) {
 .lp-sub-body {
   background: #fff;
   color: var(--lp-ink);
-  padding: 56px 0;
+  padding: 0.25rem;
+  margin: 0.25rem;
 }
 
 .lp-sub-body.cream {
@@ -1246,7 +1247,8 @@ body:has(.lp-shell) {
 .lp-sub-card {
   border: 1px solid rgba(11, 31, 51, 0.08);
   border-radius: 16px;
-  padding: 26px;
+  padding: 0.25rem;
+  margin: 0.25rem;
   background: #fff;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -1556,7 +1558,8 @@ body:has(.lp-shell) {
   background: linear-gradient(165deg, #fff 0%, #f4f9fc 100%);
   border: none;
   border-radius: 36px 20px 32px 24px;
-  padding: 34px 30px;
+  padding: 0.25rem;
+  margin: 0.25rem;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
   box-shadow: 0 18px 44px rgba(11, 31, 51, 0.1);
 }
