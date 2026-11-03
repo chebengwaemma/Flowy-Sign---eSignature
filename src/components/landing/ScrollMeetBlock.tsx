@@ -5,9 +5,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { meetTravel } from "./meet-travel";
 
-type Side = "left" | "right" | "auto";
+type Side = "left" | "right" | "auto" | "top" | "bottom";
 
-/** Single block meet/split from one side (scrubbed with scroll) — mobile, tablet, desktop. */
+/** Meet/split on the vertical axis: from top or from bottom (scrubbed). */
 export function ScrollMeetBlock({
   children,
   className,
@@ -39,28 +39,30 @@ export function ScrollMeetBlock({
 
     const play = () => {
       ctx?.revert();
-      const { travel, lift } = meetTravel(distance);
-      const resolved =
-        side === "auto"
-          ? el.getBoundingClientRect().left < window.innerWidth / 2
-            ? "left"
-            : "right"
-          : side;
-      const fromX = resolved === "left" ? -travel : travel;
+      const travel = meetTravel(distance);
+
+      let fromTop: boolean;
+      if (side === "top" || side === "left") fromTop = true;
+      else if (side === "bottom" || side === "right") fromTop = false;
+      else {
+        // auto: above mid-viewport → drop from top; below → rise from bottom
+        fromTop = el.getBoundingClientRect().top < window.innerHeight * 0.55;
+      }
+
+      const fromY = fromTop ? -travel : travel;
 
       ctx = gsap.context(() => {
         gsap.fromTo(
           el,
-          { x: fromX, y: lift, opacity: 0 },
+          { y: fromY, opacity: 0 },
           {
-            x: 0,
             y: 0,
             opacity: 1,
             ease: "none",
             scrollTrigger: {
               trigger: el,
               start: "top 92%",
-              end: "top 55%",
+              end: "top 52%",
               scrub,
               invalidateOnRefresh: true,
             },

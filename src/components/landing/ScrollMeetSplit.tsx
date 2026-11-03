@@ -21,7 +21,7 @@ type ScrollMeetSplitProps = {
 };
 
 /**
- * Alternating side meet/split on scroll — mobile, tablet, and desktop.
+ * Alternating vertical meet: even items from top, odd from bottom (and reverse on scroll-up).
  */
 export function ScrollMeetSplit({
   children,
@@ -54,25 +54,20 @@ export function ScrollMeetSplit({
 
     const play = () => {
       ctx?.revert();
-      const { travel, lift } = meetTravel(distance);
-      const narrow = window.innerWidth <= 1024;
+      const travel = meetTravel(distance);
 
       ctx = gsap.context(() => {
         items().forEach((el, i) => {
-          const fromLeft = i % 2 === 0;
+          const fromTop = i % 2 === 0;
           gsap.fromTo(
             el,
             {
-              x: fromLeft ? -travel : travel,
-              y: lift,
+              y: fromTop ? -travel : travel,
               opacity: 0,
-              rotate: narrow ? 0 : fromLeft ? -3 : 3,
             },
             {
-              x: 0,
               y: 0,
               opacity: 1,
-              rotate: 0,
               ease: "none",
               scrollTrigger: {
                 trigger: el,
@@ -113,7 +108,7 @@ export function ScrollMeetSplit({
         <div
           key={child.key ?? i}
           data-meet-item
-          data-side={i % 2 === 0 ? "left" : "right"}
+          data-side={i % 2 === 0 ? "top" : "bottom"}
           className={itemClassName}
         >
           {child}
