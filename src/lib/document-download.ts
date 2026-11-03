@@ -7,7 +7,7 @@ function safeName(title: string, ext: string) {
 }
 
 function parseDataUrl(dataUrl: string): { mime: string; buffer: Buffer } | null {
-  const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUrl);
+  const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl);
   if (!match) return null;
   const mime = match[1] || "application/octet-stream";
   const isBase64 = Boolean(match[2]);
