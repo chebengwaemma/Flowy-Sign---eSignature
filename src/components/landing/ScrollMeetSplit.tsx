@@ -21,7 +21,7 @@ type ScrollMeetSplitProps = {
 
 /**
  * Each child slides in from alternating sides toward center on scroll-down,
- * and parts outward again on scroll-up (scrubbed). Disabled on narrow viewports.
+ * and parts outward again on scroll-up (scrubbed).
  */
 export function ScrollMeetSplit({
   children,
@@ -37,20 +37,20 @@ export function ScrollMeetSplit({
     const root = rootRef.current;
     if (!root) return;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const narrow = window.matchMedia("(max-width: 768px)").matches;
     const items = Array.from(root.querySelectorAll<HTMLElement>("[data-meet-item]"));
 
-    if (reduce || narrow) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       items.forEach((el) => {
         el.style.opacity = "1";
         el.style.transform = "none";
-        el.style.filter = "none";
       });
       return;
     }
 
     gsap.registerPlugin(ScrollTrigger);
+
+    const narrow = window.matchMedia("(max-width: 768px)").matches;
+    const travel = narrow ? Math.min(Math.abs(distance), 36) : distance;
 
     const ctx = gsap.context(() => {
       items.forEach((el, i) => {
@@ -58,12 +58,14 @@ export function ScrollMeetSplit({
         gsap.fromTo(
           el,
           {
-            x: fromLeft ? -distance : distance,
+            x: fromLeft ? -travel : travel,
+            y: narrow ? 14 : 0,
             opacity: 0,
-            rotate: fromLeft ? -3 : 3,
+            rotate: narrow ? 0 : fromLeft ? -3 : 3,
           },
           {
             x: 0,
+            y: 0,
             opacity: 1,
             rotate: 0,
             ease: "none",

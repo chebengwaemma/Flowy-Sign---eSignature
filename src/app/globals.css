@@ -491,10 +491,8 @@ textarea.field {
   .app-meet-page .app-meet-item,
   [data-scroll-meet-block],
   [data-meet-item] {
-    transform: none !important;
-    filter: none !important;
-    opacity: 1 !important;
     max-width: 100%;
+    will-change: transform, opacity;
   }
 
   .stat-row,

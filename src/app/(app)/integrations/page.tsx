@@ -1,14 +1,25 @@
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
+
 export default function IntegrationsPage() {
   const items = ["Google Drive", "Slack", "Salesforce", "HubSpot", "Zapier", "Microsoft 365"];
   return (
-    <div className="home-page rise space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-[#1e1919]">Integrations</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Connect Flowy Sign to the tools your team already uses.
-        </p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="home-page app-meet-page space-y-6">
+      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1e1919]">Integrations</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Connect Flowy Sign to the tools your team already uses.
+          </p>
+        </div>
+      </ScrollMeetBlock>
+
+      <ScrollMeetSplit
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 app-meet-grid"
+        itemClassName="app-meet-item"
+        distance={110}
+        stagger={0.08}
+      >
         {items.map((name) => (
           <div
             key={name}
@@ -20,7 +31,7 @@ export default function IntegrationsPage() {
             </button>
           </div>
         ))}
-      </div>
+      </ScrollMeetSplit>
     </div>
   );
 }

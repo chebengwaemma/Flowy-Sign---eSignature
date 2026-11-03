@@ -26,18 +26,17 @@ export function ScrollMeetBlock({
     const el = ref.current;
     if (!el) return;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const narrow = window.matchMedia("(max-width: 768px)").matches;
-
-    // Mobile: no horizontal slide — it overflows the viewport and clips content.
-    if (reduce || narrow) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       el.style.opacity = "1";
       el.style.transform = "none";
-      el.style.filter = "none";
       return;
     }
 
     gsap.registerPlugin(ScrollTrigger);
+
+    const narrow = window.matchMedia("(max-width: 768px)").matches;
+    // Keep motion on mobile, but cap travel so content does not clip.
+    const travel = narrow ? Math.min(Math.abs(distance), 36) : distance;
 
     const resolved =
       side === "auto"
@@ -45,20 +44,21 @@ export function ScrollMeetBlock({
           ? "left"
           : "right"
         : side;
-    const fromX = resolved === "left" ? -distance : distance;
+    const fromX = resolved === "left" ? -travel : travel;
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
         el,
-        { x: fromX, opacity: 0 },
+        { x: fromX, y: narrow ? 18 : 0, opacity: 0 },
         {
           x: 0,
+          y: 0,
           opacity: 1,
           ease: "none",
           scrollTrigger: {
             trigger: el,
-            start: "top 90%",
-            end: "top 50%",
+            start: "top 92%",
+            end: "top 55%",
             scrub,
             invalidateOnRefresh: true,
           },

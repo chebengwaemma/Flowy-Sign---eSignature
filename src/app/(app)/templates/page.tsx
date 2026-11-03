@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 
 const samples = [
   { title: "Mutual NDA", type: "Legal" },
@@ -9,14 +11,22 @@ const samples = [
 
 export default function TemplatesPage() {
   return (
-    <div className="home-page rise space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-[#1e1919]">Templates</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Pre-made layouts you can customise and reuse.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="home-page app-meet-page space-y-6">
+      <ScrollMeetBlock side="left" distance={90} className="app-meet-block">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1e1919]">Templates</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Pre-made layouts you can customise and reuse.
+          </p>
+        </div>
+      </ScrollMeetBlock>
+
+      <ScrollMeetSplit
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 app-meet-grid"
+        itemClassName="app-meet-item"
+        distance={110}
+        stagger={0.1}
+      >
         {samples.map((t) => (
           <Link
             key={t.title}
@@ -30,7 +40,7 @@ export default function TemplatesPage() {
             <p className="mt-4 text-sm font-medium text-[#1fa97a]">Use template →</p>
           </Link>
         ))}
-      </div>
+      </ScrollMeetSplit>
     </div>
   );
 }
