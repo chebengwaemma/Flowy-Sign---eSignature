@@ -140,16 +140,77 @@ export function planCategoryLabel(category: PlanCategory): string {
   return "Free";
 }
 
-export function mergePlans(partial?: Partial<PlanDefinition>[] | null): PlanDefinition[] {
-  const byId = new Map(
-    (partial || [])
-      .filter((p) => p?.id)
-      .map((p) => {
-        const id = normalizePlanId(String(p!.id));
-        return [id, { ...p, id }] as const;
-      }),
+/** Old CMS had free/starter/pro/business — never overlay "starter" onto pro_5. */
+export function isLegacyPlanCatalog(partial?: Partial<PlanDefinition>[] | null): boolean {
+  const rows = (partial || []).filter((p) => p?.id);
+  if (!rows.length) return false;
+  const ids = new Set(rows.map((p) => String(p!.id)));
+  if (ids.has("starter")) return true;
+  if (!ids.has("pro_5") || !ids.has("business_5")) return true;
+  // Broken mid-migration: starter name/limits stuck on a new id
+  if (rows.some((p) => /starter/i.test(String(p!.name || "")))) return true;
+  return false;
+}
+
+function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] {
+  const byExact = new Map(
+    partial.filter((p) => p?.id && String(p.id) !== "starter").map((p) => [String(p!.id), p!] as const),
   );
-  // Prefer latest overlay when multiple legacy rows collapse onto one id
+  return DEFAULT_PLANS.map((base) => {
+    const over = byExact.get(base.id);
+    if (!over) {
+      return withSyncedPlanFeatures({ ...base, features: [...base.features] });
+    }
+    if (base.id === "free") {
+      return withSyncedPlanFeatures({
+        ...base,
+        name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
+        monthly: numOr(over.monthly, base.monthly),
+        yearly: numOr(over.yearly, base.yearly),
+        docs: numOr(over.docs, base.docs),
+        downloads: numOr(over.downloads, base.downloads),
+        faxes: numOr(over.faxes, base.faxes),
+        seats: numOr(over.seats, base.seats),
+        maxDevices: numOr(over.maxDevices, base.maxDevices),
+        features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
+        stripePriceMonthly: String(over.stripePriceMonthly ?? ""),
+        stripePriceYearly: String(over.stripePriceYearly ?? ""),
+        visible: over.visible ?? base.visible,
+      });
+    }
+    // Paid: keep admin prices/Stripe; force unlimited quotas + catalog names/devices
+    return withSyncedPlanFeatures({
+      ...base,
+      id: base.id,
+      category: base.category,
+      name: base.name,
+      maxDevices: base.maxDevices,
+      monthly: numOr(over.monthly, base.monthly),
+      yearly: numOr(over.yearly, base.yearly),
+      docs: -1,
+      downloads: -1,
+      faxes: -1,
+      seats: -1,
+      features: [...base.features],
+      stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
+      stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
+      visible: true,
+    });
+  });
+}
+
+export function mergePlans(partial?: Partial<PlanDefinition>[] | null): PlanDefinition[] {
+  const rows = (partial || []).filter((p) => p?.id);
+  if (isLegacyPlanCatalog(rows)) {
+    return mergeLegacyPlans(rows);
+  }
+
+  const byId = new Map(
+    rows.map((p) => {
+      const id = normalizePlanId(String(p!.id));
+      return [id, { ...p, id }] as const;
+    }),
+  );
   return DEFAULT_PLANS.map((base) => {
     const over = byId.get(base.id);
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });

@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { normalizePlanId } from "./plans";
+import { isLegacyPlanCatalog, normalizePlanId } from "./plans";
 import { packageFromPlan } from "./packages";
 import path from "path";
 import { nanoid } from "nanoid";
@@ -278,7 +278,18 @@ async function readMongoStore(): Promise<PlatformStore | null> {
         return normalizeStore(initial);
       }
     }
-    return normalizeStore(doc.data);
+    const raw = doc.data as PlatformStore;
+    const legacyPlans = isLegacyPlanCatalog(raw?.site?.plans);
+    const store = normalizeStore(raw);
+    if (legacyPlans) {
+      try {
+        await writeMongoStore(store);
+        await writeFileStore(store);
+      } catch (err) {
+        console.warn("[store] plan catalog migration write skipped:", (err as Error).message);
+      }
+    }
+    return store;
   } catch (err) {
     console.warn("[store] MongoDB unavailable, using file store:", (err as Error).message);
     return null;
