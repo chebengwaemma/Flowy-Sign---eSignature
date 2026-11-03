@@ -61,7 +61,7 @@ export default function FaxPage() {
   return (
     <div className="app-meet-page space-y-6">
       <ScrollMeetBlock side="left" distance={90}>
-        <h1 className="display text-4xl">Fax</h1>
+        <h1 className="display text-3xl sm:text-4xl">Fax</h1>
         <p className="mt-1 text-muted">Send and receive faxes from the same workspace inbox.</p>
       </ScrollMeetBlock>
 
@@ -115,7 +115,7 @@ export default function FaxPage() {
       </ScrollMeetBlock>
 
       <ScrollMeetBlock side="left" distance={120}>
-        <div className="panel overflow-hidden">
+        <div className="panel overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--line)] text-muted">
               <tr>

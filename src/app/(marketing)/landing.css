@@ -110,7 +110,7 @@
   font-family: var(--font-manrope), var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
 }
 
 .lp-shell-main {
@@ -504,10 +504,13 @@ body:has(.lp-shell) {
   display: none;
 }
 
-@media (max-width: 979px) {
+@media (max-width: 1099px) {
+  .lp-shell .lp-header-left {
+    flex: 1;
+    min-width: 0;
+  }
   .lp-shell .lp-header-actions .lp-btn {
-    padding: 8px 12px;
-    font-size: 13px;
+    display: none;
   }
 }
 
@@ -1982,7 +1985,7 @@ body:has(.lp-shell) {
   }
 
   .lp-story-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .lp-plans-inner {
@@ -2012,7 +2015,7 @@ body:has(.lp-shell) {
   }
 }
 
-@media (min-width: 980px) {
+@media (min-width: 1100px) {
   .lp-shell .lp-nav {
     display: flex;
   }
@@ -2041,7 +2044,7 @@ body:has(.lp-shell) {
   }
 
   .lp-feat-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 28px;
   }
 
@@ -2050,7 +2053,7 @@ body:has(.lp-shell) {
   }
 
   .lp-steps-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
   }
 
   .lp-sub-grid {
@@ -2071,7 +2074,7 @@ body:has(.lp-shell) {
   }
 }
 
-@media (max-width: 979px) {
+@media (max-width: 1099px) {
   .lp-shell .lp-footer-brand {
     text-align: center;
   }
@@ -2252,7 +2255,7 @@ body:has(.lp-shell) {
   animation: lp-hero-in 0.9s 0.9s both;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1099px) {
   .lp-float-card {
     position: relative;
     right: auto;
@@ -2265,9 +2268,31 @@ body:has(.lp-shell) {
     flex-direction: column;
     min-height: 0;
   }
+}
 
+@media (max-width: 720px) {
   .lp-stack {
-    height: 380px;
+    height: min(340px, 70vw);
+    width: min(100%, 320px);
+  }
+
+  .lp-orbit-core {
+    min-width: 0;
+    max-width: 90%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .lp-feat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .lp-steps-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .lp-story-grid {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 

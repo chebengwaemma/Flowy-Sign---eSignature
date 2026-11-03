@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getSignatureQuota, isBillableSignatureDoc, quotaBlockedResponse } from "@/lib/plan-usage";
+import { sendSigningInvitationEmails } from "@/lib/signing-email";
 import { readStore, updateStore } from "@/lib/store";
+import type { Document } from "@/lib/types";
 
 export async function GET(
   _req: Request,
@@ -38,7 +40,7 @@ export async function PATCH(
     }
   }
 
-  let updated = null;
+  let updated: Document | null = null;
   await updateStore((s) => {
     const doc = s.documents.find((d) => d.id === id && d.orgId === user.orgId);
     if (!doc) return;
@@ -46,9 +48,19 @@ export async function PATCH(
     if (body.status === "void") doc.status = "void";
     if (typeof body.title === "string") doc.title = body.title;
     doc.updatedAt = new Date().toISOString();
-    updated = doc;
+    updated = { ...doc, recipients: [...(doc.recipients || [])], fields: [...(doc.fields || [])] };
   });
 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ document: updated });
+
+  let inviteMail: Awaited<ReturnType<typeof sendSigningInvitationEmails>> | null = null;
+  if (becomingSent && updated) {
+    inviteMail = await sendSigningInvitationEmails(updated);
+  }
+
+  return NextResponse.json({
+    document: updated,
+    inviteEmailsSent: inviteMail?.sent ?? 0,
+    inviteEmailDryRun: Boolean(inviteMail?.dryRun),
+  });
 }

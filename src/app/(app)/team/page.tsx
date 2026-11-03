@@ -15,7 +15,7 @@ export default async function TeamPage() {
   return (
     <div className="app-meet-page space-y-6">
       <ScrollMeetBlock side="left" distance={90}>
-        <h1 className="display text-4xl">Team</h1>
+        <h1 className="display text-3xl sm:text-4xl">Team</h1>
         <p className="mt-1 text-muted">Manage seats, roles, and workspace access.</p>
       </ScrollMeetBlock>
 
@@ -26,7 +26,7 @@ export default async function TeamPage() {
       )}
 
       <ScrollMeetBlock side="left" distance={120}>
-        <div className="panel overflow-hidden">
+        <div className="panel overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--line)] text-muted">
               <tr>

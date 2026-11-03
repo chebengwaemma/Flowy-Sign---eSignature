@@ -557,13 +557,14 @@ export function AdminPanel({
                   onChange={(v) => set("emailFrom", v)}
                 />
                 <Field
-                  label="Resend API key (document-ready emails)"
+                  label="Resend API key (all outbound email)"
                   value={form.resendApiKey || ""}
                   onChange={(v) => set("resendApiKey", v)}
                 />
                 <p className="text-xs text-muted md:col-span-2">
-                  Create a free key at resend.com → API Keys. Until saved, users still get Home notifications +
-                  payment-gated download links.
+                  Required for inbox delivery (document-ready, signing invites, team invites, contact form).
+                  Create a key at resend.com → API Keys, or set RESEND_API_KEY in Vercel. Without it, sends dry-run
+                  and Home notifications still work.
                 </p>
               </Section>
             )}

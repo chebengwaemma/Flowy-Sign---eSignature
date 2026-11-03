@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { sendDocumentReadyEmail } from "@/lib/document-ready-email";
 import { getSignatureQuota, quotaBlockedResponse } from "@/lib/plan-usage";
+import { sendSigningInvitationEmails } from "@/lib/signing-email";
 import { getOrgDocuments, updateStore } from "@/lib/store";
 import type { Document, Recipient, SignatureField } from "@/lib/types";
 
@@ -165,18 +166,30 @@ export async function POST(req: Request) {
 
   // Automatic email: document ready + payment-gated download link
   const mail = await sendDocumentReadyEmail(user, doc);
-  if (mail.ok) {
+  if (mail.ok && !mail.dryRun) {
     await updateStore((store) => {
       const row = store.documents.find((d) => d.id === doc.id);
       if (row) row.readyEmailSentAt = new Date().toISOString();
     });
-  } else {
+  } else if (!mail.ok) {
     console.warn("[documents] ready email failed:", mail.error);
+  } else if (mail.dryRun) {
+    console.warn("[documents] ready email dry-run (RESEND_API_KEY / Admin Resend key missing)");
+  }
+
+  let inviteMail: Awaited<ReturnType<typeof sendSigningInvitationEmails>> | null = null;
+  if (body.data.send) {
+    inviteMail = await sendSigningInvitationEmails(doc);
+    if (inviteMail.dryRun) {
+      console.warn("[documents] signing invites dry-run (email provider not configured)");
+    }
   }
 
   return NextResponse.json({
     document: doc,
-    emailSent: Boolean(mail.ok),
+    emailSent: Boolean(mail.ok && !mail.dryRun),
     emailDryRun: Boolean(mail.dryRun),
+    inviteEmailsSent: inviteMail?.sent ?? 0,
+    inviteEmailDryRun: Boolean(inviteMail?.dryRun),
   });
 }

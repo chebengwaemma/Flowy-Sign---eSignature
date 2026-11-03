@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { getPlanFromSettings } from "@/lib/plans";
 import { mergeSettings } from "@/lib/settings";
+import { sendTeamInviteEmail } from "@/lib/signing-email";
 import { readStore, updateStore } from "@/lib/store";
 import type { TeamInvite, User } from "@/lib/types";
 
@@ -85,8 +86,19 @@ export async function POST(req: Request) {
     s.users.push(newUser);
   });
 
+  const temporaryPassword = "welcome123";
+  const mail = await sendTeamInviteEmail({
+    to: newUser.email,
+    name: newUser.name,
+    temporaryPassword,
+    inviterName: user.name,
+  });
+
   return NextResponse.json({
     invite,
-    credentials: { email: newUser.email, temporaryPassword: "welcome123" },
+    credentials: { email: newUser.email, temporaryPassword },
+    emailSent: Boolean(mail.ok && !mail.dryRun),
+    emailDryRun: Boolean(mail.dryRun),
+    emailError: mail.error,
   });
 }

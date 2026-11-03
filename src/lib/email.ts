@@ -1,3 +1,5 @@
+import type { OrgSettings } from "./types";
+
 export type SendEmailInput = {
   to: string;
   subject: string;
@@ -7,6 +9,23 @@ export type SendEmailInput = {
   apiKey?: string;
   from?: string;
 };
+
+export type EmailConfig = {
+  apiKey: string;
+  from: string;
+};
+
+/** Resolve Resend credentials: explicit → CMS → env. */
+export function getEmailConfig(
+  site?: Pick<OrgSettings, "resendApiKey" | "emailFrom" | "supportEmail"> | null,
+  overrides?: { apiKey?: string; from?: string },
+): EmailConfig {
+  const apiKey = (overrides?.apiKey || site?.resendApiKey || process.env.RESEND_API_KEY || "").trim();
+  const from =
+    (overrides?.from || site?.emailFrom || process.env.EMAIL_FROM || "").trim() ||
+    `Flowy Sign <${site?.supportEmail || "onboarding@resend.dev"}>`;
+  return { apiKey, from };
+}
 
 /**
  * Sends email via Resend.
@@ -19,9 +38,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; d
     return { ok: false, error: "Invalid recipient" };
   }
 
-  const apiKey = (input.apiKey || process.env.RESEND_API_KEY || "").trim();
-  const from =
-    (input.from || process.env.EMAIL_FROM || "").trim() || "Flowy Sign <onboarding@resend.dev>";
+  const { apiKey, from } = getEmailConfig(null, { apiKey: input.apiKey, from: input.from });
 
   if (!apiKey) {
     console.info("[email:dry-run]", {

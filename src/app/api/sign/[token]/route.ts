@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sendSigningCompleteEmail } from "@/lib/signing-email";
 import { readStore, updateStore } from "@/lib/store";
 import type { Document, SignatureMark } from "@/lib/types";
 
@@ -195,5 +196,18 @@ export async function POST(
   });
 
   if (!result.ok) return NextResponse.json({ error: "Invalid link" }, { status: 404 });
+
+  if (result.completed && result.document) {
+    try {
+      const store = await readStore();
+      const owner = store.users.find((u) => u.id === result.document!.ownerId);
+      if (owner?.email) {
+        await sendSigningCompleteEmail(owner, result.document);
+      }
+    } catch (err) {
+      console.warn("[sign] completion email failed", (err as Error).message);
+    }
+  }
+
   return NextResponse.json(result);
 }

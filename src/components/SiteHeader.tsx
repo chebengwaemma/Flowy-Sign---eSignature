@@ -79,7 +79,7 @@ export function SiteHeader({
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth >= 980) {
+      if (window.innerWidth >= 1100) {
         setOpen(false);
         setMobileExpand(null);
       }

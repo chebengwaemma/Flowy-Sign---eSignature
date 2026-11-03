@@ -31,7 +31,7 @@ export function Logo({
         FS
       </span>
       <span
-        className={`whitespace-nowrap font-semibold tracking-tight ${compact ? "text-[14px] sm:text-[16px]" : "display text-[15px] sm:text-lg"} ${
+        className={`min-w-0 truncate font-semibold tracking-tight ${compact ? "text-[14px] sm:text-[16px]" : "display text-[15px] sm:text-lg"} ${
           light ? "text-white" : "text-[#1e1919]"
         }`}
       >

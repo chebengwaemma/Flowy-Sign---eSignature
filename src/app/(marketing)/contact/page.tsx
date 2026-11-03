@@ -1,3 +1,4 @@
+import { ContactForm } from "@/components/marketing/ContactForm";
 import { MarketingCards, MarketingCta, MarketingHero } from "@/components/marketing/MarketingPage";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 
@@ -29,6 +30,7 @@ export default async function ContactPage() {
         secondaryHref="/help"
         secondaryLabel={contact.secondary}
       />
+      <ContactForm />
       <MarketingCards items={cards} />
       <MarketingCta title="Prefer to try the product first?" />
     </main>

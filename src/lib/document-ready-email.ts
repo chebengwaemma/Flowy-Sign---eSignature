@@ -1,5 +1,5 @@
 import { getAppUrl } from "./app-url";
-import { sendEmail } from "./email";
+import { getEmailConfig, sendEmail } from "./email";
 import { createUserNotification } from "./notifications";
 import { getSiteSettings } from "./get-marketing";
 import type { Document, User } from "./types";
@@ -62,13 +62,14 @@ export async function sendDocumentReadyEmail(user: User, doc: Document) {
   });
 
   const site = await getSiteSettings();
+  const { apiKey, from } = getEmailConfig(site);
   return sendEmail({
     to: user.email,
     subject,
     html,
     text,
-    apiKey: site.resendApiKey,
-    from: site.emailFrom || `Flowy Sign <${site.supportEmail || "help@flowysign.com"}>`,
+    apiKey,
+    from,
   });
 }
 

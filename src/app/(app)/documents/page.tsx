@@ -14,7 +14,7 @@ export default async function DocumentsPage() {
       <ScrollMeetBlock side="left" distance={90}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="display text-4xl">Documents</h1>
+            <h1 className="display text-3xl sm:text-4xl">Documents</h1>
             <p className="mt-1 text-muted">Track drafts, sent packets, and completed agreements.</p>
           </div>
           <Link href="/documents/new" className="btn btn-accent">
@@ -24,7 +24,7 @@ export default async function DocumentsPage() {
       </ScrollMeetBlock>
 
       <ScrollMeetBlock side="right" distance={120}>
-        <div className="panel overflow-hidden">
+        <div className="panel overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--line)] text-muted">
               <tr>
