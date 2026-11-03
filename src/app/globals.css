@@ -492,7 +492,11 @@ textarea.field {
   [data-scroll-meet-block],
   [data-meet-item] {
     max-width: 100%;
-    will-change: transform, opacity;
+    will-change: transform;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
   }
 
   .stat-row,
@@ -504,6 +508,17 @@ textarea.field {
 
 .home-page {
   max-width: 960px;
+}
+
+/* Meet motion is transform-only — never soft-focus / blur */
+[data-scroll-meet-block],
+[data-meet-item],
+.lp-meet-item,
+.app-meet-item,
+.app-meet-block {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Dashboard GSAP meet/split (same motion language as landing) */

@@ -51,13 +51,15 @@ export function ScrollMeetBlock({
 
       const fromY = fromTop ? -travel : travel;
 
+      el.style.filter = "none";
+      el.style.opacity = "1";
+
       ctx = gsap.context(() => {
         gsap.fromTo(
           el,
-          { y: fromY, opacity: 0 },
+          { y: fromY },
           {
             y: 0,
-            opacity: 1,
             ease: "none",
             scrollTrigger: {
               trigger: el,

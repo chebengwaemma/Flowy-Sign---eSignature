@@ -59,15 +59,13 @@ export function ScrollMeetSplit({
       ctx = gsap.context(() => {
         items().forEach((el, i) => {
           const fromTop = i % 2 === 0;
+          el.style.filter = "none";
+          el.style.opacity = "1";
           gsap.fromTo(
             el,
-            {
-              y: fromTop ? -travel : travel,
-              opacity: 0,
-            },
+            { y: fromTop ? -travel : travel },
             {
               y: 0,
-              opacity: 1,
               ease: "none",
               scrollTrigger: {
                 trigger: el,
