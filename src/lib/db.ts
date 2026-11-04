@@ -19,6 +19,11 @@ export async function connectDB() {
   if (!g.__flowyMongo!.promise) {
     g.__flowyMongo!.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
+      // Fail fast instead of hanging the whole site when Atlas is busy.
+      serverSelectionTimeoutMS: 8_000,
+      connectTimeoutMS: 8_000,
+      socketTimeoutMS: 20_000,
+      maxPoolSize: 5,
     });
   }
 

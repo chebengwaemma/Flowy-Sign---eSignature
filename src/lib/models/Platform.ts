@@ -19,9 +19,10 @@ const PlatformSchema = new Schema(
   { timestamps: true },
 );
 
-// Hot-reload can keep a stale compiled model without `rev` — force refresh.
-if (models.Platform) {
-  delete models.Platform;
+// Reuse compiled model when present; only add missing `rev` path (no delete/recompile).
+const existing = models.Platform as mongoose.Model<PlatformDoc> | undefined;
+if (existing && !existing.schema.path("rev")) {
+  existing.schema.add({ rev: { type: Number, required: true, default: 0 } });
 }
 
-export const Platform = model<PlatformDoc>("Platform", PlatformSchema);
+export const Platform = existing || model<PlatformDoc>("Platform", PlatformSchema);

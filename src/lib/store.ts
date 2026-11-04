@@ -332,15 +332,17 @@ async function writeMongoStoreCas(
   try {
     await connectDB();
     const plain = JSON.parse(JSON.stringify(store)) as PlatformStore;
+    // Exact rev match only (missing rev is treated as 0 via $in).
     const filter =
       expectedRev === 0
         ? { key: "main", $or: [{ rev: 0 }, { rev: { $exists: false } }] }
         : { key: "main", rev: expectedRev };
     const updated = await Platform.findOneAndUpdate(
       filter,
-      { $set: { data: plain }, $inc: { rev: 1 } },
-      { new: true, upsert: false },
+      { $set: { data: plain, rev: expectedRev + 1 } },
+      { upsert: false, returnDocument: "after" },
     )
+      .maxTimeMS(12_000)
       .lean<{ rev?: number }>()
       .exec();
     if (!updated) return null;
@@ -359,8 +361,10 @@ async function writeMongoStore(store: PlatformStore): Promise<boolean> {
     await Platform.findOneAndUpdate(
       { key: "main" },
       { $set: { data: plain }, $inc: { rev: 1 } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+    )
+      .maxTimeMS(12_000)
+      .exec();
     return true;
   } catch (err) {
     console.warn("[store] MongoDB write failed:", (err as Error).message);
@@ -394,7 +398,7 @@ export async function writeStore(store: PlatformStore): Promise<void> {
 export async function updateStore(
   mutator: (store: PlatformStore) => void | PlatformStore,
 ): Promise<PlatformStore> {
-  const maxAttempts = 8;
+  const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const mongo = await readMongoStore();
     if (!mongo) {
@@ -413,7 +417,8 @@ export async function updateStore(
       await writeFileStore(next);
       return next;
     }
-    // Conflict — another request saved first; retry with fresh read
+    // Brief backoff so concurrent writers don't spin the serverless CPU.
+    await new Promise((r) => setTimeout(r, 40 * (attempt + 1)));
   }
 
   throw new Error("Could not save changes (busy). Please try again.");

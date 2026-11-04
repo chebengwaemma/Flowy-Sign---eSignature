@@ -43,12 +43,29 @@ export async function DELETE(req: Request) {
   const admin = await getAdminSession();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId } = await req.json();
+  let userId = "";
+  try {
+    const body = await req.json();
+    userId = String(body?.userId || "");
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
-  await updateStore((store) => {
-    store.users = store.users.filter((u) => u.id !== userId);
-  });
-
-  return NextResponse.json({ ok: true });
+  try {
+    let removed = false;
+    await updateStore((store) => {
+      const before = store.users.length;
+      store.users = store.users.filter((u) => u.id !== userId);
+      removed = store.users.length < before;
+      if (removed) {
+        store.deviceSessions = (store.deviceSessions || []).filter((s) => s.userId !== userId);
+        store.notifications = (store.notifications || []).filter((n) => n.userId !== userId);
+      }
+    });
+    return NextResponse.json({ ok: true, removed });
+  } catch (err) {
+    console.warn("[admin/users DELETE]", (err as Error).message);
+    return NextResponse.json({ error: "Could not delete user (busy). Try again." }, { status: 503 });
+  }
 }
