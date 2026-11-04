@@ -1,7 +1,6 @@
 /**
  * Public app origin for absolute links (Stripe, OAuth, emails).
- * Prefers NEXT_PUBLIC_APP_URL when it is a real non-localhost URL;
- * otherwise uses Vercel deployment URL, then localhost for dev.
+ * Never emits localhost when running on Vercel / production.
  */
 export function getAppUrl() {
   const configured = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
@@ -13,6 +12,11 @@ export function getAppUrl() {
   if (vercel) {
     const host = vercel.replace(/^https?:\/\//, "");
     return `https://${host}`;
+  }
+
+  // Production Node (Hostinger etc.) with a bad/missing APP_URL — prefer the live domain.
+  if (process.env.NODE_ENV === "production") {
+    return "https://flowysign.com";
   }
 
   return configured || "http://localhost:3000";

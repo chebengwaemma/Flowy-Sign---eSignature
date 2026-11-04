@@ -1,5 +1,6 @@
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
+import { getAppUrl } from "@/lib/app-url";
 
 export default function ApiDocsPage() {
   return (
@@ -14,7 +15,7 @@ export default function ApiDocsPage() {
         <div className="rounded-xl border border-[var(--line)] bg-white p-6">
           <p className="text-sm font-semibold text-[#1e1919]">Base URL</p>
           <code className="mt-2 block rounded-lg bg-[#f3f1ef] px-3 py-2 text-sm">
-            {process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api
+            {getAppUrl()}/api
           </code>
         </div>
         <ul className="space-y-2 rounded-xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">

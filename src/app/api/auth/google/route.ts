@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
+import { getAppUrl } from "@/lib/app-url";
 import { getGoogleAuthUrl, googleConfigured } from "@/lib/google-oauth";
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const base = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`;
+export async function GET() {
+  const base = getAppUrl();
 
   if (!googleConfigured()) {
     const login = new URL("/login", base);
