@@ -15,15 +15,28 @@ export type EmailConfig = {
   from: string;
 };
 
-/** Resolve Resend credentials: explicit → CMS → env. */
+const LIVE_FROM = "Flowy Sign <noreply@flowysign.com>";
+
+function isResendTestFrom(from: string) {
+  return /onboarding@resend\.dev/i.test(from);
+}
+
+/** Resolve Resend credentials: explicit → env (live) → CMS. Never keep Resend test sender in prod. */
 export function getEmailConfig(
   site?: Pick<OrgSettings, "resendApiKey" | "emailFrom" | "supportEmail"> | null,
   overrides?: { apiKey?: string; from?: string },
 ): EmailConfig {
-  const apiKey = (overrides?.apiKey || site?.resendApiKey || process.env.RESEND_API_KEY || "").trim();
-  const from =
-    (overrides?.from || site?.emailFrom || process.env.EMAIL_FROM || "").trim() ||
-    `Flowy Sign <${site?.supportEmail || "onboarding@resend.dev"}>`;
+  const envKey = (process.env.RESEND_API_KEY || "").trim();
+  const envFrom = (process.env.EMAIL_FROM || "").trim();
+  const siteKey = (site?.resendApiKey || "").trim();
+  const siteFrom = (site?.emailFrom || "").trim();
+
+  const apiKey = (overrides?.apiKey || envKey || siteKey || "").trim();
+
+  let from = (overrides?.from || envFrom || siteFrom || "").trim();
+  if (!from || isResendTestFrom(from)) {
+    from = envFrom && !isResendTestFrom(envFrom) ? envFrom : LIVE_FROM;
+  }
   return { apiKey, from };
 }
 

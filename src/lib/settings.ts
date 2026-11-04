@@ -19,7 +19,7 @@ export const defaultSettings: OrgSettings = {
   signalColor: "#FF6B35",
   supportEmail: "help@flowysign.com",
   resendApiKey: "",
-  emailFrom: "Flowy Sign <onboarding@resend.dev>",
+  emailFrom: "Flowy Sign <noreply@flowysign.com>",
   landingHeadline: "Signatures that move as fast as your deals.",
   landingSubhead:
     "Send, sign, and fax documents in one calm workspace built for modern teams.",

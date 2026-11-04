@@ -344,6 +344,16 @@ export function SendWizard() {
       setError("Document created but response was incomplete.");
       return;
     }
+    if (data?.inviteEmailDryRun) {
+      setError("Document saved, but email is not configured yet. Invites were not delivered.");
+      return;
+    }
+    if (typeof data?.inviteEmailsSent === "number" && data.inviteEmailsSent < signers.length) {
+      setError(
+        `Document saved, but only ${data.inviteEmailsSent} of ${signers.length} invite emails were delivered. Check recipient addresses and try resend.`,
+      );
+      return;
+    }
     router.push(`/documents/${docId}`);
     router.refresh();
   }
