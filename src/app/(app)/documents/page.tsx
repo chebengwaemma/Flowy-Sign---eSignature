@@ -4,10 +4,15 @@ import { getSessionUser } from "@/lib/auth";
 import { getOrgDocuments } from "@/lib/store";
 import { formatDate, statusTone } from "@/lib/utils";
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ missing?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) return null;
   const docs = await getOrgDocuments(user.orgId);
+  const { missing } = await searchParams;
 
   return (
     <div className="app-meet-page space-y-6">
@@ -22,6 +27,12 @@ export default async function DocumentsPage() {
           </Link>
         </div>
       </ScrollMeetBlock>
+
+      {missing ? (
+        <div className="rounded-2xl border border-[#f0d9c8] bg-[#fff8f3] px-5 py-4 text-sm text-ink">
+          That document could not be opened. It may still be saving — open it from the list below, or send again.
+        </div>
+      ) : null}
 
       <ScrollMeetBlock side="right" distance={120}>
         <div className="panel overflow-x-auto">

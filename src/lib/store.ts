@@ -272,21 +272,33 @@ async function writeFileStore(store: PlatformStore): Promise<void> {
   }
 }
 
-async function readMongoStore(): Promise<PlatformStore | null> {
+type StoreRead = {
+  store: PlatformStore;
+  rev: number;
+};
+
+async function readMongoStore(): Promise<StoreRead | null> {
   try {
     await connectDB();
     // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
-    let doc = await Platform.findOne({ key: "main" }).lean<{ data?: unknown }>().exec();
+    let doc = await Platform.findOne({ key: "main" })
+      .lean<{ data?: unknown; rev?: number }>()
+      .exec();
     if (!doc?.data) {
       const initial = seed();
       try {
         const file = await readFileStore();
-        await Platform.create({ key: "main", data: file });
-        return normalizeStore(file);
+        await Platform.create({ key: "main", data: file, rev: 0 });
+        return { store: normalizeStore(file), rev: 0 };
       } catch {
-        await Platform.create({ key: "main", data: initial });
-        return normalizeStore(initial);
+        await Platform.create({ key: "main", data: initial, rev: 0 });
+        return { store: normalizeStore(initial), rev: 0 };
       }
+    }
+    // Backfill rev for docs created before optimistic locking existed
+    let rev = typeof doc.rev === "number" ? doc.rev : 0;
+    if (typeof doc.rev !== "number") {
+      await Platform.updateOne({ key: "main", rev: { $exists: false } }, { $set: { rev: 0 } });
     }
     const raw = doc.data as PlatformStore;
     const legacyPlans = isLegacyPlanCatalog(
@@ -296,28 +308,58 @@ async function readMongoStore(): Promise<PlatformStore | null> {
     const store = normalizeStore(raw);
     if (legacyPlans) {
       try {
-        await writeMongoStore(store);
-        await writeFileStore(store);
+        const written = await writeMongoStoreCas(store, rev);
+        if (written) {
+          rev = written.rev;
+          await writeFileStore(store);
+        }
       } catch (err) {
         console.warn("[store] plan catalog migration write skipped:", (err as Error).message);
       }
     }
-    return store;
+    return { store, rev };
   } catch (err) {
     console.warn("[store] MongoDB unavailable, using file store:", (err as Error).message);
     return null;
   }
 }
 
+/** Compare-and-swap write — only succeeds if `expectedRev` still matches. */
+async function writeMongoStoreCas(
+  store: PlatformStore,
+  expectedRev: number,
+): Promise<{ rev: number } | null> {
+  try {
+    await connectDB();
+    const plain = JSON.parse(JSON.stringify(store)) as PlatformStore;
+    const filter =
+      expectedRev === 0
+        ? { key: "main", $or: [{ rev: 0 }, { rev: { $exists: false } }] }
+        : { key: "main", rev: expectedRev };
+    const updated = await Platform.findOneAndUpdate(
+      filter,
+      { $set: { data: plain }, $inc: { rev: 1 } },
+      { new: true, upsert: false },
+    )
+      .lean<{ rev?: number }>()
+      .exec();
+    if (!updated) return null;
+    return { rev: typeof updated.rev === "number" ? updated.rev : expectedRev + 1 };
+  } catch (err) {
+    console.warn("[store] MongoDB CAS write failed:", (err as Error).message);
+    return null;
+  }
+}
+
+/** Unconditional write (bootstrap / last-resort). Still bumps rev. */
 async function writeMongoStore(store: PlatformStore): Promise<boolean> {
   try {
     await connectDB();
-    // $set + lean round-trip so Mixed nested CMS fields (plans, marketing) persist fully
     const plain = JSON.parse(JSON.stringify(store)) as PlatformStore;
     await Platform.findOneAndUpdate(
       { key: "main" },
-      { $set: { data: plain } },
-      { upsert: true, new: true },
+      { $set: { data: plain }, $inc: { rev: 1 } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     return true;
   } catch (err) {
@@ -328,7 +370,7 @@ async function writeMongoStore(store: PlatformStore): Promise<boolean> {
 
 export async function readStore(): Promise<PlatformStore> {
   const mongo = await readMongoStore();
-  if (mongo) return mongo;
+  if (mongo) return mongo.store;
   return readFileStore();
 }
 
@@ -345,14 +387,36 @@ export async function writeStore(store: PlatformStore): Promise<void> {
   }
 }
 
+/**
+ * Mutate platform store with optimistic locking + retries so concurrent
+ * session/document writes cannot silently overwrite each other (lost updates → 404).
+ */
 export async function updateStore(
   mutator: (store: PlatformStore) => void | PlatformStore,
 ): Promise<PlatformStore> {
-  const store = await readStore();
-  const result = mutator(store);
-  const next = result ?? store;
-  await writeStore(next);
-  return next;
+  const maxAttempts = 8;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const mongo = await readMongoStore();
+    if (!mongo) {
+      const store = await readFileStore();
+      const result = mutator(store);
+      const next = result ?? store;
+      await writeStore(next);
+      return next;
+    }
+
+    const draft = JSON.parse(JSON.stringify(mongo.store)) as PlatformStore;
+    const result = mutator(draft);
+    const next = result ?? draft;
+    const written = await writeMongoStoreCas(next, mongo.rev);
+    if (written) {
+      await writeFileStore(next);
+      return next;
+    }
+    // Conflict — another request saved first; retry with fresh read
+  }
+
+  throw new Error("Could not save changes (busy). Please try again.");
 }
 
 export async function findUserByEmail(email: string) {

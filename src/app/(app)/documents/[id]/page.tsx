@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { readStore } from "@/lib/store";
 import { formatDate, statusTone } from "@/lib/utils";
@@ -19,7 +19,8 @@ export default async function DocumentDetailPage({
   const { id } = await params;
   const store = await readStore();
   const doc = store.documents.find((d) => d.id === id && d.orgId === user.orgId);
-  if (!doc) notFound();
+  // Missing docs (lost concurrent writes) used to hard-404 — send users back to the list.
+  if (!doc) redirect("/documents?missing=1");
 
   const recipients = doc.recipients || [];
   const fields = doc.fields || [];
