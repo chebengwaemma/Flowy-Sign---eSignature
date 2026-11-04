@@ -37,7 +37,9 @@ function withEsignUnderline(text: string) {
 }
 
 export default async function HomePage() {
-  const [m, site] = await Promise.all([getMarketing(), getSiteSettings()]);
+  // getMarketing → getSiteSettings; React cache() dedupes within the request.
+  const m = await getMarketing();
+  const site = await getSiteSettings();
   const h = m.home;
   const STEPS = m.steps;
   const TEAMS = m.teamCards;

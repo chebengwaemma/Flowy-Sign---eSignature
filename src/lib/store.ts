@@ -277,47 +277,82 @@ type StoreRead = {
   rev: number;
 };
 
+/** Hard ceiling so SSR never waits on a half-dead Atlas socket. */
+const MONGO_READ_BUDGET_MS = 5_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function readMongoStore(): Promise<StoreRead | null> {
   try {
-    await connectDB();
-    // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
-    let doc = await Platform.findOne({ key: "main" })
-      .lean<{ data?: unknown; rev?: number }>()
-      .exec();
-    if (!doc?.data) {
-      const initial = seed();
-      try {
-        const file = await readFileStore();
-        await Platform.create({ key: "main", data: file, rev: 0 });
-        return { store: normalizeStore(file), rev: 0 };
-      } catch {
-        await Platform.create({ key: "main", data: initial, rev: 0 });
-        return { store: normalizeStore(initial), rev: 0 };
-      }
-    }
-    // Backfill rev for docs created before optimistic locking existed
-    let rev = typeof doc.rev === "number" ? doc.rev : 0;
-    if (typeof doc.rev !== "number") {
-      await Platform.updateOne({ key: "main", rev: { $exists: false } }, { $set: { rev: 0 } });
-    }
-    const raw = doc.data as PlatformStore;
-    const legacyPlans = isLegacyPlanCatalog(
-      raw?.site?.plans,
-      raw?.site?.planCatalogVersion,
-    );
-    const store = normalizeStore(raw);
-    if (legacyPlans) {
-      try {
-        const written = await writeMongoStoreCas(store, rev);
-        if (written) {
-          rev = written.rev;
-          await writeFileStore(store);
+    return await withTimeout(
+      (async () => {
+        await connectDB();
+        // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
+        let doc = await Platform.findOne({ key: "main" })
+          .maxTimeMS(4_000)
+          .lean<{ data?: unknown; rev?: number }>()
+          .exec();
+        if (!doc?.data) {
+          const initial = seed();
+          try {
+            const file = await readFileStore();
+            await Platform.create({ key: "main", data: file, rev: 0 });
+            return { store: normalizeStore(file), rev: 0 };
+          } catch {
+            await Platform.create({ key: "main", data: initial, rev: 0 });
+            return { store: normalizeStore(initial), rev: 0 };
+          }
         }
-      } catch (err) {
-        console.warn("[store] plan catalog migration write skipped:", (err as Error).message);
-      }
-    }
-    return { store, rev };
+        // Backfill rev for docs created before optimistic locking existed
+        let rev = typeof doc.rev === "number" ? doc.rev : 0;
+        if (typeof doc.rev !== "number") {
+          await Platform.updateOne(
+            { key: "main", rev: { $exists: false } },
+            { $set: { rev: 0 } },
+          ).maxTimeMS(4_000);
+        }
+        const raw = doc.data as PlatformStore;
+        const legacyPlans = isLegacyPlanCatalog(
+          raw?.site?.plans,
+          raw?.site?.planCatalogVersion,
+        );
+        const store = normalizeStore(raw);
+        if (legacyPlans) {
+          try {
+            const written = await writeMongoStoreCas(store, rev);
+            if (written) {
+              rev = written.rev;
+              await writeFileStore(store);
+            }
+          } catch (err) {
+            console.warn(
+              "[store] plan catalog migration write skipped:",
+              (err as Error).message,
+            );
+          }
+        }
+        return { store, rev };
+      })(),
+      MONGO_READ_BUDGET_MS,
+      "mongo read",
+    );
   } catch (err) {
     console.warn("[store] MongoDB unavailable, using file store:", (err as Error).message);
     return null;

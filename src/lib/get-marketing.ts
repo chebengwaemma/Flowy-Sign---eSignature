@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { connection } from "next/server";
 import { defaultMarketing, mergeMarketing } from "./marketing";
 import { mergeSettings } from "./settings";
@@ -6,7 +7,7 @@ import type { MarketingSite } from "./marketing";
 import type { OrgSettings } from "./types";
 
 /** Always read live admin settings from Mongo (never a cached static snapshot). */
-export async function getSiteSettings(): Promise<OrgSettings> {
+export const getSiteSettings = cache(async (): Promise<OrgSettings> => {
   await connection();
   try {
     const store = await readStore();
@@ -14,13 +15,13 @@ export async function getSiteSettings(): Promise<OrgSettings> {
   } catch {
     return mergeSettings(null);
   }
-}
+});
 
-export async function getMarketing(): Promise<MarketingSite> {
+export const getMarketing = cache(async (): Promise<MarketingSite> => {
   try {
     const settings = await getSiteSettings();
     return mergeMarketing(settings?.marketing);
   } catch {
     return defaultMarketing;
   }
-}
+});

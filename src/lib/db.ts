@@ -14,21 +14,37 @@ if (!g.__flowyMongo) {
 }
 
 export async function connectDB() {
-  if (g.__flowyMongo!.conn) return g.__flowyMongo!.conn;
+  const cached = g.__flowyMongo!;
+  if (cached.conn?.connection?.readyState === 1) return cached.conn;
 
-  if (!g.__flowyMongo!.promise) {
-    g.__flowyMongo!.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-      // Fail fast instead of hanging the whole site when Atlas is busy.
-      serverSelectionTimeoutMS: 8_000,
-      connectTimeoutMS: 8_000,
-      socketTimeoutMS: 20_000,
-      maxPoolSize: 5,
-    });
+  // Drop stale/disconnected handles so the next request can reconnect.
+  if (cached.conn && cached.conn.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
-  g.__flowyMongo!.conn = await g.__flowyMongo!.promise;
-  return g.__flowyMongo!.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        bufferCommands: false,
+        // Keep marketing SSR under a few seconds when Atlas is unreachable.
+        serverSelectionTimeoutMS: 4_000,
+        connectTimeoutMS: 4_000,
+        socketTimeoutMS: 8_000,
+        maxPoolSize: 3,
+      })
+      .then((conn) => {
+        cached.conn = conn;
+        return conn;
+      })
+      .catch((err) => {
+        cached.promise = null;
+        cached.conn = null;
+        throw err;
+      });
+  }
+
+  return cached.promise;
 }
 
 export function mongoUri() {
