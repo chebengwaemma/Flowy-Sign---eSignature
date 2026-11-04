@@ -34,6 +34,8 @@ export async function connectDB() {
         connectTimeoutMS: 2_000,
         socketTimeoutMS: 4_000,
         maxPoolSize: 3,
+        // Vercel → Atlas often stalls on IPv6; prefer IPv4.
+        family: 4,
       })
       .then((conn) => {
         cached.conn = conn;
