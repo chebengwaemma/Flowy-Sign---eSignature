@@ -12,7 +12,7 @@ import type {
   User,
 } from "./types";
 import { defaultSettings, mergeSettings } from "./settings";
-import { connectDB } from "./db";
+import { connectDB, markMongoUnreachable } from "./db";
 import { Platform } from "./models/Platform";
 
 /** On Vercel the app FS is read-only — use /tmp for file fallback. */
@@ -354,6 +354,7 @@ async function readMongoStore(): Promise<StoreRead | null> {
       "mongo read",
     );
   } catch (err) {
+    markMongoUnreachable();
     console.warn("[store] MongoDB unavailable, using file store:", (err as Error).message);
     return null;
   }
