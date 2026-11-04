@@ -29,10 +29,10 @@ export async function connectDB() {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         bufferCommands: false,
-        // Keep marketing SSR under a few seconds when Atlas is unreachable.
-        serverSelectionTimeoutMS: 4_000,
-        connectTimeoutMS: 4_000,
-        socketTimeoutMS: 8_000,
+        // Keep marketing SSR under a couple seconds when Atlas is unreachable.
+        serverSelectionTimeoutMS: 2_000,
+        connectTimeoutMS: 2_000,
+        socketTimeoutMS: 4_000,
         maxPoolSize: 3,
       })
       .then((conn) => {

@@ -278,7 +278,7 @@ type StoreRead = {
 };
 
 /** Hard ceiling so SSR never waits on a half-dead Atlas socket. */
-const MONGO_READ_BUDGET_MS = 5_000;
+const MONGO_READ_BUDGET_MS = 2_500;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -306,7 +306,7 @@ async function readMongoStore(): Promise<StoreRead | null> {
         await connectDB();
         // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
         let doc = await Platform.findOne({ key: "main" })
-          .maxTimeMS(4_000)
+          .maxTimeMS(2_000)
           .lean<{ data?: unknown; rev?: number }>()
           .exec();
         if (!doc?.data) {
