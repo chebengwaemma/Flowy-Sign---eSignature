@@ -15,10 +15,12 @@ if (!g.__flowyMongo) {
 
 export async function connectDB() {
   const cached = g.__flowyMongo!;
-  if (cached.conn?.connection?.readyState === 1) return cached.conn;
+  const readyState = cached.conn?.connection?.readyState;
+  // 1 = connected (mongoose ConnectionStates.connected)
+  if (cached.conn && readyState === 1) return cached.conn;
 
   // Drop stale/disconnected handles so the next request can reconnect.
-  if (cached.conn && cached.conn.connection.readyState !== 1) {
+  if (cached.conn) {
     cached.conn = null;
     cached.promise = null;
   }
