@@ -1476,22 +1476,10 @@ textarea.field {
 .signer-live-preview {
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  height: 2.4rem;
   color: #0b1f1c;
   line-height: 1.2;
-}
-
-.signer-live-preview.sig-script,
-.signer-live-preview.sig-italic,
-.signer-live-preview.sig-slant,
-.signer-live-preview.sig-strike {
-  font-size: clamp(1.15rem, 4.5vw, 1.45rem);
-}
-
-.signer-live-preview.sig-bold {
-  font-size: clamp(1.05rem, 4vw, 1.25rem);
 }
 
 .signer-style-chips {
@@ -2450,7 +2438,7 @@ body:has(.admin-nav-mobile) {
   align-items: center;
   justify-content: flex-start;
   overflow: hidden;
-  padding: 0.15rem 0.35rem;
+  padding: 0.1rem 0.25rem;
   border-radius: 6px;
   background: transparent;
 }
@@ -2471,76 +2459,84 @@ body:has(.admin-nav-mobile) {
   max-height: 100%;
   object-fit: contain;
   object-position: left center;
+  aspect-ratio: auto;
 }
 
-.doc-mark .sig-mark {
-  font-size: inherit;
-  max-width: 100%;
+/* Auto-fit signature shell — size comes from FitSignatureText JS */
+.sig-fit {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   overflow: hidden;
+}
+
+.sig-fit > .sig-mark {
+  display: inline-block;
+  max-width: none;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: visible;
   text-overflow: clip;
 }
 
-.doc-mark-plain {
-  font-size: 14px;
+.sig-fit-plain-text {
+  font-family: inherit !important;
   font-weight: 600;
+  font-style: normal;
+  text-decoration: none;
 }
 
 .sig-mark {
   color: #0b1f1c;
-  line-height: 1.15;
+  line-height: 1;
   white-space: nowrap;
 }
 
+/* Font family only — size is controlled by FitSignatureText / context */
 .sig-elegant {
   font-family: var(--font-sig-elegant), cursive;
-  font-size: clamp(1.7rem, 5vw, 2.55rem);
 }
 
 .sig-script {
   font-family: var(--font-sig-script), cursive;
-  font-size: clamp(1.45rem, 4.2vw, 2.15rem);
 }
 
 .sig-formal {
   font-family: var(--font-sig-formal), cursive;
-  font-size: clamp(1.7rem, 5vw, 2.55rem);
 }
 
 .sig-casual {
   font-family: var(--font-sig-casual), cursive;
-  font-size: clamp(1.45rem, 4.2vw, 2.2rem);
 }
 
 .sig-marker {
   font-family: var(--font-sig-marker), cursive;
   font-weight: 600;
-  font-size: clamp(1.55rem, 4.5vw, 2.3rem);
 }
 
 .sig-classic {
   font-family: var(--font-sig-classic), cursive;
-  font-size: clamp(1.7rem, 5vw, 2.55rem);
 }
 
 .sig-bold {
   font-family: var(--font-sig-bold), cursive;
-  font-size: clamp(1.45rem, 4vw, 2.1rem);
 }
 
 .sig-italic {
   font-family: var(--font-sig-italic), cursive;
-  font-size: clamp(1.55rem, 4.5vw, 2.35rem);
 }
 
 .sig-slant {
   font-family: var(--font-sig-casual), cursive;
-  font-size: clamp(1.4rem, 4vw, 2.1rem);
   font-style: italic;
 }
 
 .sig-strike {
   font-family: var(--font-sig-classic), cursive;
-  font-size: clamp(1.4rem, 4vw, 2.1rem);
   text-decoration: underline;
   text-underline-offset: 0.12em;
 }
@@ -2575,6 +2571,8 @@ body:has(.admin-nav-mobile) {
   padding: 1rem 1.1rem 1.25rem;
   min-height: 118px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .esig-canvas-label {
@@ -2583,13 +2581,21 @@ body:has(.admin-nav-mobile) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #8a847d;
+  flex-shrink: 0;
+}
+
+.esig-canvas-stage {
+  flex: 1 1 auto;
+  margin-top: 0.45rem;
+  min-height: 56px;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .esig-canvas-text {
   margin-top: 0.55rem;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   animation: esig-pop 220ms ease;
 }
 
@@ -2653,11 +2659,14 @@ body:has(.admin-nav-mobile) {
 .esig-style-sample {
   display: block;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1.35rem !important;
   line-height: 1.25;
+}
+
+.esig-style-sample-box {
+  width: 100%;
+  height: 2rem;
+  min-width: 0;
 }
 
 .esig-style-meta {
@@ -2746,8 +2755,8 @@ body:has(.admin-nav-mobile) {
   margin-bottom: 1.1rem;
 }
 
-.sig-studio-preview .esig-canvas-text {
-  font-size: clamp(2rem, 7vw, 3.1rem) !important;
+.sig-studio-preview .esig-canvas-stage {
+  min-height: 72px;
 }
 
 .sig-draw-wrap {

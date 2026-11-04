@@ -155,21 +155,32 @@ export async function downloadSignedPng(doc: Document) {
       const text = field.signature?.text || field.value || "";
       const style = field.signature?.style || "elegant";
       ctx.fillStyle = "#0b1f1c";
-      const size = Math.max(14, Math.min(boxH * 0.85, w / Math.max(text.length * 0.35, 3)));
-      const fontMap: Record<string, string> = {
-        elegant: `${size}px "Great Vibes", cursive`,
-        script: `${size}px "Dancing Script", cursive`,
-        formal: `${size}px Allura, cursive`,
-        casual: `${size}px Satisfy, cursive`,
-        marker: `600 ${size}px Caveat, cursive`,
-        classic: `${size}px Sacramento, cursive`,
-        bold: `${size}px "Permanent Marker", cursive`,
-        italic: `${size}px Parisienne, cursive`,
-        slant: `italic ${size}px Satisfy, cursive`,
-        strike: `${size}px Sacramento, cursive`,
+      // Fit typed signature inside the field box without clipping characters.
+      let size = Math.max(10, boxH * 0.9);
+      const fontFor = (px: number) => {
+        const fontMap: Record<string, string> = {
+          elegant: `${px}px "Great Vibes", cursive`,
+          script: `${px}px "Dancing Script", cursive`,
+          formal: `${px}px Allura, cursive`,
+          casual: `${px}px Satisfy, cursive`,
+          marker: `600 ${px}px Caveat, cursive`,
+          classic: `${px}px Sacramento, cursive`,
+          bold: `${px}px "Permanent Marker", cursive`,
+          italic: `${px}px Parisienne, cursive`,
+          slant: `italic ${px}px Satisfy, cursive`,
+          strike: `${px}px Sacramento, cursive`,
+        };
+        return fontMap[style] || fontMap.elegant;
       };
-      ctx.font = fontMap[style] || fontMap.elegant;
-      ctx.fillText(text, x, y + size, w);
+      ctx.font = fontFor(size);
+      let measured = ctx.measureText(text).width;
+      if (measured > w && measured > 0) {
+        size = Math.max(8, size * (w / measured));
+        ctx.font = fontFor(size);
+        measured = ctx.measureText(text).width;
+      }
+      const baseline = y + (boxH + size * 0.7) / 2;
+      ctx.fillText(text, x, baseline);
     }
   }
 

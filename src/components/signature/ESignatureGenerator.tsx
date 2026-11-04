@@ -1,15 +1,12 @@
 "use client";
 
 import type { SignatureStyle } from "@/lib/types";
-import {
-  SIGNATURE_STYLES,
-  normalizeSignatureStyle,
-  signatureClass,
-} from "@/lib/signature-styles";
+import { SIGNATURE_STYLES, normalizeSignatureStyle } from "@/lib/signature-styles";
+import { FitSignatureText } from "@/components/signature/FitSignatureText";
 
 /**
  * Live e-signature generator — types a name into handwriting fonts in real time.
- * No separate saved signature file is required.
+ * Preview auto-fits the container with locked proportions (no clipped letters).
  */
 export function ESignatureGenerator({
   name,
@@ -40,9 +37,9 @@ export function ESignatureGenerator({
 
       <div className="esig-canvas" aria-live="polite">
         <p className="esig-canvas-label">Live preview</p>
-        <p key={`${active}-${preview}`} className={`esig-canvas-text ${signatureClass(active)}`}>
-          {preview}
-        </p>
+        <div className="esig-canvas-stage">
+          <FitSignatureText text={preview} style={active} maxPx={72} minPx={14} />
+        </div>
         <div className="esig-canvas-line" aria-hidden />
       </div>
 
@@ -57,7 +54,9 @@ export function ESignatureGenerator({
             className={`esig-style-card ${active === s.id ? "active" : ""}`}
             onClick={() => onStyleChange(s.id)}
           >
-            <span className={`esig-style-sample ${signatureClass(s.id)}`}>{preview}</span>
+            <div className="esig-style-sample-box">
+              <FitSignatureText text={preview} style={s.id} maxPx={28} minPx={12} />
+            </div>
             <span className="esig-style-meta">
               <strong>{s.label}</strong>
               <em>{s.hint}</em>

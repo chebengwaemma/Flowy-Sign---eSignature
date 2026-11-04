@@ -4,11 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SignatureStyle } from "@/lib/types";
 import type { GeneratorQuota } from "@/lib/generator-usage";
-import {
-  SIGNATURE_STYLES,
-  normalizeSignatureStyle,
-  signatureClass,
-} from "@/lib/signature-styles";
+import { SIGNATURE_STYLES, normalizeSignatureStyle } from "@/lib/signature-styles";
+import { FitSignatureText } from "@/components/signature/FitSignatureText";
 
 type Mode = "type" | "draw";
 
@@ -46,7 +43,7 @@ export function SignatureStudio({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || mode !== "draw") return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
@@ -60,6 +57,7 @@ export function SignatureStudio({
     ctx.lineWidth = 2.4;
     ctx.fillStyle = "#fffefb";
     ctx.fillRect(0, 0, rect.width, rect.height);
+    setHasInk(false);
   }, [mode]);
 
   function pointerPos(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -124,8 +122,8 @@ export function SignatureStudio({
     ctx.stroke();
 
     const text = preview;
-    const size = Math.min(96, Math.max(42, 720 / Math.max(text.length * 0.42, 4)));
-    const fonts: Record<string, string> = {
+    const maxW = 760;
+    const fontsFor = (size: number): Record<string, string> => ({
       elegant: `${size}px "Great Vibes", cursive`,
       script: `${size}px "Dancing Script", cursive`,
       formal: `${size}px Allura, cursive`,
@@ -136,11 +134,16 @@ export function SignatureStudio({
       italic: `${size}px Parisienne, cursive`,
       slant: `italic ${size}px Satisfy, cursive`,
       strike: `${size}px Sacramento, cursive`,
-    };
+    });
+    let size = 96;
     ctx.fillStyle = "#0b1f1c";
-    ctx.font = fonts[active] || fonts.elegant;
     ctx.textBaseline = "alphabetic";
-    ctx.fillText(text, 70, 185, 760);
+    for (; size >= 28; size -= 2) {
+      ctx.font = fontsFor(size)[active] || fontsFor(size).elegant;
+      if (ctx.measureText(text).width <= maxW) break;
+    }
+    ctx.font = fontsFor(size)[active] || fontsFor(size).elegant;
+    ctx.fillText(text, 70, 185);
     return canvas.toDataURL("image/png");
   }
 
@@ -222,9 +225,9 @@ export function SignatureStudio({
 
           <div className="esig-canvas sig-studio-preview" aria-live="polite">
             <p className="esig-canvas-label">Live signature</p>
-            <p key={`${active}-${preview}`} className={`esig-canvas-text ${signatureClass(active)}`}>
-              {preview}
-            </p>
+            <div className="esig-canvas-stage">
+              <FitSignatureText text={preview} style={active} maxPx={80} minPx={14} />
+            </div>
             <div className="esig-canvas-line" aria-hidden />
           </div>
 
@@ -239,7 +242,9 @@ export function SignatureStudio({
                 className={`esig-style-card ${active === s.id ? "active" : ""}`}
                 onClick={() => setStyle(s.id)}
               >
-                <span className={`esig-style-sample ${signatureClass(s.id)}`}>{preview}</span>
+                <div className="esig-style-sample-box">
+                  <FitSignatureText text={preview} style={s.id} maxPx={28} minPx={12} />
+                </div>
                 <span className="esig-style-meta">
                   <strong>{s.label}</strong>
                   <em>{s.hint}</em>
