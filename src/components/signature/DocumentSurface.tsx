@@ -1,13 +1,15 @@
 "use client";
 
 import { type CSSProperties, type MouseEvent } from "react";
-import type { DocFileKind, SignatureField } from "@/lib/types";
+import type { DocFileKind, SignatureField, SignatureMark } from "@/lib/types";
 import { FitSignatureText } from "@/components/signature/FitSignatureText";
 
 type FieldView = Pick<
   SignatureField,
-  "id" | "type" | "x" | "y" | "width" | "height" | "value" | "signature"
->;
+  "id" | "type" | "x" | "y" | "width" | "height" | "value" | "signature" | "skipped"
+> & {
+  signature?: SignatureMark;
+};
 
 /**
  * Renders the original document intact and overlays signature marks.
@@ -20,6 +22,8 @@ export function DocumentSurface({
   fields,
   interactive = false,
   onPlace,
+  onFieldSelect,
+  selectedFieldId,
   highlightPending = false,
 }: {
   content: string;
@@ -28,10 +32,13 @@ export function DocumentSurface({
   fields: FieldView[];
   interactive?: boolean;
   onPlace?: (xPct: number, yPct: number) => void;
+  onFieldSelect?: (fieldId: string) => void;
+  selectedFieldId?: string | null;
   highlightPending?: boolean;
 }) {
   function handleClick(e: MouseEvent<HTMLDivElement>) {
     if (!interactive || !onPlace) return;
+    if ((e.target as HTMLElement).closest(".doc-mark")) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -62,8 +69,8 @@ export function DocumentSurface({
 
       <div className="doc-surface-marks" aria-hidden={!fields.length}>
         {fields.map((field) => {
-          const pending = !field.value && !field.signature;
-          if (pending && !highlightPending && !interactive) return null;
+          const pending = !field.skipped && !field.value && !field.signature;
+          if (pending && !highlightPending && !interactive && !onFieldSelect) return null;
           const w = field.width || 28;
           const h = Math.max(field.height || 8, 6);
           const markStyle: CSSProperties = {
@@ -73,18 +80,43 @@ export function DocumentSurface({
             height: `${h}%`,
           };
           const label = field.signature?.text || field.value || field.type;
+          const selected = selectedFieldId === field.id;
 
           return (
             <div
               key={field.id}
-              className={`doc-mark doc-mark-${field.type} ${pending ? "is-pending" : "is-signed"}`}
+              className={[
+                "doc-mark",
+                `doc-mark-${field.type}`,
+                field.skipped ? "is-skipped" : pending ? "is-pending" : "is-signed",
+                selected ? "is-selected" : "",
+                onFieldSelect ? "is-selectable" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               style={markStyle}
+              onClick={
+                onFieldSelect
+                  ? (e) => {
+                      e.stopPropagation();
+                      onFieldSelect(field.id);
+                    }
+                  : undefined
+              }
+              role={onFieldSelect ? "button" : undefined}
+              tabIndex={onFieldSelect ? 0 : undefined}
             >
-              {field.signature?.mode === "image" && field.signature.imageDataUrl ? (
+              {field.skipped ? (
+                <span className="doc-mark-plain">Skipped</span>
+              ) : field.signature?.mode === "image" && field.signature.imageDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={field.signature.imageDataUrl} alt="" className="doc-mark-img" />
               ) : field.type === "signature" || field.type === "initials" ? (
-                <FitSignatureText text={label} style={field.signature?.style} maxPx={96} minPx={10} />
+                pending ? (
+                  <span className="doc-mark-plain">{field.type}</span>
+                ) : (
+                  <FitSignatureText text={label} style={field.signature?.style} maxPx={96} minPx={10} />
+                )
               ) : (
                 <FitSignatureText
                   text={field.value || field.type}

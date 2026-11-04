@@ -195,6 +195,8 @@ export interface SignatureField {
   value?: string;
   signature?: SignatureMark;
   signedAt?: string;
+  /** Signer explicitly skipped this field (dates optional; signatures still need ≥1 filled) */
+  skipped?: boolean;
 }
 
 export interface Recipient {

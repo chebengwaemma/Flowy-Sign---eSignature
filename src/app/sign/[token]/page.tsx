@@ -4,8 +4,11 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
-import { SignaturePad } from "@/components/signature/SignaturePad";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
+import {
+  SignWorkspace,
+  type SignFieldView,
+} from "@/components/signature/SignWorkspace";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
@@ -19,16 +22,7 @@ type Payload = {
     fileKind?: DocFileKind;
     fileDataUrl?: string;
     fileName?: string;
-    fields: Array<{
-      id: string;
-      type: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      value?: string;
-      signature?: SignatureMark;
-    }>;
+    fields: SignFieldView[];
     completedAt?: string;
     recipients?: Document["recipients"];
   };
@@ -39,16 +33,17 @@ type Payload = {
     status: string;
     preferredSignatureStyle?: SignatureMark["style"];
   };
+  canComplete?: boolean;
 };
 
 export default function SignPage() {
   const params = useParams<{ token: string }>();
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
-  const [mark, setMark] = useState<SignatureMark | null>(null);
   const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [fullDoc, setFullDoc] = useState<Document | null>(null);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [canComplete, setCanComplete] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -60,11 +55,7 @@ export default function SignPage() {
           return;
         }
         setData(json);
-        setMark({
-          mode: "typed",
-          text: json.recipient.name || json.recipient.email || "",
-          style: json.recipient.preferredSignatureStyle || "elegant",
-        });
+        setCanComplete(Boolean(json.canComplete));
         if (json.recipient.status === "signed") {
           setDone(true);
           if (json.document.status === "completed" && json.fullDocument) {
@@ -77,57 +68,6 @@ export default function SignPage() {
     }
     load();
   }, [params.token]);
-
-  async function submit() {
-    if (!mark) return;
-    if (mark.mode === "typed" && !mark.text?.trim()) return;
-    if (mark.mode === "image" && !mark.imageDataUrl) return;
-
-    setLoading(true);
-    setError("");
-    const res = await fetch(`/api/sign/${params.token}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        signature: mark.mode === "typed" ? mark.text?.trim() : mark.text || data?.recipient.name,
-        initials: mark.mode === "typed" ? mark.text?.trim().slice(0, 2) : undefined,
-        signatureMark: mark,
-      }),
-    });
-    const json = await res.json().catch(() => ({}));
-    setLoading(false);
-    if (!res.ok) {
-      setError(json?.error || "Could not sign");
-      return;
-    }
-    setDone(true);
-    if (json?.document) setFullDoc(json.document);
-    setData((prev) => {
-      if (!prev || !mark) return prev;
-      return {
-        ...prev,
-        recipient: { ...prev.recipient, status: "signed" },
-        document: {
-          ...prev.document,
-          status: json?.completed ? "completed" : prev.document.status,
-          fields: (prev.document.fields || []).map((f) =>
-            f.type === "signature" || f.type === "initials"
-              ? {
-                  ...f,
-                  value: mark.mode === "typed" ? mark.text : mark.text || prev.recipient.name,
-                  signature: mark,
-                }
-              : f,
-          ),
-        },
-      };
-    });
-  }
-
-  const canSubmit =
-    mark &&
-    ((mark.mode === "typed" && !!mark.text?.trim()) ||
-      (mark.mode === "image" && !!mark.imageDataUrl));
 
   if (error && !data) {
     return (
@@ -147,7 +87,7 @@ export default function SignPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-4xl px-6 py-10 app-meet-page">
+    <div className="mx-auto min-h-screen max-w-5xl px-6 py-10 app-meet-page">
       <ScrollMeetSplit className="app-meet-stack" itemClassName="app-meet-item" distance={90} stagger={0.1}>
         <Logo />
         <div>
@@ -156,62 +96,90 @@ export default function SignPage() {
             Signing as {data.recipient.name} ({data.recipient.email})
           </p>
           <p className="mt-1 text-sm text-muted">
-            Your signature is placed on the document as an overlay — the original file stays unchanged.
+            Signature is required. Date is optional. Edits sync to the database in real time.
           </p>
         </div>
       </ScrollMeetSplit>
 
-      <ScrollMeetBlock side="left" distance={110} className="app-meet-block mt-8">
-        <DocumentSurface
-          content={data.document.content}
-          fileKind={data.document.fileKind}
-          fileDataUrl={data.document.fileDataUrl}
-          fields={data.document.fields.map((f) => ({
-            ...f,
-            type: f.type as "signature" | "initials" | "date" | "text",
-            signature: done ? f.signature || mark || undefined : f.signature,
-            value: done ? f.value || mark?.text : f.value,
-          }))}
-          highlightPending={!done}
-        />
-      </ScrollMeetBlock>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+        <ScrollMeetBlock side="left" distance={110} className="app-meet-block">
+          <DocumentSurface
+            content={data.document.content}
+            fileKind={data.document.fileKind}
+            fileDataUrl={data.document.fileDataUrl}
+            fields={data.document.fields.map((f) => ({
+              ...f,
+              type: f.type as "signature" | "initials" | "date" | "text",
+            }))}
+            highlightPending={!done}
+            selectedFieldId={selectedFieldId}
+            onFieldSelect={done ? undefined : setSelectedFieldId}
+          />
+        </ScrollMeetBlock>
 
-      <ScrollMeetBlock side="right" distance={120} className="app-meet-block mt-6">
-        <div className="panel space-y-4 p-6">
-          {done ? (
-            <div>
-              <p className="tone-ok">Signed</p>
-              <p className="mt-2 text-sm text-muted">
-                Thank you. The original document was not modified — only signature marks were added.
-              </p>
-              {fullDoc?.status === "completed" && (
-                <div className="mt-4">
-                  <DownloadSignedButton document={fullDoc} />
-                </div>
-              )}
-              {!fullDoc && (
-                <p className="mt-3 text-sm text-muted">
-                  When all parties have signed, the completed document can be downloaded from the sender’s
-                  Documents page.
+        <ScrollMeetBlock side="right" distance={120} className="app-meet-block">
+          <div className="panel space-y-4 p-6">
+            {done ? (
+              <div>
+                <p className="tone-ok">Signed</p>
+                <p className="mt-2 text-sm text-muted">
+                  Thank you. The original document was not modified — only signature marks were added.
                 </p>
-              )}
-            </div>
-          ) : (
-            <>
-              <h2 className="font-semibold text-lg">Create your signature</h2>
-              <SignaturePad defaultName={data.recipient.name} value={mark} onChange={setMark} />
-              {error && <p className="text-[var(--bad)] text-sm">{error}</p>}
-              <button
-                className="btn btn-accent"
-                disabled={loading || !canSubmit}
-                onClick={submit}
-              >
-                {loading ? "Submitting…" : "Adopt & sign"}
-              </button>
-            </>
-          )}
-        </div>
-      </ScrollMeetBlock>
+                {fullDoc?.status === "completed" && (
+                  <div className="mt-4">
+                    <DownloadSignedButton document={fullDoc} />
+                  </div>
+                )}
+                {!fullDoc && (
+                  <p className="mt-3 text-sm text-muted">
+                    When all parties have signed, the completed document can be downloaded from the sender’s
+                    Documents page.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <SignWorkspace
+                token={String(params.token)}
+                recipientName={data.recipient.name}
+                recipientEmail={data.recipient.email}
+                preferredStyle={data.recipient.preferredSignatureStyle}
+                document={data.document}
+                initialCanComplete={canComplete}
+                selectedFieldId={selectedFieldId}
+                onSelectField={setSelectedFieldId}
+                onFieldsChange={(fields, meta) => {
+                  setCanComplete(meta.canComplete);
+                  setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          document: { ...prev.document, fields },
+                          canComplete: meta.canComplete,
+                        }
+                      : prev,
+                  );
+                }}
+                onCompleted={({ completed, fullDocument }) => {
+                  setDone(true);
+                  if (fullDocument) setFullDoc(fullDocument);
+                  setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          recipient: { ...prev.recipient, status: "signed" },
+                          document: {
+                            ...prev.document,
+                            status: completed ? "completed" : prev.document.status,
+                          },
+                        }
+                      : prev,
+                  );
+                }}
+              />
+            )}
+          </div>
+        </ScrollMeetBlock>
+      </div>
     </div>
   );
 }
