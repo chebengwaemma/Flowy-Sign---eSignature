@@ -12,7 +12,7 @@ import type {
   User,
 } from "./types";
 import { defaultSettings, mergeSettings } from "./settings";
-import { connectDB, markMongoUnreachable } from "./db";
+import { connectDB, isMongoRequired, markMongoUnreachable } from "./db";
 import { Platform } from "./models/Platform";
 
 /** On Vercel the app FS is read-only — use /tmp for file fallback. */
@@ -277,8 +277,8 @@ type StoreRead = {
   rev: number;
 };
 
-/** Hard ceiling so SSR never waits on a half-dead Atlas socket. */
-const MONGO_READ_BUDGET_MS = 2_500;
+/** Hard ceiling so SSR never waits forever on a half-dead Atlas socket. */
+const MONGO_READ_BUDGET_MS = 10_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -306,7 +306,7 @@ async function readMongoStore(): Promise<StoreRead | null> {
         await connectDB();
         // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
         let doc = await Platform.findOne({ key: "main" })
-          .maxTimeMS(2_000)
+          .maxTimeMS(8_000)
           .lean<{ data?: unknown; rev?: number }>()
           .exec();
         if (!doc?.data) {
@@ -411,6 +411,12 @@ async function writeMongoStore(store: PlatformStore): Promise<boolean> {
 export async function readStore(): Promise<PlatformStore> {
   const mongo = await readMongoStore();
   if (mongo) return mongo.store;
+  // On Vercel, /tmp file seed is NOT real user data — never pretend Mongo is fine.
+  if (isMongoRequired()) {
+    throw new Error(
+      "Database unavailable. In MongoDB Atlas → Network Access, allow 0.0.0.0/0 so Vercel can connect.",
+    );
+  }
   return readFileStore();
 }
 

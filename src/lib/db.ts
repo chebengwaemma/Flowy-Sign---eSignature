@@ -4,7 +4,7 @@ const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/flowysign";
 
 /** After a failed connect, skip Mongo briefly so warm SSR does not pay the timeout every hit. */
-const SKIP_AFTER_FAIL_MS = 45_000;
+const SKIP_AFTER_FAIL_MS = 20_000;
 
 type GlobalMongo = typeof globalThis & {
   __flowyMongo?: {
@@ -40,11 +40,11 @@ export async function connectDB() {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         bufferCommands: false,
-        // Keep marketing SSR under a couple seconds when Atlas is unreachable.
-        serverSelectionTimeoutMS: 2_000,
-        connectTimeoutMS: 2_000,
-        socketTimeoutMS: 4_000,
-        maxPoolSize: 3,
+        // Atlas from Vercel can need a few seconds; still fail before Hobby hang.
+        serverSelectionTimeoutMS: 8_000,
+        connectTimeoutMS: 8_000,
+        socketTimeoutMS: 12_000,
+        maxPoolSize: 5,
         // Vercel → Atlas often stalls on IPv6; prefer IPv4.
         family: 4,
       })
@@ -74,4 +74,8 @@ export function markMongoUnreachable() {
   cached.skipUntil = Date.now() + SKIP_AFTER_FAIL_MS;
   cached.promise = null;
   cached.conn = null;
+}
+
+export function isMongoRequired() {
+  return Boolean(process.env.VERCEL || process.env.MONGODB_URI);
 }
