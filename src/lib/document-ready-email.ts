@@ -4,12 +4,18 @@ import { createUserNotification } from "./notifications";
 import { getSiteSettings } from "./get-marketing";
 import type { Document, User } from "./types";
 
+function publicAppUrl() {
+  const url = getAppUrl().replace(/\/$/, "");
+  if (!url || /localhost|127\.0\.0\.1/i.test(url)) return "https://flowysign.com";
+  return url;
+}
+
 export function documentDownloadPath(token: string) {
   return `/download/${encodeURIComponent(token)}`;
 }
 
 export function documentDownloadUrl(token: string) {
-  return `${getAppUrl()}${documentDownloadPath(token)}`;
+  return `${publicAppUrl()}${documentDownloadPath(token)}`;
 }
 
 /** Notify the account owner that their uploaded document is ready (in-app + email). */

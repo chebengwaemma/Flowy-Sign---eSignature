@@ -3,6 +3,13 @@ import { getEmailConfig, sendEmail } from "./email";
 import { getSiteSettings } from "./get-marketing";
 import type { Document, User } from "./types";
 
+/** Absolute public origin for invite/download emails — never localhost. */
+function publicAppUrl() {
+  const url = getAppUrl().replace(/\/$/, "");
+  if (!url || /localhost|127\.0\.0\.1/i.test(url)) return "https://flowysign.com";
+  return url;
+}
+
 function escapeHtml(s: string) {
   return s
     .replace(/&/g, "&amp;")
@@ -25,7 +32,7 @@ export async function sendSigningInvitationEmails(doc: Document) {
     if (!recipient?.email || !recipient.token) continue;
     if (recipient.status === "signed") continue;
 
-    const link = `${getAppUrl()}/sign/${encodeURIComponent(recipient.token)}`;
+    const link = `${publicAppUrl()}/sign/${encodeURIComponent(recipient.token)}`;
     const subject = `Please sign: ${doc.title}`;
     const text = [
       `Hi ${recipient.name || "there"},`,
@@ -74,8 +81,8 @@ export async function sendSigningCompleteEmail(owner: Pick<User, "email" | "name
   const { apiKey, from } = getEmailConfig(site);
   const brand = site.brandName || "Flowy Sign - eSignature";
   const link = doc.downloadToken
-    ? `${getAppUrl()}/download/${encodeURIComponent(doc.downloadToken)}`
-    : `${getAppUrl()}/documents/${encodeURIComponent(doc.id)}`;
+    ? `${publicAppUrl()}/download/${encodeURIComponent(doc.downloadToken)}`
+    : `${publicAppUrl()}/documents/${encodeURIComponent(doc.id)}`;
   const subject = `Completed: ${doc.title}`;
   const text = [
     `Hi ${owner.name || "there"},`,
@@ -120,7 +127,7 @@ export async function sendTeamInviteEmail(input: {
   const site = await getSiteSettings();
   const { apiKey, from } = getEmailConfig(site);
   const brand = site.brandName || "Flowy Sign - eSignature";
-  const loginUrl = `${getAppUrl()}/login`;
+  const loginUrl = `${publicAppUrl()}/login`;
   const subject = `You're invited to ${brand}`;
   const text = [
     `Hi ${input.name || "there"},`,
