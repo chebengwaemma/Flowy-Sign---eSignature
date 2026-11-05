@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser, publicUser } from "@/lib/auth";
+import { getSessionUser, publicUser, SessionStoreUnavailable } from "@/lib/auth";
 import { mergeSettings } from "@/lib/settings";
 import { connection } from "next/server";
 import { readStore } from "@/lib/store";
@@ -10,12 +10,35 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await connection();
-  const user = await getSessionUser();
+  let user;
+  try {
+    user = await getSessionUser();
+  } catch (err) {
+    if (err instanceof SessionStoreUnavailable) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-[#f7f5f2] px-6">
+          <div className="panel max-w-lg p-8 text-center">
+            <h1 className="text-2xl font-semibold text-[#0b3d38]">Still signed in</h1>
+            <p className="mt-3 text-[var(--muted)]">
+              The database is busy, so this page could not load. You were not logged out. Refresh in a
+              moment.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    throw err;
+  }
   if (!user) redirect("/login");
 
-  const store = await readStore();
+  let store: Awaited<ReturnType<typeof readStore>> | null = null;
+  try {
+    store = await readStore();
+  } catch {
+    store = null;
+  }
   // Live Mongo site CMS (admin) — never use stale org snapshots for branding/plans
-  const settings = mergeSettings(store.site);
+  const settings = mergeSettings(store?.site);
   const safe = publicUser(user);
 
   if (settings.maintenanceMode && safe.role === "member") {

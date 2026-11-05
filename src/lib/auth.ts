@@ -6,7 +6,6 @@ import {
   registerDeviceSession,
   revokeSession,
   sessionIsActive,
-  touchSession,
   type ActiveSessionView,
 } from "./device-sessions";
 import { findUserById } from "./store";
@@ -16,6 +15,21 @@ const COOKIE = "flowy_session";
 /** Long-lived sessions — no aggressive auto-timeout once logged in */
 const SESSION_TTL = "365d";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
+
+/** Keep the last good profile in this isolate so a Mongo blip does not look like logout. */
+const sessionUserCache = new Map<string, User>();
+
+export class SessionStoreUnavailable extends Error {
+  constructor() {
+    super("SESSION_STORE_UNAVAILABLE");
+    this.name = "SessionStoreUnavailable";
+  }
+}
+
+function isStoreOutage(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return /database unavailable|mongo|timed out|temporarily skipped|network access/i.test(message);
+}
 
 function secret() {
   const value = process.env.AUTH_SECRET || "flowy-sign-dev-secret-change-in-production";
@@ -166,16 +180,30 @@ export async function getSessionUser(): Promise<User | null> {
     if (!payload.sub) return null;
     const jti = typeof payload.jti === "string" ? payload.jti : undefined;
 
-    // Legacy cookies without jti remain valid until they expire
+    // Legacy cookies without jti remain valid until they expire.
+    // A database blip must not look like logout — only a real revoke does.
     if (jti) {
-      const active = await sessionIsActive(payload.sub, jti);
-      if (!active) return null;
-      void touchSession(payload.sub, jti);
+      try {
+        const active = await sessionIsActive(payload.sub, jti);
+        if (!active) return null;
+      } catch (err) {
+        if (!isStoreOutage(err)) return null;
+      }
     }
 
-    const user = await findUserById(payload.sub);
-    return user ?? null;
-  } catch {
+    try {
+      const user = await findUserById(payload.sub);
+      if (!user) return null;
+      sessionUserCache.set(user.id, user);
+      return user;
+    } catch (err) {
+      if (!isStoreOutage(err)) return null;
+      const cached = sessionUserCache.get(payload.sub);
+      if (cached) return cached;
+      throw new SessionStoreUnavailable();
+    }
+  } catch (err) {
+    if (err instanceof SessionStoreUnavailable) throw err;
     return null;
   }
 }

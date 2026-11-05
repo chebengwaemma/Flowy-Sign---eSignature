@@ -1,12 +1,26 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, SessionStoreUnavailable } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function WizardLayout({ children }: { children: React.ReactNode }) {
   await connection();
-  const user = await getSessionUser();
+  let user;
+  try {
+    user = await getSessionUser();
+  } catch (err) {
+    if (err instanceof SessionStoreUnavailable) {
+      return (
+        <div className="grid min-h-screen place-items-center px-6">
+          <p className="max-w-md text-center text-[var(--muted)]">
+            Still signed in. The database is busy — refresh this page. You were not logged out.
+          </p>
+        </div>
+      );
+    }
+    throw err;
+  }
   if (!user) redirect("/login");
   return <div className="send-shell">{children}</div>;
 }
