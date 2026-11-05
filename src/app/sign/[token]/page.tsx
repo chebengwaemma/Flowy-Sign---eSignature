@@ -114,7 +114,7 @@ export default function SignPage() {
             Signing as {data.recipient.name} ({data.recipient.email})
           </p>
           <p className="mt-1 text-sm text-muted">
-            Signature is required. Date is optional. Edits sync to the database in real time.
+            Signature is required and keeps the font you choose. Add a date only if you want one.
           </p>
         </div>
       </ScrollMeetSplit>

@@ -2602,6 +2602,10 @@ body:has(.admin-nav-mobile) {
   text-underline-offset: 0.12em;
 }
 
+.sig-pen {
+  font-family: var(--font-sig-pen), cursive;
+}
+
 /* Live e-signature generator */
 .esig-gen {
   display: flex;

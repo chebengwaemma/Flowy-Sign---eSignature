@@ -50,18 +50,18 @@ const MODES: Array<{ id: PlaceMode; title: string; blurb: string; required?: boo
   {
     id: "signature",
     title: "1. Place signature",
-    blurb: "Required — stamps your signature on the selected (or next) signature field.",
+    blurb: "Required — places your signature in the font you chose. No date is added.",
     required: true,
   },
   {
     id: "signature_and_date",
     title: "2. Signature + date",
-    blurb: "Optional — one click places your signature and today’s date together.",
+    blurb: "Optional — places your signature and today’s date only if you choose this.",
   },
   {
     id: "date",
     title: "3. Place date",
-    blurb: "Optional — stamps the current date on a date field.",
+    blurb: "Optional — click the document to place a date in pen style. Leave it if you don’t want one.",
   },
 ];
 
@@ -221,7 +221,7 @@ export function SignWorkspace({
       <div>
         <h2 className="font-semibold text-lg">Signing modes</h2>
         <p className="mt-1 text-sm text-muted">
-          Signature is required. Date options are optional. Every change syncs to MongoDB instantly.
+          Signature is required and keeps the font you pick. Place a date only if you want one — skip it and the download will not include a date.
         </p>
       </div>
 

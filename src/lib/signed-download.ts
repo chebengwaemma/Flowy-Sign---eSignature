@@ -15,6 +15,9 @@ function markHtml(field: SignatureField) {
     return `<img src="${sig.imageDataUrl}" alt="Signature" style="max-width:100%;max-height:64px;object-fit:contain;" />`;
   }
   const text = escapeHtml(sig?.text || field.value || "");
+  if (field.type === "date") {
+    return `<span style="font-family:Kalam,cursive;font-size:22px;">${text}</span>`;
+  }
   const style = sig?.style || "script";
   const styleMap: Record<string, string> = {
     elegant: "font-family:'Great Vibes',cursive;font-size:34px;",
@@ -66,6 +69,7 @@ export function buildSignedDocumentHtml(doc: Document) {
 <head>
   <meta charset="utf-8" />
   <title>${escapeHtml(doc.title)} — Signed</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script&family=Allura&family=Satisfy&family=Caveat:wght@600&family=Sacramento&family=Permanent+Marker&family=Parisienne&family=Kalam&display=swap" />
   <style>
     body { margin: 0; background: #f4faf7; color: #062925; font-family: system-ui, sans-serif; }
     .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px 48px; }
@@ -153,22 +157,28 @@ export async function downloadSignedPng(doc: Document) {
       ctx.drawImage(mark, x, y, drawW, drawH);
     } else {
       const text = field.signature?.text || field.value || "";
-      const style = field.signature?.style || "elegant";
+      const style = field.type === "date" ? "pen" : field.signature?.style || "elegant";
       ctx.fillStyle = "#0b1f1c";
       // Fit typed signature inside the field box without clipping characters.
       let size = Math.max(10, boxH * 0.9);
+      const family = (variable: string, fallback: string) => {
+        if (typeof document === "undefined") return fallback;
+        const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+        return value || fallback;
+      };
       const fontFor = (px: number) => {
         const fontMap: Record<string, string> = {
-          elegant: `${px}px "Great Vibes", cursive`,
-          script: `${px}px "Dancing Script", cursive`,
-          formal: `${px}px Allura, cursive`,
-          casual: `${px}px Satisfy, cursive`,
-          marker: `600 ${px}px Caveat, cursive`,
-          classic: `${px}px Sacramento, cursive`,
-          bold: `${px}px "Permanent Marker", cursive`,
-          italic: `${px}px Parisienne, cursive`,
-          slant: `italic ${px}px Satisfy, cursive`,
-          strike: `${px}px Sacramento, cursive`,
+          elegant: `${px}px ${family("--font-sig-elegant", '"Great Vibes"')}, cursive`,
+          script: `${px}px ${family("--font-sig-script", '"Dancing Script"')}, cursive`,
+          formal: `${px}px ${family("--font-sig-formal", "Allura")}, cursive`,
+          casual: `${px}px ${family("--font-sig-casual", "Satisfy")}, cursive`,
+          marker: `600 ${px}px ${family("--font-sig-marker", "Caveat")}, cursive`,
+          classic: `${px}px ${family("--font-sig-classic", "Sacramento")}, cursive`,
+          bold: `${px}px ${family("--font-sig-bold", '"Permanent Marker"')}, cursive`,
+          italic: `${px}px ${family("--font-sig-italic", "Parisienne")}, cursive`,
+          slant: `italic ${px}px ${family("--font-sig-casual", "Satisfy")}, cursive`,
+          strike: `${px}px ${family("--font-sig-classic", "Sacramento")}, cursive`,
+          pen: `${px}px ${family("--font-sig-pen", "Kalam")}, cursive`,
         };
         return fontMap[style] || fontMap.elegant;
       };

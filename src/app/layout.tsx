@@ -5,6 +5,7 @@ import {
   Dancing_Script,
   Fraunces,
   Great_Vibes,
+  Kalam,
   Manrope,
   Parisienne,
   Permanent_Marker,
@@ -81,6 +82,13 @@ const parisienne = Parisienne({
   display: "swap",
 });
 
+const kalam = Kalam({
+  variable: "--font-sig-pen",
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Flowy Sign - eSignature",
   description:
@@ -102,6 +110,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         sacramento.variable,
         permanentMarker.variable,
         parisienne.variable,
+        kalam.variable,
         "h-full",
       ].join(" ")}
     >

@@ -1,0 +1,13 @@
+Handwriting fonts embedded into downloaded signed documents.
+Each face is licensed under the SIL Open Font License, Version 1.1.
+See OFL.txt in this folder.
+
+Great Vibes — The Great Vibes Project Authors
+Dancing Script — Impallari Type
+Allura — Robert Leuschke
+Satisfy — Font Diner
+Caveat — Impallari Type
+Sacramento — Astigmatic
+Permanent Marker — Font Diner
+Parisienne — Astigmatic
+Kalam — Indian Type Foundry (pen style, used for dates)

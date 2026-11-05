@@ -219,6 +219,13 @@ export function DocumentSurface({
                 ) : (
                   <FitSignatureText text={label} style={field.signature?.style} maxPx={96} minPx={10} />
                 )
+              ) : field.type === "date" ? (
+                <FitSignatureText
+                  text={field.value || "Date"}
+                  textClassName="sig-mark sig-pen"
+                  maxPx={32}
+                  minPx={12}
+                />
               ) : (
                 <FitSignatureText
                   text={field.value || field.type}
