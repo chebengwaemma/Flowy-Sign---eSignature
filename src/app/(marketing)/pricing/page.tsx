@@ -5,7 +5,7 @@ import { PlanCatalog } from "@/components/billing/PlanCatalog";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPaidPlans, planDisplayFeatures } from "@/lib/plans";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function PricingPage() {
   const [{ pricing: p, pricingPage: pp }, site] = await Promise.all([

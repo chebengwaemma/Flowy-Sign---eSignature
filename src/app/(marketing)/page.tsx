@@ -12,7 +12,8 @@ import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
 
-export const dynamic = "force-dynamic";
+/** Cache HTML briefly — Mongo admin copy still refreshes via getSiteSettings revalidate. */
+export const revalidate = 60;
 
 const ORBIT_MARKS = [
   { name: "Drive", fg: "#4285F4", mark: "G" },

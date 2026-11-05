@@ -1,16 +1,12 @@
-import { connection } from "next/server";
 import { NextResponse } from "next/server";
-import { mergeSettings } from "@/lib/settings";
-import { readStore } from "@/lib/store";
+import { getSiteSettings } from "@/lib/get-marketing";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
-/** Public flags for login / signup UI (no secrets) — always live from Mongo */
+/** Public flags for login / signup UI (no secrets) */
 export async function GET() {
   try {
-    await connection();
-    const store = await readStore();
-    const s = mergeSettings(store.site);
+    const s = await getSiteSettings();
     return NextResponse.json(
       {
         signupEnabled: s.signupEnabled !== false,
@@ -22,7 +18,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "no-store, max-age=0",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
         },
       },
     );
@@ -40,7 +36,9 @@ export async function GET() {
       },
       {
         status: 200,
-        headers: { "Cache-Control": "no-store, max-age=0" },
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        },
       },
     );
   }

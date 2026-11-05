@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { DetailPageView } from "@/components/marketing/DetailPageView";
 import { getMarketing } from "@/lib/get-marketing";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function FeatureDetailPage({
   params,

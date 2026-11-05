@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { connection } from "next/server";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Chatbot } from "@/components/Chatbot";
@@ -8,10 +7,10 @@ import { getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
 import "./landing.css";
 
-export const dynamic = "force-dynamic";
+/** Public marketing shell — ISR so cold Mongo hangs don't block every visitor. */
+export const revalidate = 60;
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  await connection();
   const settings = await getSiteSettings();
   const m = settings.marketing;
   const brand = settings.brandName || settings.companyLegalName || "Flowy Sign - eSignature";
