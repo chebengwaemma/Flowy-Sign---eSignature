@@ -114,7 +114,7 @@ export default function SignPage() {
             Signing as {data.recipient.name} ({data.recipient.email})
           </p>
           <p className="mt-1 text-sm text-muted">
-            Signature is required and keeps the font you choose. Add a date only if you want one.
+            Your signature font is also used for the date. You can download with no date.
           </p>
         </div>
       </ScrollMeetSplit>

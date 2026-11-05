@@ -42,6 +42,7 @@ async function drawField(
   pdf: PDFDocument,
   page: PDFPage,
   field: SignatureField,
+  doc: Document,
   embedded: Map<string, PDFFont>,
   fallback: PDFFont,
 ) {
@@ -73,7 +74,7 @@ async function drawField(
 
   const text = (field.signature?.text || field.value || "").trim();
   if (!text) return;
-  const key = fontKeyForField(field);
+  const key = fontKeyForField(field, doc);
   const font = await fontFor(pdf, key, embedded, fallback);
   let size = Math.max(field.type === "date" ? 11 : 14, boxH * (field.type === "date" ? 0.62 : 0.72));
   const widthAt = (px: number) => {
@@ -118,7 +119,7 @@ async function paintFields(pdf: PDFDocument, doc: Document, pageFor: (field: Sig
     const page = pageFor(field);
     if (!page) continue;
     try {
-      await drawField(pdf, page, field, embedded, fallback);
+      await drawField(pdf, page, field, doc, embedded, fallback);
     } catch (err) {
       console.warn("[download] skipped a mark:", (err as Error).message);
     }

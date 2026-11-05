@@ -13,6 +13,7 @@ import {
   todayLabel,
 } from "@/lib/sign-field-ops";
 import { readStore, updateStore } from "@/lib/store";
+import { normalizeSignatureStyle } from "@/lib/signature-styles";
 import type { Document, SignatureField, SignatureMark } from "@/lib/types";
 
 function publicDoc(doc: Document, recipientId: string) {
@@ -180,6 +181,14 @@ function resolveMark(
   return { mode: "typed", text, style: input.style || "elegant" };
 }
 
+function dateStyleFor(doc: Document, recipientId: string, explicit?: string, preferred?: string) {
+  if (explicit) return normalizeSignatureStyle(explicit);
+  const signed = (doc.fields || []).find(
+    (f) => f.recipientId === recipientId && isSignatureLike(f) && f.signature?.style,
+  );
+  return normalizeSignatureStyle(signed?.signature?.style || preferred);
+}
+
 function findTarget(
   fields: Document["fields"],
   recipientId: string,
@@ -298,11 +307,11 @@ export async function PATCH(
               height: 6,
               recipientId: recipient.id,
             };
-            applyDateToField(companion, todayLabel());
+            applyDateToField(companion, todayLabel(), mark.style);
             doc.fields.push(companion);
           } else {
             for (const field of dates) {
-              if (!field.skipped) applyDateToField(field, todayLabel());
+              if (!field.skipped) applyDateToField(field, field.value || todayLabel(), mark.style);
             }
           }
         }
@@ -331,7 +340,11 @@ export async function PATCH(
           target.x = Math.min(100 - width, Math.max(0, op.x));
           target.y = Math.min(100 - height, Math.max(0, op.y));
         }
-        applyDateToField(target, op.value || todayLabel());
+        applyDateToField(
+          target,
+          op.value || todayLabel(),
+          dateStyleFor(doc, recipient.id, op.signatureMark?.style, recipient.preferredSignatureStyle),
+        );
       }
     } else if (op.action === "edit") {
       const field = doc.fields.find((f) => f.id === op.fieldId && f.recipientId === recipient.id);
@@ -351,7 +364,16 @@ export async function PATCH(
             : String(mark.text || fallbackName).trim();
         applySignatureToField(field, mark, display);
       } else {
-        applyDateToField(field, op.value || field.value || todayLabel());
+        applyDateToField(
+          field,
+          op.value || field.value || todayLabel(),
+          dateStyleFor(
+            doc,
+            recipient.id,
+            op.signatureMark?.style || field.signature?.style,
+            recipient.preferredSignatureStyle,
+          ),
+        );
       }
     } else if (op.action === "delete") {
       const field = doc.fields.find((f) => f.id === op.fieldId && f.recipientId === recipient.id);
@@ -524,8 +546,8 @@ export async function POST(
       if (field.recipientId !== recipient.id) continue;
       if (isSignatureLike(field)) {
         applySignatureToField(field, mark, display, body.data.initials);
-      } else if (field.type === "date") {
-        applyDateToField(field);
+      } else if (field.type === "date" && field.value?.trim() && !field.skipped) {
+        applyDateToField(field, field.value, mark.style);
       } else if (field.type === "text") {
         field.value = field.value || display;
         field.signedAt = now;

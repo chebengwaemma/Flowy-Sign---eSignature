@@ -39,7 +39,7 @@ export function SignaturePad({
       onChange(null);
       return;
     }
-    onChange({ mode: "image", imageDataUrl: dataUrl, text: defaultName });
+    onChange({ mode: "image", imageDataUrl: dataUrl, text: defaultName, style });
   }
 
   async function onFile(file: File | null) {

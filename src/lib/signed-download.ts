@@ -15,10 +15,7 @@ function markHtml(field: SignatureField) {
     return `<img src="${sig.imageDataUrl}" alt="Signature" style="max-width:100%;max-height:64px;object-fit:contain;" />`;
   }
   const text = escapeHtml(sig?.text || field.value || "");
-  if (field.type === "date") {
-    return `<span style="font-family:Kalam,cursive;font-size:22px;">${text}</span>`;
-  }
-  const style = sig?.style || "script";
+  const style = sig?.style || "elegant";
   const styleMap: Record<string, string> = {
     elegant: "font-family:'Great Vibes',cursive;font-size:34px;",
     script: "font-family:'Dancing Script',cursive;font-size:30px;",
@@ -157,7 +154,17 @@ export async function downloadSignedPng(doc: Document) {
       ctx.drawImage(mark, x, y, drawW, drawH);
     } else {
       const text = field.signature?.text || field.value || "";
-      const style = field.type === "date" ? "pen" : field.signature?.style || "elegant";
+      const style =
+        field.signature?.style ||
+        (field.type === "date"
+          ? doc.fields?.find(
+              (f) =>
+                (f.type === "signature" || f.type === "initials") &&
+                f.recipientId === field.recipientId &&
+                f.signature?.style,
+            )?.signature?.style
+          : undefined) ||
+        "elegant";
       ctx.fillStyle = "#0b1f1c";
       // Fit typed signature inside the field box without clipping characters.
       let size = Math.max(10, boxH * 0.9);

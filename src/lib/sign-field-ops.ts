@@ -1,4 +1,5 @@
-import type { Document, SignatureField, SignatureMark } from "./types";
+import { normalizeSignatureStyle } from "./signature-styles";
+import type { Document, SignatureField, SignatureMark, SignatureStyle } from "./types";
 
 export function todayLabel(locale = "en-US") {
   return new Date().toLocaleDateString(locale, {
@@ -58,11 +59,12 @@ export function applySignatureToField(
   field.signature = { ...mark };
 }
 
-export function applyDateToField(field: SignatureField, value?: string) {
+export function applyDateToField(field: SignatureField, value?: string, style?: SignatureStyle | string) {
+  const text = (value || todayLabel()).trim();
   field.skipped = false;
   field.signedAt = new Date().toISOString();
-  field.value = (value || todayLabel()).trim();
-  field.signature = undefined;
+  field.value = text;
+  field.signature = { mode: "typed", text, style: normalizeSignatureStyle(style) };
 }
 
 export function skipField(field: SignatureField) {

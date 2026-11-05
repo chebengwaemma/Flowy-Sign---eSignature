@@ -4,7 +4,7 @@ import { normalizeSignatureStyle } from "./signature-styles";
 
 /**
  * SIL OFL 1.1 handwriting faces used when a signed file is downloaded.
- * Signature uses the style the signer picked. Dates use Kalam (pen).
+ * A date uses the same face as the signature the signer chose.
  */
 const FILES = {
   elegant: "GreatVibes-Regular.ttf",
@@ -38,8 +38,23 @@ export function signatureFontBytes(key: string): Uint8Array {
   return readFont(file);
 }
 
-export function fontKeyForField(field: { type: string; signature?: { style?: string } }): SignatureFontKey {
-  if (field.type === "date") return "pen";
+export function fontKeyForField(
+  field: { type: string; recipientId?: string; signature?: { style?: string } },
+  doc?: { fields?: Array<{ type: string; recipientId?: string; signature?: { style?: string } }> },
+): SignatureFontKey {
+  const own = field.signature?.style;
+  if (own && own in FILES) return own as SignatureFontKey;
+  if (field.type === "date") {
+    const match = doc?.fields?.find(
+      (f) =>
+        (f.type === "signature" || f.type === "initials") &&
+        (!field.recipientId || f.recipientId === field.recipientId) &&
+        f.signature?.style &&
+        f.signature.style in FILES,
+    );
+    const borrowed = match?.signature?.style;
+    if (borrowed && borrowed in FILES) return borrowed as SignatureFontKey;
+  }
   const style = normalizeSignatureStyle(field.signature?.style);
   return style in FILES ? (style as SignatureFontKey) : "elegant";
 }

@@ -50,18 +50,18 @@ const MODES: Array<{ id: PlaceMode; title: string; blurb: string; required?: boo
   {
     id: "signature",
     title: "1. Place signature",
-    blurb: "Required — places your signature in the font you chose. No date is added.",
+    blurb: "Required — places your signature in the font you chose. You can finish and download without a date.",
     required: true,
   },
   {
     id: "signature_and_date",
     title: "2. Signature + date",
-    blurb: "Optional — places your signature and today’s date only if you choose this.",
+    blurb: "Optional — the date uses the same font as your signature.",
   },
   {
     id: "date",
     title: "3. Place date",
-    blurb: "Optional — click the document to place a date in pen style. Leave it if you don’t want one.",
+    blurb: "Optional — the date uses your signature font. Skip it and you can still download.",
   },
 ];
 
@@ -161,6 +161,7 @@ export function SignWorkspace({
       mode: "date",
       fieldId: selected?.type === "date" ? selected.id : undefined,
       value: editValue.trim() || undefined,
+      signatureMark: { mode: "typed", style: mark?.style || preferredStyle, text: editValue.trim() || undefined },
     });
   }
 
@@ -176,6 +177,7 @@ export function SignWorkspace({
           mode: "date",
           fieldId: selected?.type === "date" ? selected.id : undefined,
           value: editValue.trim() || undefined,
+          signatureMark: { mode: "typed", style: mark?.style || preferredStyle, text: editValue.trim() || undefined },
           x,
           y,
         });
@@ -189,7 +191,7 @@ export function SignWorkspace({
     });
     // Re-bind when selection / date override changes so click-to-place stays accurate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id, selected?.type, editValue, onReady]);
+  }, [selected?.id, selected?.type, editValue, mark?.style, preferredStyle, onReady]);
 
   async function saveEdit() {
     if (!editingId) return;
@@ -211,6 +213,7 @@ export function SignWorkspace({
         action: "edit",
         fieldId: editingId,
         value: editValue.trim(),
+        signatureMark: { mode: "typed", style: mark?.style || preferredStyle, text: editValue.trim() },
       });
     }
     setEditingId(null);
@@ -221,7 +224,7 @@ export function SignWorkspace({
       <div>
         <h2 className="font-semibold text-lg">Signing modes</h2>
         <p className="mt-1 text-sm text-muted">
-          Signature is required and keeps the font you pick. Place a date only if you want one — skip it and the download will not include a date.
+          The date uses the same font as your signature. Leave the date off and you can still download.
         </p>
       </div>
 
