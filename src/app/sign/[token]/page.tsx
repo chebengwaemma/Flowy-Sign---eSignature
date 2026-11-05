@@ -48,14 +48,14 @@ export default function SignPage() {
   const [signMode, setSignMode] = useState<PlaceMode>("signature");
   const placeApi = useRef<{
     placeDateAt: (x: number, y: number) => Promise<void>;
-    moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+    moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
     cutField: (fieldId: string) => Promise<void>;
   } | null>(null);
   const onModeChange = useCallback((mode: PlaceMode) => setSignMode(mode), []);
   const onReady = useCallback(
     (api: {
       placeDateAt: (x: number, y: number) => Promise<void>;
-      moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+      moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
       cutField: (fieldId: string) => Promise<void>;
     }) => {
       placeApi.current = api;
@@ -143,7 +143,7 @@ export default function SignPage() {
             onFieldMove={
               done
                 ? undefined
-                : (fieldId, x, y) => {
+                : (fieldId, x, y, size) => {
                     setData((prev) =>
                       prev
                         ? {
@@ -151,13 +151,15 @@ export default function SignPage() {
                             document: {
                               ...prev.document,
                               fields: prev.document.fields.map((f) =>
-                                f.id === fieldId ? { ...f, x, y } : f,
+                                f.id === fieldId
+                                  ? { ...f, x, y, ...(size ? { width: size.width, height: size.height } : {}) }
+                                  : f,
                               ),
                             },
                           }
                         : prev,
                     );
-                    void placeApi.current?.moveField(fieldId, x, y);
+                    void placeApi.current?.moveField(fieldId, x, y, size?.width, size?.height);
                   }
             }
             movableFieldTypes={["signature", "initials", "date", "text"]}

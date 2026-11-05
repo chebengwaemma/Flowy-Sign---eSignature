@@ -36,8 +36,13 @@ export function DocumentSurface({
   interactive?: boolean;
   onPlace?: (xPct: number, yPct: number) => void;
   onFieldSelect?: (fieldId: string) => void;
-  /** Drag a mark to a new percent position (synced by parent). */
-  onFieldMove?: (fieldId: string, xPct: number, yPct: number) => void;
+  /** Drag a mark, or resize it from a corner. Size is sent when a corner handle is used. */
+  onFieldMove?: (
+    fieldId: string,
+    xPct: number,
+    yPct: number,
+    size?: { width: number; height: number },
+  ) => void;
   /** Cross button — cut a doubled signature or date off the page. */
   onFieldCut?: (fieldId: string) => void;
   selectedFieldId?: string | null;
@@ -46,7 +51,9 @@ export function DocumentSurface({
   movableFieldTypes?: Array<FieldView["type"]>;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const [dragPos, setDragPos] = useState<Record<string, { x: number; y: number }>>({});
+  const [dragPos, setDragPos] = useState<
+    Record<string, { x: number; y: number; width?: number; height?: number }>
+  >({});
   const canMoveType = (type: FieldView["type"]) =>
     (movableFieldTypes || ["signature", "initials", "date", "text"]).includes(type);
 
@@ -56,10 +63,15 @@ export function DocumentSurface({
       let changed = false;
       for (const id of Object.keys(next)) {
         const field = fields.find((f) => f.id === id);
+        const live = next[id];
+        const sizeOk =
+          live.width == null ||
+          (field && Math.abs((field.width || 0) - live.width) < 0.35 && Math.abs((field.height || 0) - (live.height || 0)) < 0.35);
         if (
           field &&
-          Math.abs(field.x - next[id].x) < 0.35 &&
-          Math.abs(field.y - next[id].y) < 0.35
+          sizeOk &&
+          Math.abs(field.x - live.x) < 0.35 &&
+          Math.abs(field.y - live.y) < 0.35
         ) {
           delete next[id];
           changed = true;
@@ -125,6 +137,62 @@ export function DocumentSurface({
     window.addEventListener("pointerup", onUp);
   }
 
+  function startResize(
+    e: ReactPointerEvent<HTMLButtonElement>,
+    field: FieldView,
+    corner: "nw" | "ne" | "sw" | "se",
+  ) {
+    if (!onFieldMove) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const rect = surface.getBoundingClientRect();
+    const origin = {
+      x: field.x,
+      y: field.y,
+      width: field.width || (field.type === "date" ? 20 : 28),
+      height: field.height || (field.type === "date" ? 8 : 10),
+    };
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let last = { ...origin };
+    const handle = e.currentTarget;
+    handle.setPointerCapture?.(e.pointerId);
+
+    function onMove(ev: PointerEvent) {
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      let { x, y, width, height } = origin;
+      if (corner.includes("e")) width = origin.width + dx;
+      if (corner.includes("w")) width = origin.width - dx;
+      if (corner.includes("s")) height = origin.height + dy;
+      if (corner.includes("n")) height = origin.height - dy;
+      width = Math.min(70, Math.max(8, width));
+      height = Math.min(40, Math.max(4, height));
+      if (corner.includes("w")) x = origin.x + origin.width - width;
+      if (corner.includes("n")) y = origin.y + origin.height - height;
+      x = Math.min(100 - width, Math.max(0, x));
+      y = Math.min(100 - height, Math.max(0, y));
+      last = { x, y, width, height };
+      setDragPos((prev) => ({ ...prev, [field.id]: last }));
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      try {
+        handle.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      onFieldMove?.(field.id, last.x, last.y, { width: last.width, height: last.height });
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
   return (
     <div
       ref={surfaceRef}
@@ -152,9 +220,9 @@ export function DocumentSurface({
         {fields.map((field) => {
           const pending = !field.skipped && !field.value && !field.signature;
           if (pending && !highlightPending && !interactive && !onFieldSelect) return null;
-          const w = field.width || 28;
-          const h = Math.max(field.height || 8, 6);
           const live = dragPos[field.id];
+          const w = live?.width ?? field.width ?? 28;
+          const h = Math.max(live?.height ?? field.height ?? 8, 4);
           const markStyle: CSSProperties = {
             left: `${live?.x ?? field.x}%`,
             top: `${live?.y ?? field.y}%`,
@@ -190,7 +258,7 @@ export function DocumentSurface({
               }
               role={onFieldSelect || movable ? "button" : undefined}
               tabIndex={onFieldSelect || movable ? 0 : undefined}
-              title={movable ? "Drag to move" : undefined}
+              title={movable ? "Drag to move. Drag a corner to make it smaller or bigger." : undefined}
             >
               {onFieldCut && !field.skipped ? (
                 <button
@@ -208,6 +276,19 @@ export function DocumentSurface({
                   ×
                 </button>
               ) : null}
+              {movable
+                ? (["nw", "ne", "sw", "se"] as const).map((corner) => (
+                    <button
+                      key={corner}
+                      type="button"
+                      className={`doc-mark-handle handle-${corner}`}
+                      aria-label={`Resize ${field.type}`}
+                      title="Drag to resize"
+                      onPointerDown={(e) => startResize(e, field, corner)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ))
+                : null}
               {field.skipped ? (
                 <span className="doc-mark-plain">Skipped</span>
               ) : field.signature?.mode === "image" && field.signature.imageDataUrl ? (
@@ -223,8 +304,8 @@ export function DocumentSurface({
                 <FitSignatureText
                   text={field.value || "Date"}
                   style={field.signature?.style}
-                  maxPx={32}
-                  minPx={12}
+                  maxPx={80}
+                  minPx={10}
                 />
               ) : (
                 <FitSignatureText

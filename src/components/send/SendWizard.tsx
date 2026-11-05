@@ -229,10 +229,8 @@ export function SendWizard() {
     const startX = e.clientX;
     const startY = e.clientY;
     const origin = { ...field };
-    const lockAspect = field.type === "signature" || field.type === "initials";
-    const aspect = origin.width / Math.max(origin.height, 0.01);
-    const minW = field.type === "signature" ? 12 : field.type === "initials" ? 8 : 8;
-    const minH = lockAspect ? minW / aspect : field.type === "signature" ? 6 : 4;
+    const minW = 8;
+    const minH = 4;
 
     function onMove(ev: PointerEvent) {
       const dx = ((ev.clientX - startX) / rect.width) * 100;
@@ -242,48 +240,14 @@ export function SendWizard() {
       let width = origin.width;
       let height = origin.height;
 
-      if (lockAspect) {
-        // Keep signature/initials proportion fixed while resizing from any corner.
-        let nextW = origin.width;
-        if (corner.includes("e")) nextW = origin.width + dx;
-        if (corner.includes("w")) nextW = origin.width - dx;
-
-        // Prefer the axis with the stronger pull so diagonal drags feel natural.
-        const heightDrivenW = (origin.height + (corner.includes("s") ? dy : corner.includes("n") ? -dy : 0)) * aspect;
-        if (Math.abs(heightDrivenW - origin.width) > Math.abs(nextW - origin.width)) {
-          nextW = heightDrivenW;
-        }
-
-        nextW = Math.min(70, Math.max(minW, nextW));
-        let nextH = nextW / aspect;
-        if (nextH > 40) {
-          nextH = 40;
-          nextW = nextH * aspect;
-        }
-        if (nextH < minH) {
-          nextH = minH;
-          nextW = nextH * aspect;
-        }
-
-        width = nextW;
-        height = nextH;
-
-        if (corner.includes("w")) x = origin.x + origin.width - width;
-        if (corner.includes("n")) y = origin.y + origin.height - height;
-      } else {
-        if (corner.includes("e")) width = origin.width + dx;
-        if (corner.includes("w")) {
-          width = origin.width - dx;
-          x = origin.x + dx;
-        }
-        if (corner.includes("s")) height = origin.height + dy;
-        if (corner.includes("n")) {
-          height = origin.height - dy;
-          y = origin.y + dy;
-        }
-        width = Math.min(70, Math.max(minW, width));
-        height = Math.min(40, Math.max(minH, height));
-      }
+      if (corner.includes("e")) width = origin.width + dx;
+      if (corner.includes("w")) width = origin.width - dx;
+      if (corner.includes("s")) height = origin.height + dy;
+      if (corner.includes("n")) height = origin.height - dy;
+      width = Math.min(70, Math.max(minW, width));
+      height = Math.min(40, Math.max(minH, height));
+      if (corner.includes("w")) x = origin.x + origin.width - width;
+      if (corner.includes("n")) y = origin.y + origin.height - height;
 
       x = Math.min(100 - width, Math.max(0, x));
       y = Math.min(100 - height, Math.max(0, y));
@@ -692,7 +656,7 @@ export function SendWizard() {
                       e.stopPropagation();
                       setFields((prev) => prev.filter((x) => x.id !== f.id));
                     }}
-                    title="Drag to move · corners to resize (signature keeps aspect ratio) · double-click to remove"
+                    title="Drag to move. Drag a corner to make the signature or date smaller or bigger. Double-click to remove."
                   >
                     <span className="placed-field-label">{f.type}</span>
                     {(["nw", "ne", "sw", "se"] as const).map((corner) => (

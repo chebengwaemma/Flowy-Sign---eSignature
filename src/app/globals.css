@@ -1691,8 +1691,8 @@ textarea.field {
 
 .placed-field-handle {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 3px;
   background: #0b3d38;
   border: 2px solid #fff;
@@ -1702,23 +1702,23 @@ textarea.field {
 }
 
 .placed-field-handle.handle-nw {
-  left: -6px;
-  top: -6px;
+  left: -8px;
+  top: -8px;
   cursor: nwse-resize;
 }
 .placed-field-handle.handle-ne {
-  right: -6px;
-  top: -6px;
+  right: -8px;
+  top: -8px;
   cursor: nesw-resize;
 }
 .placed-field-handle.handle-sw {
-  left: -6px;
-  bottom: -6px;
+  left: -8px;
+  bottom: -8px;
   cursor: nesw-resize;
 }
 .placed-field-handle.handle-se {
-  right: -6px;
-  bottom: -6px;
+  right: -8px;
+  bottom: -8px;
   cursor: nwse-resize;
 }
 
@@ -2480,6 +2480,44 @@ body:has(.admin-nav-mobile) {
   pointer-events: none;
 }
 
+.doc-mark-handle {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 6;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  background: #0b3d38;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  touch-action: none;
+}
+
+.doc-mark-handle.handle-nw {
+  left: -7px;
+  top: -7px;
+  cursor: nwse-resize;
+}
+
+.doc-mark-handle.handle-ne {
+  right: -7px;
+  top: -7px;
+  cursor: nesw-resize;
+}
+
+.doc-mark-handle.handle-sw {
+  left: -7px;
+  bottom: -7px;
+  cursor: nesw-resize;
+}
+
+.doc-mark-handle.handle-se {
+  right: -7px;
+  bottom: -7px;
+  cursor: nwse-resize;
+}
+
 .doc-mark-x {
   pointer-events: auto;
   position: absolute;
@@ -2498,7 +2536,8 @@ body:has(.admin-nav-mobile) {
   padding: 0;
 }
 
-.doc-mark.is-movable .doc-mark-x {
+.doc-mark.is-movable .doc-mark-x,
+.doc-mark.is-movable .doc-mark-handle {
   pointer-events: auto;
 }
 

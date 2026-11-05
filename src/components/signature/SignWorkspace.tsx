@@ -41,7 +41,13 @@ type Props = {
   /** Imperative helpers for document preview (click-to-place / drag-to-move). */
   onReady?: (api: {
     placeDateAt: (xPct: number, yPct: number) => Promise<void>;
-    moveField: (fieldId: string, xPct: number, yPct: number) => Promise<void>;
+    moveField: (
+      fieldId: string,
+      xPct: number,
+      yPct: number,
+      width?: number,
+      height?: number,
+    ) => Promise<void>;
     cutField: (fieldId: string) => Promise<void>;
   }) => void;
 };
@@ -182,8 +188,8 @@ export function SignWorkspace({
           y,
         });
       },
-      moveField: async (fieldId, x, y) => {
-        await sync({ action: "move", fieldId, x, y });
+      moveField: async (fieldId, x, y, width, height) => {
+        await sync({ action: "move", fieldId, x, y, width, height });
       },
       cutField: async (fieldId) => {
         await sync({ action: "cut", fieldId });
@@ -288,7 +294,7 @@ export function SignWorkspace({
 
       <div className="sign-field-list">
         <h3 className="font-semibold">Fields on this document</h3>
-        <p className="text-sm text-muted mb-2">Drag a signature or date on the document to move it. Edit, delete, or skip from the list.</p>
+        <p className="text-sm text-muted mb-2">Drag a signature or date to move it. Drag a corner to make it smaller or bigger.</p>
         <ul className="space-y-2">
           {fields.map((f) => {
             const filled = !f.skipped && !!(f.value || f.signature);
