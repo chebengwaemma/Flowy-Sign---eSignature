@@ -42,6 +42,7 @@ type Props = {
   onReady?: (api: {
     placeDateAt: (xPct: number, yPct: number) => Promise<void>;
     moveField: (fieldId: string, xPct: number, yPct: number) => Promise<void>;
+    cutField: (fieldId: string) => Promise<void>;
   }) => void;
 };
 
@@ -181,6 +182,9 @@ export function SignWorkspace({
       },
       moveField: async (fieldId, x, y) => {
         await sync({ action: "move", fieldId, x, y });
+      },
+      cutField: async (fieldId) => {
+        await sync({ action: "cut", fieldId });
       },
     });
     // Re-bind when selection / date override changes so click-to-place stays accurate.

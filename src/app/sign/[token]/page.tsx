@@ -49,12 +49,14 @@ export default function SignPage() {
   const placeApi = useRef<{
     placeDateAt: (x: number, y: number) => Promise<void>;
     moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+    cutField: (fieldId: string) => Promise<void>;
   } | null>(null);
   const onModeChange = useCallback((mode: PlaceMode) => setSignMode(mode), []);
   const onReady = useCallback(
     (api: {
       placeDateAt: (x: number, y: number) => Promise<void>;
       moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+      cutField: (fieldId: string) => Promise<void>;
     }) => {
       placeApi.current = api;
     },
@@ -159,6 +161,37 @@ export default function SignPage() {
                   }
             }
             movableFieldTypes={["signature", "initials", "date", "text"]}
+            onFieldCut={
+              done
+                ? undefined
+                : (fieldId) => {
+                    setData((prev) => {
+                      if (!prev) return prev;
+                      const fields = prev.document.fields;
+                      const target = fields.find((f) => f.id === fieldId);
+                      const otherSigs = fields.filter(
+                        (f) =>
+                          f.id !== fieldId &&
+                          (f.type === "signature" || f.type === "initials"),
+                      );
+                      const nextFields =
+                        target &&
+                        (target.type === "signature" || target.type === "initials") &&
+                        otherSigs.length === 0
+                          ? fields.map((f) =>
+                              f.id === fieldId
+                                ? { ...f, value: undefined, signature: undefined, skipped: false }
+                                : f,
+                            )
+                          : fields.filter((f) => f.id !== fieldId);
+                      return {
+                        ...prev,
+                        document: { ...prev.document, fields: nextFields },
+                      };
+                    });
+                    void placeApi.current?.cutField(fieldId);
+                  }
+            }
           />
         </ScrollMeetBlock>
 

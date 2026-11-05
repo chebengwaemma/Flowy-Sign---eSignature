@@ -137,6 +137,10 @@ const patchSchema = z.discriminatedUnion("action", [
     fieldId: z.string().min(1),
   }),
   z.object({
+    action: z.literal("cut"),
+    fieldId: z.string().min(1),
+  }),
+  z.object({
     action: z.literal("skip"),
     fieldId: z.string().min(1),
   }),
@@ -356,6 +360,22 @@ export async function PATCH(
         return;
       }
       clearField(field);
+    } else if (op.action === "cut") {
+      const index = doc.fields.findIndex((f) => f.id === op.fieldId && f.recipientId === recipient.id);
+      if (index < 0) {
+        result = { ok: false, error: "Field not found" };
+        return;
+      }
+      const field = doc.fields[index];
+      if (isSignatureLike(field)) {
+        const others = recipientFields(doc, recipient.id).filter(
+          (f) => isSignatureLike(f) && f.id !== field.id,
+        );
+        if (others.length === 0) clearField(field);
+        else doc.fields.splice(index, 1);
+      } else {
+        doc.fields.splice(index, 1);
+      }
     } else if (op.action === "skip") {
       const field = doc.fields.find((f) => f.id === op.fieldId && f.recipientId === recipient.id);
       if (!field) {

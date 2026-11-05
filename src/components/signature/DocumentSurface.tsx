@@ -24,6 +24,7 @@ export function DocumentSurface({
   onPlace,
   onFieldSelect,
   onFieldMove,
+  onFieldCut,
   selectedFieldId,
   highlightPending = false,
   movableFieldTypes,
@@ -37,6 +38,8 @@ export function DocumentSurface({
   onFieldSelect?: (fieldId: string) => void;
   /** Drag a mark to a new percent position (synced by parent). */
   onFieldMove?: (fieldId: string, xPct: number, yPct: number) => void;
+  /** Cross button — cut a doubled signature or date off the page. */
+  onFieldCut?: (fieldId: string) => void;
   selectedFieldId?: string | null;
   highlightPending?: boolean;
   /** Field types that can be dragged. Default: signature, initials, date, text. */
@@ -77,7 +80,7 @@ export function DocumentSurface({
 
   function startFieldDrag(e: ReactPointerEvent<HTMLDivElement>, field: FieldView) {
     if (!onFieldMove || !canMoveType(field.type)) return;
-    if ((e.target as HTMLElement).closest(".doc-mark-handle")) return;
+    if ((e.target as HTMLElement).closest(".doc-mark-handle, .doc-mark-x")) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -189,6 +192,22 @@ export function DocumentSurface({
               tabIndex={onFieldSelect || movable ? 0 : undefined}
               title={movable ? "Drag to move" : undefined}
             >
+              {onFieldCut && !field.skipped ? (
+                <button
+                  type="button"
+                  className="doc-mark-x"
+                  aria-label={`Remove ${field.type}`}
+                  title="Cut"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onFieldCut(field.id);
+                  }}
+                >
+                  ×
+                </button>
+              ) : null}
               {field.skipped ? (
                 <span className="doc-mark-plain">Skipped</span>
               ) : field.signature?.mode === "image" && field.signature.imageDataUrl ? (
