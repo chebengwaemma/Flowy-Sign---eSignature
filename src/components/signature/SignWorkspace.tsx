@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SignaturePad } from "@/components/signature/SignaturePad";
-import type { Document, SignatureMark } from "@/lib/types";
+import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
 
 export type SignFieldView = {
   id: string;
