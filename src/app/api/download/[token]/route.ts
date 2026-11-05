@@ -44,7 +44,7 @@ export async function GET(
     );
   }
 
-  const file = buildDocumentDownload(doc);
+  const file = await buildDocumentDownload(doc);
   const body =
     typeof file.body === "string" ? Buffer.from(file.body, "utf8") : file.body;
 

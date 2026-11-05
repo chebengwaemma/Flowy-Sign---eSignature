@@ -1,30 +1,33 @@
 import type { Document } from "./types";
 import { buildSignedDocumentHtml } from "./signed-download";
+import { dataUrlBytes, stampSignatures } from "./stamp-signed-file";
 
 function safeName(title: string, ext: string) {
   const base = (title || "document").replace(/[^\w\-]+/g, "_").slice(0, 60) || "document";
   return `${base}${ext}`;
 }
 
-function parseDataUrl(dataUrl: string): { mime: string; buffer: Buffer } | null {
-  const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl);
-  if (!match) return null;
-  const mime = match[1] || "application/octet-stream";
-  const isBase64 = Boolean(match[2]);
-  const data = match[3] || "";
-  const buffer = isBase64 ? Buffer.from(data, "base64") : Buffer.from(decodeURIComponent(data), "utf8");
-  return { mime, buffer };
-}
-
 /** Build a downloadable payload for an uploaded / signed document. */
-export function buildDocumentDownload(doc: Document): {
+export async function buildDocumentDownload(doc: Document): Promise<{
   filename: string;
   mime: string;
   body: Buffer | string;
-} {
+}> {
   if (doc.fileDataUrl) {
-    const parsed = parseDataUrl(doc.fileDataUrl);
+    const parsed = dataUrlBytes(doc.fileDataUrl);
     if (parsed) {
+      try {
+        const stamped = await stampSignatures(doc, parsed.mime, parsed.bytes);
+        if (stamped) {
+          return {
+            filename: safeName(doc.title, stamped.ext.startsWith("-") ? stamped.ext : `-signed${stamped.ext}`),
+            mime: stamped.mime,
+            body: stamped.bytes,
+          };
+        }
+      } catch (err) {
+        console.warn("[download] could not stamp signatures:", (err as Error).message);
+      }
       const ext =
         doc.fileKind === "pdf"
           ? ".pdf"
@@ -34,7 +37,7 @@ export function buildDocumentDownload(doc: Document): {
       return {
         filename: safeName(doc.fileName || doc.title, ext || mimeToExt(parsed.mime)),
         mime: parsed.mime,
-        body: parsed.buffer,
+        body: Buffer.from(parsed.bytes),
       };
     }
   }
