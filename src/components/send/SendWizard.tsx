@@ -57,8 +57,8 @@ type Field = {
 const DEFAULT_FIELD_SIZE: Record<Field["type"], { width: number; height: number }> = {
   signature: { width: 28, height: 10 },
   initials: { width: 12, height: 8 },
-  date: { width: 18, height: 6 },
-  text: { width: 22, height: 6 },
+  date: { width: 20, height: 8 },
+  text: { width: 22, height: 7 },
 };
 
 const STEPS = [
@@ -296,6 +296,7 @@ export function SendWizard() {
       window.removeEventListener("pointerup", onUp);
     }
 
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   }
@@ -304,7 +305,8 @@ export function SendWizard() {
     if ((e.target as HTMLElement).closest(".placed-field-handle")) return;
     e.preventDefault();
     e.stopPropagation();
-    const canvas = (e.currentTarget as HTMLElement).closest(".doc-canvas") as HTMLElement | null;
+    const el = e.currentTarget as HTMLElement;
+    const canvas = el.closest(".doc-canvas") as HTMLElement | null;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const field = fields.find((f) => f.id === fieldId);
@@ -313,6 +315,7 @@ export function SendWizard() {
     const startX = e.clientX;
     const startY = e.clientY;
     const origin = { x: field.x, y: field.y, width: field.width, height: field.height };
+    el.setPointerCapture?.(e.pointerId);
 
     function onMove(ev: PointerEvent) {
       const dx = ((ev.clientX - startX) / rect.width) * 100;
@@ -325,6 +328,11 @@ export function SendWizard() {
     function onUp() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      try {
+        el.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
 
     window.addEventListener("pointermove", onMove);

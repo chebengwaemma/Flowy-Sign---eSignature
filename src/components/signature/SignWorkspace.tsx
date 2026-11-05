@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SignaturePad } from "@/components/signature/SignaturePad";
-import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
+import type { Document, SignatureMark } from "@/lib/types";
 
 export type SignFieldView = {
   id: string;
@@ -37,6 +37,12 @@ type Props = {
   onSelectField?: (fieldId: string | null) => void;
   onFieldsChange: (fields: SignFieldView[], meta: { canComplete: boolean }) => void;
   onCompleted: (payload: { completed: boolean; fullDocument?: Document | null }) => void;
+  onModeChange?: (mode: PlaceMode) => void;
+  /** Imperative helpers for document preview (click-to-place / drag-to-move). */
+  onReady?: (api: {
+    placeDateAt: (xPct: number, yPct: number) => Promise<void>;
+    moveField: (fieldId: string, xPct: number, yPct: number) => Promise<void>;
+  }) => void;
 };
 
 const MODES: Array<{ id: PlaceMode; title: string; blurb: string; required?: boolean }> = [
@@ -68,6 +74,8 @@ export function SignWorkspace({
   onSelectField,
   onFieldsChange,
   onCompleted,
+  onModeChange,
+  onReady,
 }: Props) {
   const [mark, setMark] = useState<SignatureMark | null>({
     mode: "typed",
@@ -155,6 +163,30 @@ export function SignWorkspace({
     });
   }
 
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
+
+  useEffect(() => {
+    onReady?.({
+      placeDateAt: async (x, y) => {
+        await sync({
+          action: "apply",
+          mode: "date",
+          fieldId: selected?.type === "date" ? selected.id : undefined,
+          value: editValue.trim() || undefined,
+          x,
+          y,
+        });
+      },
+      moveField: async (fieldId, x, y) => {
+        await sync({ action: "move", fieldId, x, y });
+      },
+    });
+    // Re-bind when selection / date override changes so click-to-place stays accurate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id, selected?.type, editValue, onReady]);
+
   async function saveEdit() {
     if (!editingId) return;
     const field = fields.find((f) => f.id === editingId);
@@ -216,15 +248,20 @@ export function SignWorkspace({
       )}
 
       {mode === "date" && (
-        <label className="block space-y-1">
-          <span className="label">Date value (optional override)</span>
-          <input
-            className="field"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            placeholder="Leave blank to use today’s date"
-          />
-        </label>
+        <div className="space-y-2">
+          <label className="block space-y-1">
+            <span className="label">Date value (optional override)</span>
+            <input
+              className="field"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              placeholder="Leave blank to use today’s date"
+            />
+          </label>
+          <p className="text-xs text-muted">
+            Click the document to place the date, or drag an existing date mark to move it.
+          </p>
+        </div>
       )}
 
       <button

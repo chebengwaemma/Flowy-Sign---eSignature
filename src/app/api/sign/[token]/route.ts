@@ -122,6 +122,9 @@ const patchSchema = z.discriminatedUnion("action", [
     fieldId: z.string().optional(),
     signatureMark: markSchema.optional(),
     value: z.string().optional(),
+    /** Optional click position (percent) — used to place/move a date mark */
+    x: z.number().min(0).max(100).optional(),
+    y: z.number().min(0).max(100).optional(),
   }),
   z.object({
     action: z.literal("edit"),
@@ -136,6 +139,14 @@ const patchSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("skip"),
     fieldId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal("move"),
+    fieldId: z.string().min(1),
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+    width: z.number().min(4).max(80).optional(),
+    height: z.number().min(3).max(50).optional(),
   }),
   z.object({
     action: z.literal("complete"),
@@ -292,10 +303,29 @@ export async function PATCH(
           }
         }
       } else {
-        const target = findTarget(doc.fields, recipient.id, "date", op.fieldId);
+        let target = findTarget(doc.fields, recipient.id, "date", op.fieldId);
         if (!target) {
-          result = { ok: false, error: "No date field to fill" };
-          return;
+          // Allow free placement when sender did not pre-place a date box.
+          const x = typeof op.x === "number" ? op.x : 12;
+          const y = typeof op.y === "number" ? op.y : 80;
+          const width = 18;
+          const height = 7;
+          target = {
+            id: `fld_${nanoid(10)}`,
+            type: "date",
+            page: 1,
+            x: Math.min(100 - width, Math.max(0, x)),
+            y: Math.min(100 - height, Math.max(0, y)),
+            width,
+            height,
+            recipientId: recipient.id,
+          };
+          doc.fields.push(target);
+        } else if (typeof op.x === "number" && typeof op.y === "number") {
+          const width = target.width || 18;
+          const height = target.height || 7;
+          target.x = Math.min(100 - width, Math.max(0, op.x));
+          target.y = Math.min(100 - height, Math.max(0, op.y));
         }
         applyDateToField(target, op.value || todayLabel());
       }
@@ -347,6 +377,18 @@ export async function PATCH(
         }
       }
       skipField(field);
+    } else if (op.action === "move") {
+      const field = doc.fields.find((f) => f.id === op.fieldId && f.recipientId === recipient.id);
+      if (!field) {
+        result = { ok: false, error: "Field not found" };
+        return;
+      }
+      const width = op.width ?? field.width ?? (field.type === "date" ? 18 : 28);
+      const height = op.height ?? field.height ?? (field.type === "date" ? 7 : 10);
+      field.x = Math.min(100 - width, Math.max(0, op.x));
+      field.y = Math.min(100 - height, Math.max(0, op.y));
+      field.width = width;
+      field.height = height;
     } else if (op.action === "complete") {
       if (!canCompleteSigning(doc, recipient.id)) {
         result = {

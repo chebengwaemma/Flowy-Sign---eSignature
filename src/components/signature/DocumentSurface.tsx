@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type MouseEvent } from "react";
+import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, useRef } from "react";
 import type { DocFileKind, SignatureField, SignatureMark } from "@/lib/types";
 import { FitSignatureText } from "@/components/signature/FitSignatureText";
 
@@ -23,8 +23,10 @@ export function DocumentSurface({
   interactive = false,
   onPlace,
   onFieldSelect,
+  onFieldMove,
   selectedFieldId,
   highlightPending = false,
+  movableFieldTypes,
 }: {
   content: string;
   fileKind?: DocFileKind;
@@ -33,9 +35,17 @@ export function DocumentSurface({
   interactive?: boolean;
   onPlace?: (xPct: number, yPct: number) => void;
   onFieldSelect?: (fieldId: string) => void;
+  /** Drag a mark to a new percent position (synced by parent). */
+  onFieldMove?: (fieldId: string, xPct: number, yPct: number) => void;
   selectedFieldId?: string | null;
   highlightPending?: boolean;
+  /** Field types that can be dragged. Default: date (+ text). */
+  movableFieldTypes?: Array<FieldView["type"]>;
 }) {
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const canMoveType = (type: FieldView["type"]) =>
+    (movableFieldTypes || ["date", "text"]).includes(type);
+
   function handleClick(e: MouseEvent<HTMLDivElement>) {
     if (!interactive || !onPlace) return;
     if ((e.target as HTMLElement).closest(".doc-mark")) return;
@@ -45,8 +55,57 @@ export function DocumentSurface({
     onPlace(Math.min(88, Math.max(2, x)), Math.min(92, Math.max(2, y)));
   }
 
+  function startFieldDrag(e: ReactPointerEvent<HTMLDivElement>, field: FieldView) {
+    if (!onFieldMove || !canMoveType(field.type)) return;
+    if ((e.target as HTMLElement).closest(".doc-mark-handle")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onFieldSelect?.(field.id);
+
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const rect = surface.getBoundingClientRect();
+    const width = field.width || 18;
+    const height = Math.max(field.height || 7, 5);
+    const originX = field.x;
+    const originY = field.y;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let lastX = originX;
+    let lastY = originY;
+    let moved = false;
+
+    const target = e.currentTarget;
+    target.setPointerCapture?.(e.pointerId);
+
+    function onMove(ev: PointerEvent) {
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      if (Math.abs(dx) + Math.abs(dy) > 0.4) moved = true;
+      lastX = Math.min(100 - width, Math.max(0, originX + dx));
+      lastY = Math.min(100 - height, Math.max(0, originY + dy));
+      target.style.left = `${lastX}%`;
+      target.style.top = `${lastY}%`;
+    }
+
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      try {
+        target.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      if (moved) onFieldMove?.(field.id, lastX, lastY);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
   return (
     <div
+      ref={surfaceRef}
       className={`doc-surface ${interactive ? "is-interactive" : ""}`}
       onClick={handleClick}
       role={interactive ? "button" : undefined}
@@ -81,6 +140,7 @@ export function DocumentSurface({
           };
           const label = field.signature?.text || field.value || field.type;
           const selected = selectedFieldId === field.id;
+          const movable = Boolean(onFieldMove && canMoveType(field.type));
 
           return (
             <div
@@ -90,11 +150,13 @@ export function DocumentSurface({
                 `doc-mark-${field.type}`,
                 field.skipped ? "is-skipped" : pending ? "is-pending" : "is-signed",
                 selected ? "is-selected" : "",
-                onFieldSelect ? "is-selectable" : "",
+                onFieldSelect || movable ? "is-selectable" : "",
+                movable ? "is-movable" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
               style={markStyle}
+              onPointerDown={movable ? (e) => startFieldDrag(e, field) : undefined}
               onClick={
                 onFieldSelect
                   ? (e) => {
@@ -103,8 +165,9 @@ export function DocumentSurface({
                     }
                   : undefined
               }
-              role={onFieldSelect ? "button" : undefined}
-              tabIndex={onFieldSelect ? 0 : undefined}
+              role={onFieldSelect || movable ? "button" : undefined}
+              tabIndex={onFieldSelect || movable ? 0 : undefined}
+              title={movable ? "Drag to move" : undefined}
             >
               {field.skipped ? (
                 <span className="doc-mark-plain">Skipped</span>

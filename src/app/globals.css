@@ -2375,6 +2375,8 @@ body:has(.admin-nav-mobile) {
   border: 0;
   border-radius: 8px;
   background: #fff;
+  /* PDF <object> steals pointer events otherwise — fields can't drag. */
+  pointer-events: none;
 }
 
 .doc-canvas-media {
@@ -2415,6 +2417,7 @@ body:has(.admin-nav-mobile) {
   display: block;
   width: 100%;
   height: auto;
+  pointer-events: none;
 }
 
 .doc-surface-pdf {
@@ -2422,6 +2425,7 @@ body:has(.admin-nav-mobile) {
   width: 100%;
   min-height: 70vh;
   border: 0;
+  pointer-events: none;
 }
 
 .doc-surface-marks {
@@ -2466,10 +2470,21 @@ body:has(.admin-nav-mobile) {
   cursor: pointer;
 }
 
+.doc-mark.is-movable {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
 .doc-mark.is-selected {
   outline: 2px solid #0284c7;
   outline-offset: 2px;
   z-index: 4;
+}
+
+.doc-mark-date.is-movable,
+.doc-mark-text.is-movable {
+  min-height: 28px;
 }
 
 .doc-mark-img {

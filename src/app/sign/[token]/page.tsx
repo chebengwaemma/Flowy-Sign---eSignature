@@ -1,12 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
 import {
   SignWorkspace,
+  type PlaceMode,
   type SignFieldView,
 } from "@/components/signature/SignWorkspace";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
@@ -44,6 +45,21 @@ export default function SignPage() {
   const [fullDoc, setFullDoc] = useState<Document | null>(null);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [canComplete, setCanComplete] = useState(false);
+  const [signMode, setSignMode] = useState<PlaceMode>("signature");
+  const placeApi = useRef<{
+    placeDateAt: (x: number, y: number) => Promise<void>;
+    moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+  } | null>(null);
+  const onModeChange = useCallback((mode: PlaceMode) => setSignMode(mode), []);
+  const onReady = useCallback(
+    (api: {
+      placeDateAt: (x: number, y: number) => Promise<void>;
+      moveField: (fieldId: string, x: number, y: number) => Promise<void>;
+    }) => {
+      placeApi.current = api;
+    },
+    [],
+  );
 
   useEffect(() => {
     async function load() {
@@ -114,6 +130,22 @@ export default function SignPage() {
             highlightPending={!done}
             selectedFieldId={selectedFieldId}
             onFieldSelect={done ? undefined : setSelectedFieldId}
+            interactive={!done && signMode === "date"}
+            onPlace={
+              !done && signMode === "date"
+                ? (x, y) => {
+                    void placeApi.current?.placeDateAt(x, y);
+                  }
+                : undefined
+            }
+            onFieldMove={
+              done
+                ? undefined
+                : (fieldId, x, y) => {
+                    void placeApi.current?.moveField(fieldId, x, y);
+                  }
+            }
+            movableFieldTypes={["date", "text"]}
           />
         </ScrollMeetBlock>
 
@@ -147,6 +179,8 @@ export default function SignPage() {
                 initialCanComplete={canComplete}
                 selectedFieldId={selectedFieldId}
                 onSelectField={setSelectedFieldId}
+                onModeChange={onModeChange}
+                onReady={onReady}
                 onFieldsChange={(fields, meta) => {
                   setCanComplete(meta.canComplete);
                   setData((prev) =>
