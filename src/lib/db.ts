@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/flowysign";
 
-/** After a failed connect, skip Mongo briefly so warm SSR does not pay the timeout every hit. */
-const SKIP_AFTER_FAIL_MS = 30_000;
+/**
+ * Do not blacklist Mongo after one slow call. A 30s skip turned a single Atlas
+ * hiccup into "sign in / sign up is broken" for every request on that instance.
+ */
+const SKIP_AFTER_FAIL_MS = 0;
 
 type GlobalMongo = typeof globalThis & {
   __flowyMongo?: {
@@ -40,10 +43,10 @@ export async function connectDB() {
     cached.promise = mongoose
       .connect(MONGODB_URI, {
         bufferCommands: false,
-        // Fail fast on Vercel cold starts so pages don't sit ~10s on a blocked Atlas IP.
-        serverSelectionTimeoutMS: 2_500,
-        connectTimeoutMS: 2_500,
-        socketTimeoutMS: 8_000,
+        // Vercel bom1 → Atlas often needs more than a couple of seconds on a cold connect.
+        serverSelectionTimeoutMS: 8_000,
+        connectTimeoutMS: 8_000,
+        socketTimeoutMS: 20_000,
         maxPoolSize: 5,
         // Vercel → Atlas often stalls on IPv6; prefer IPv4.
         family: 4,
