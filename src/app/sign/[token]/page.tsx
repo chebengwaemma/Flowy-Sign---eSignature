@@ -47,14 +47,14 @@ export default function SignPage() {
   const [canComplete, setCanComplete] = useState(false);
   const [signMode, setSignMode] = useState<PlaceMode>("signature");
   const placeApi = useRef<{
-    placeDateAt: (x: number, y: number) => Promise<void>;
+    placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
     moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
     cutField: (fieldId: string) => Promise<void>;
   } | null>(null);
   const onModeChange = useCallback((mode: PlaceMode) => setSignMode(mode), []);
   const onReady = useCallback(
     (api: {
-      placeDateAt: (x: number, y: number) => Promise<void>;
+      placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
       moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
       cutField: (fieldId: string) => Promise<void>;
     }) => {
@@ -135,8 +135,8 @@ export default function SignPage() {
             interactive={!done && signMode === "date"}
             onPlace={
               !done && signMode === "date"
-                ? (x, y) => {
-                    void placeApi.current?.placeDateAt(x, y);
+                ? (x, y, page) => {
+                    void placeApi.current?.placeDateAt(x, y, page);
                   }
                 : undefined
             }

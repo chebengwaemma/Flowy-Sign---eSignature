@@ -123,9 +123,10 @@ const patchSchema = z.discriminatedUnion("action", [
     fieldId: z.string().optional(),
     signatureMark: markSchema.optional(),
     value: z.string().optional(),
-    /** Optional click position (percent) — used to place/move a date mark */
+    /** Optional click position (percent of the page) — the mark is centered on this point */
     x: z.number().min(0).max(100).optional(),
     y: z.number().min(0).max(100).optional(),
+    page: z.number().int().min(1).max(50).optional(),
   }),
   z.object({
     action: z.literal("edit"),
@@ -319,16 +320,16 @@ export async function PATCH(
         let target = findTarget(doc.fields, recipient.id, "date", op.fieldId);
         if (!target) {
           // Allow free placement when sender did not pre-place a date box.
-          const x = typeof op.x === "number" ? op.x : 12;
-          const y = typeof op.y === "number" ? op.y : 80;
           const width = 18;
           const height = 7;
+          const clickX = typeof op.x === "number" ? op.x : 12 + width / 2;
+          const clickY = typeof op.y === "number" ? op.y : 80 + height / 2;
           target = {
             id: `fld_${nanoid(10)}`,
             type: "date",
-            page: 1,
-            x: Math.min(100 - width, Math.max(0, x)),
-            y: Math.min(100 - height, Math.max(0, y)),
+            page: op.page || 1,
+            x: Math.min(100 - width, Math.max(0, clickX - width / 2)),
+            y: Math.min(100 - height, Math.max(0, clickY - height / 2)),
             width,
             height,
             recipientId: recipient.id,
@@ -337,8 +338,9 @@ export async function PATCH(
         } else if (typeof op.x === "number" && typeof op.y === "number") {
           const width = target.width || 18;
           const height = target.height || 7;
-          target.x = Math.min(100 - width, Math.max(0, op.x));
-          target.y = Math.min(100 - height, Math.max(0, op.y));
+          target.page = op.page || target.page || 1;
+          target.x = Math.min(100 - width, Math.max(0, op.x - width / 2));
+          target.y = Math.min(100 - height, Math.max(0, op.y - height / 2));
         }
         applyDateToField(
           target,

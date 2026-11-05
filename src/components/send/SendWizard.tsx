@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { SignatureStyle } from "@/lib/types";
 import { ESignatureGenerator } from "@/components/signature/ESignatureGenerator";
+import { PdfPageStack } from "@/components/signature/PdfPageStack";
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -49,9 +50,10 @@ type Field = {
   signerId: string;
   x: number;
   y: number;
-  /** Percent of document canvas */
+  /** Percent of the real document page */
   width: number;
   height: number;
+  page?: number;
 };
 
 const DEFAULT_FIELD_SIZE: Record<Field["type"], { width: number; height: number }> = {
@@ -193,24 +195,33 @@ export function SendWizard() {
     });
   }
 
-  function placeField(e: React.MouseEvent<HTMLDivElement>) {
-    if (step !== 2 || !signers[activeSigner]) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+  function placeAt(page: number, xPct: number, yPct: number) {
+    if (!signers[activeSigner]) return;
     const size = DEFAULT_FIELD_SIZE[fieldTool];
-    const x = ((e.clientX - rect.left) / rect.width) * 100 - size.width / 2;
-    const y = ((e.clientY - rect.top) / rect.height) * 100 - size.height / 2;
+    const x = xPct - size.width / 2;
+    const y = yPct - size.height / 2;
     setFields((prev) => [
       ...prev,
       {
         id: uid(),
         type: fieldTool,
         signerId: signers[activeSigner].id,
+        page,
         x: Math.min(100 - size.width, Math.max(0, x)),
         y: Math.min(100 - size.height, Math.max(0, y)),
         width: size.width,
         height: size.height,
       },
     ]);
+  }
+
+  function placeField(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as HTMLElement).closest(".placed-field")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    placeAt(Number(e.currentTarget.dataset.page || 1), x, y);
   }
 
   function startResize(
@@ -220,9 +231,9 @@ export function SendWizard() {
   ) {
     e.preventDefault();
     e.stopPropagation();
-    const canvas = (e.currentTarget as HTMLElement).closest(".doc-canvas") as HTMLElement | null;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
+    const pageEl = (e.currentTarget as HTMLElement).closest(".doc-page") as HTMLElement | null;
+    if (!pageEl) return;
+    const rect = pageEl.getBoundingClientRect();
     const field = fields.find((f) => f.id === fieldId);
     if (!field) return;
 
@@ -270,9 +281,9 @@ export function SendWizard() {
     e.preventDefault();
     e.stopPropagation();
     const el = e.currentTarget as HTMLElement;
-    const canvas = el.closest(".doc-canvas") as HTMLElement | null;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
+    const pageEl = el.closest(".doc-page") as HTMLElement | null;
+    if (!pageEl) return;
+    const rect = pageEl.getBoundingClientRect();
     const field = fields.find((f) => f.id === fieldId);
     if (!field) return;
 
@@ -331,6 +342,7 @@ export function SendWizard() {
           y: f.y,
           width: f.width,
           height: f.height,
+          page: f.page || 1,
         })),
       }),
     });
@@ -363,6 +375,44 @@ export function SendWizard() {
     }
     router.push(`/documents/${docId}`);
     router.refresh();
+  }
+
+  function placedFields(page: number) {
+    return fields
+      .filter((f) => (f.page || 1) === page)
+      .map((f) => {
+        const signer = signers.find((s) => s.id === f.signerId);
+        return (
+          <div
+            key={f.id}
+            className="placed-field"
+            style={{
+              left: `${f.x}%`,
+              top: `${f.y}%`,
+              width: `${f.width}%`,
+              height: `${f.height}%`,
+              borderColor: signer?.color,
+              background: `${signer?.color}22`,
+            }}
+            onPointerDown={(e) => startMove(e, f.id)}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setFields((prev) => prev.filter((x) => x.id !== f.id));
+            }}
+            title="Drag to move. Drag a corner to make the signature or date smaller or bigger. Double-click to remove."
+          >
+            <span className="placed-field-label">{f.type}</span>
+            {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+              <span
+                key={corner}
+                className={`placed-field-handle handle-${corner}`}
+                onPointerDown={(e) => startResize(e, f.id, corner)}
+              />
+            ))}
+          </div>
+        );
+      });
   }
 
   return (
@@ -625,50 +675,24 @@ export function SendWizard() {
                 ))}
               </div>
             </div>
-            <div className="doc-canvas" onClick={placeField}>
-              {docs[0]?.fileKind === "image" && docs[0].fileDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={docs[0].fileDataUrl} alt="" className="doc-canvas-media" />
-              ) : docs[0]?.fileKind === "pdf" && docs[0].fileDataUrl ? (
-                <object data={docs[0].fileDataUrl} type="application/pdf" className="doc-canvas-pdf">
-                  <pre>{docs[0].content}</pre>
-                </object>
+            <div className="doc-canvas doc-canvas-plain">
+              {docs[0]?.fileKind === "pdf" && docs[0].fileDataUrl ? (
+                <PdfPageStack
+                  dataUrl={docs[0].fileDataUrl}
+                  onPlace={placeAt}
+                  renderOverlay={(page) => placedFields(page)}
+                />
               ) : (
-                <pre>{docs[0]?.content || DEFAULT_CONTENT}</pre>
+                <div className="doc-page" data-page={1} onClick={placeField}>
+                  {docs[0]?.fileKind === "image" && docs[0].fileDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={docs[0].fileDataUrl} alt="" className="doc-page-media" />
+                  ) : (
+                    <pre className="doc-surface-text">{docs[0]?.content || DEFAULT_CONTENT}</pre>
+                  )}
+                  <div className="doc-page-marks">{placedFields(1)}</div>
+                </div>
               )}
-              {fields.map((f) => {
-                const signer = signers.find((s) => s.id === f.signerId);
-                return (
-                  <div
-                    key={f.id}
-                    className="placed-field"
-                    style={{
-                      left: `${f.x}%`,
-                      top: `${f.y}%`,
-                      width: `${f.width}%`,
-                      height: `${f.height}%`,
-                      borderColor: signer?.color,
-                      background: `${signer?.color}22`,
-                    }}
-                    onPointerDown={(e) => startMove(e, f.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setFields((prev) => prev.filter((x) => x.id !== f.id));
-                    }}
-                    title="Drag to move. Drag a corner to make the signature or date smaller or bigger. Double-click to remove."
-                  >
-                    <span className="placed-field-label">{f.type}</span>
-                    {(["nw", "ne", "sw", "se"] as const).map((corner) => (
-                      <span
-                        key={corner}
-                        className={`placed-field-handle handle-${corner}`}
-                        onPointerDown={(e) => startResize(e, f.id, corner)}
-                      />
-                    ))}
-                  </div>
-                );
-              })}
             </div>
           </section>
         )}

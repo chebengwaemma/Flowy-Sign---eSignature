@@ -1627,6 +1627,15 @@ textarea.field {
   box-shadow: inset 0 0 0 1px rgba(31, 169, 122, 0.35);
 }
 
+.doc-canvas.doc-canvas-plain {
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: default;
+}
+
 .doc-canvas {
   position: relative;
   min-height: 420px;
@@ -2425,6 +2434,35 @@ body:has(.admin-nav-mobile) {
   width: 100%;
   min-height: 70vh;
   border: 0;
+  pointer-events: none;
+}
+
+.doc-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #e7eeeb;
+  padding: 12px;
+}
+
+.doc-page {
+  position: relative;
+  width: 100%;
+  background: #fff;
+}
+
+.doc-page-canvas,
+.doc-page-media {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.doc-page-marks {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   pointer-events: none;
 }
 

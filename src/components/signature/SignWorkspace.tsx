@@ -11,6 +11,7 @@ export type SignFieldView = {
   y: number;
   width: number;
   height: number;
+  page?: number;
   value?: string;
   signature?: SignatureMark;
   skipped?: boolean;
@@ -40,7 +41,7 @@ type Props = {
   onModeChange?: (mode: PlaceMode) => void;
   /** Imperative helpers for document preview (click-to-place / drag-to-move). */
   onReady?: (api: {
-    placeDateAt: (xPct: number, yPct: number) => Promise<void>;
+    placeDateAt: (xPct: number, yPct: number, page?: number) => Promise<void>;
     moveField: (
       fieldId: string,
       xPct: number,
@@ -177,7 +178,7 @@ export function SignWorkspace({
 
   useEffect(() => {
     onReady?.({
-      placeDateAt: async (x, y) => {
+      placeDateAt: async (x, y, page) => {
         await sync({
           action: "apply",
           mode: "date",
@@ -186,6 +187,7 @@ export function SignWorkspace({
           signatureMark: { mode: "typed", style: mark?.style || preferredStyle, text: editValue.trim() || undefined },
           x,
           y,
+          page,
         });
       },
       moveField: async (fieldId, x, y, width, height) => {

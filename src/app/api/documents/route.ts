@@ -44,6 +44,7 @@ const createSchema = z.object({
         y: z.number(),
         width: z.number().optional(),
         height: z.number().optional(),
+        page: z.number().int().min(1).max(50).optional(),
       }),
     )
     .optional(),
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
         return {
           id: nanoid(8),
           type: f.type,
-          page: 1,
+          page: f.page ?? 1,
           x: f.x,
           y: f.y,
           width: f.width ?? (f.type === "signature" ? 28 : 18),

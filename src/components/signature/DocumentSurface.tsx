@@ -3,11 +3,13 @@
 import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, useEffect, useState, useRef } from "react";
 import type { DocFileKind, SignatureField, SignatureMark } from "@/lib/types";
 import { FitSignatureText } from "@/components/signature/FitSignatureText";
+import { PdfPageStack } from "@/components/signature/PdfPageStack";
 
 type FieldView = Pick<
   SignatureField,
   "id" | "type" | "x" | "y" | "width" | "height" | "value" | "signature" | "skipped"
 > & {
+  page?: number;
   signature?: SignatureMark;
 };
 
@@ -34,7 +36,7 @@ export function DocumentSurface({
   fileDataUrl?: string;
   fields: FieldView[];
   interactive?: boolean;
-  onPlace?: (xPct: number, yPct: number) => void;
+  onPlace?: (xPct: number, yPct: number, page?: number) => void;
   onFieldSelect?: (fieldId: string) => void;
   /** Drag a mark, or resize it from a corner. Size is sent when a corner handle is used. */
   onFieldMove?: (
@@ -87,7 +89,12 @@ export function DocumentSurface({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onPlace(Math.min(88, Math.max(2, x)), Math.min(92, Math.max(2, y)));
+    const page = Number(e.currentTarget.dataset.page || 1);
+    onPlace(Math.min(100, Math.max(0, x)), Math.min(100, Math.max(0, y)), page);
+  }
+
+  function boxRect(from: HTMLElement) {
+    return ((from.closest(".doc-page") as HTMLElement | null) || surfaceRef.current)?.getBoundingClientRect();
   }
 
   function startFieldDrag(e: ReactPointerEvent<HTMLDivElement>, field: FieldView) {
@@ -96,9 +103,10 @@ export function DocumentSurface({
     e.preventDefault();
     e.stopPropagation();
 
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const rect = surface.getBoundingClientRect();
+    const rect = boxRect(e.currentTarget);
+    if (!rect) return;
+    const boxW = rect.width;
+    const boxH = rect.height;
     const width = field.width || 18;
     const height = Math.max(field.height || 7, 5);
     const originX = field.x;
@@ -113,8 +121,8 @@ export function DocumentSurface({
     target.setPointerCapture?.(e.pointerId);
 
     function onMove(ev: PointerEvent) {
-      const dx = ((ev.clientX - startX) / rect.width) * 100;
-      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      const dx = ((ev.clientX - startX) / boxW) * 100;
+      const dy = ((ev.clientY - startY) / boxH) * 100;
       if (Math.abs(dx) + Math.abs(dy) > 0.4) moved = true;
       lastX = Math.min(100 - width, Math.max(0, originX + dx));
       lastY = Math.min(100 - height, Math.max(0, originY + dy));
@@ -145,9 +153,10 @@ export function DocumentSurface({
     if (!onFieldMove) return;
     e.preventDefault();
     e.stopPropagation();
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    const rect = surface.getBoundingClientRect();
+    const rect = boxRect(e.currentTarget);
+    if (!rect) return;
+    const boxW = rect.width;
+    const boxH = rect.height;
     const origin = {
       x: field.x,
       y: field.y,
@@ -161,8 +170,8 @@ export function DocumentSurface({
     handle.setPointerCapture?.(e.pointerId);
 
     function onMove(ev: PointerEvent) {
-      const dx = ((ev.clientX - startX) / rect.width) * 100;
-      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      const dx = ((ev.clientX - startX) / boxW) * 100;
+      const dy = ((ev.clientY - startY) / boxH) * 100;
       let { x, y, width, height } = origin;
       if (corner.includes("e")) width = origin.width + dx;
       if (corner.includes("w")) width = origin.width - dx;
@@ -193,31 +202,10 @@ export function DocumentSurface({
     window.addEventListener("pointerup", onUp);
   }
 
-  return (
-    <div
-      ref={surfaceRef}
-      className={`doc-surface ${interactive ? "is-interactive" : ""}`}
-      onClick={handleClick}
-      role={interactive ? "button" : undefined}
-    >
-      <div className="doc-surface-original">
-        {fileKind === "image" && fileDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={fileDataUrl} alt="Document" className="doc-surface-media" />
-        ) : fileKind === "pdf" && fileDataUrl ? (
-          <object data={fileDataUrl} type="application/pdf" className="doc-surface-pdf">
-            <p className="p-4 text-sm text-muted">
-              PDF preview unavailable in this browser. The original file is stored intact for download.
-            </p>
-            <pre className="whitespace-pre-wrap p-4 font-sans text-[15px] leading-7">{content}</pre>
-          </object>
-        ) : (
-          <pre className="doc-surface-text">{content}</pre>
-        )}
-      </div>
-
-      <div className="doc-surface-marks" aria-hidden={!fields.length}>
-        {fields.map((field) => {
+  function marksFor(page: number) {
+    return fields
+      .filter((field) => (field.page || 1) === page)
+      .map((field) => {
           const pending = !field.skipped && !field.value && !field.signature;
           if (pending && !highlightPending && !interactive && !onFieldSelect) return null;
           const live = dragPos[field.id];
@@ -317,8 +305,32 @@ export function DocumentSurface({
               )}
             </div>
           );
-        })}
-      </div>
+        });
+  }
+
+  const staticPage = (
+    <div className="doc-page" data-page={1} onClick={interactive ? handleClick : undefined}>
+      {fileKind === "image" && fileDataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={fileDataUrl} alt="Document" className="doc-page-media" />
+      ) : (
+        <pre className="doc-surface-text">{content}</pre>
+      )}
+      <div className="doc-page-marks">{marksFor(1)}</div>
+    </div>
+  );
+
+  return (
+    <div ref={surfaceRef} className={`doc-surface ${interactive ? "is-interactive" : ""}`}>
+      {fileKind === "pdf" && fileDataUrl ? (
+        <PdfPageStack
+          dataUrl={fileDataUrl}
+          onPlace={interactive && onPlace ? (page, x, y) => onPlace(x, y, page) : undefined}
+          renderOverlay={marksFor}
+        />
+      ) : (
+        staticPage
+      )}
     </div>
   );
 }
