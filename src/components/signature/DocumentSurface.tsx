@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, useRef } from "react";
+import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, useEffect, useState, useRef } from "react";
 import type { DocFileKind, SignatureField, SignatureMark } from "@/lib/types";
 import { FitSignatureText } from "@/components/signature/FitSignatureText";
 
@@ -39,12 +39,32 @@ export function DocumentSurface({
   onFieldMove?: (fieldId: string, xPct: number, yPct: number) => void;
   selectedFieldId?: string | null;
   highlightPending?: boolean;
-  /** Field types that can be dragged. Default: date (+ text). */
+  /** Field types that can be dragged. Default: signature, initials, date, text. */
   movableFieldTypes?: Array<FieldView["type"]>;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const [dragPos, setDragPos] = useState<Record<string, { x: number; y: number }>>({});
   const canMoveType = (type: FieldView["type"]) =>
-    (movableFieldTypes || ["date", "text"]).includes(type);
+    (movableFieldTypes || ["signature", "initials", "date", "text"]).includes(type);
+
+  useEffect(() => {
+    setDragPos((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const id of Object.keys(next)) {
+        const field = fields.find((f) => f.id === id);
+        if (
+          field &&
+          Math.abs(field.x - next[id].x) < 0.35 &&
+          Math.abs(field.y - next[id].y) < 0.35
+        ) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [fields]);
 
   function handleClick(e: MouseEvent<HTMLDivElement>) {
     if (!interactive || !onPlace) return;
@@ -60,7 +80,6 @@ export function DocumentSurface({
     if ((e.target as HTMLElement).closest(".doc-mark-handle")) return;
     e.preventDefault();
     e.stopPropagation();
-    onFieldSelect?.(field.id);
 
     const surface = surfaceRef.current;
     if (!surface) return;
@@ -84,8 +103,7 @@ export function DocumentSurface({
       if (Math.abs(dx) + Math.abs(dy) > 0.4) moved = true;
       lastX = Math.min(100 - width, Math.max(0, originX + dx));
       lastY = Math.min(100 - height, Math.max(0, originY + dy));
-      target.style.left = `${lastX}%`;
-      target.style.top = `${lastY}%`;
+      setDragPos((prev) => ({ ...prev, [field.id]: { x: lastX, y: lastY } }));
     }
 
     function onUp() {
@@ -97,6 +115,7 @@ export function DocumentSurface({
         /* ignore */
       }
       if (moved) onFieldMove?.(field.id, lastX, lastY);
+      else onFieldSelect?.(field.id);
     }
 
     window.addEventListener("pointermove", onMove);
@@ -132,9 +151,10 @@ export function DocumentSurface({
           if (pending && !highlightPending && !interactive && !onFieldSelect) return null;
           const w = field.width || 28;
           const h = Math.max(field.height || 8, 6);
+          const live = dragPos[field.id];
           const markStyle: CSSProperties = {
-            left: `${field.x}%`,
-            top: `${field.y}%`,
+            left: `${live?.x ?? field.x}%`,
+            top: `${live?.y ?? field.y}%`,
             width: `${w}%`,
             height: `${h}%`,
           };

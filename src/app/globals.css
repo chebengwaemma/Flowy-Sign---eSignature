@@ -2476,6 +2476,10 @@ body:has(.admin-nav-mobile) {
   user-select: none;
 }
 
+.doc-mark.is-movable * {
+  pointer-events: none;
+}
+
 .doc-mark.is-selected {
   outline: 2px solid #0284c7;
   outline-offset: 2px;

@@ -142,10 +142,23 @@ export default function SignPage() {
               done
                 ? undefined
                 : (fieldId, x, y) => {
+                    setData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            document: {
+                              ...prev.document,
+                              fields: prev.document.fields.map((f) =>
+                                f.id === fieldId ? { ...f, x, y } : f,
+                              ),
+                            },
+                          }
+                        : prev,
+                    );
                     void placeApi.current?.moveField(fieldId, x, y);
                   }
             }
-            movableFieldTypes={["date", "text"]}
+            movableFieldTypes={["signature", "initials", "date", "text"]}
           />
         </ScrollMeetBlock>
 

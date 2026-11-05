@@ -259,7 +259,7 @@ export function SignWorkspace({
             />
           </label>
           <p className="text-xs text-muted">
-            Click the document to place the date, or drag an existing date mark to move it.
+            Click the document to place the date. Drag a signature or date on the page to move it.
           </p>
         </div>
       )}
@@ -281,7 +281,7 @@ export function SignWorkspace({
 
       <div className="sign-field-list">
         <h3 className="font-semibold">Fields on this document</h3>
-        <p className="text-sm text-muted mb-2">Select a field on the preview or below — then edit, delete, or skip.</p>
+        <p className="text-sm text-muted mb-2">Drag a signature or date on the document to move it. Edit, delete, or skip from the list.</p>
         <ul className="space-y-2">
           {fields.map((f) => {
             const filled = !f.skipped && !!(f.value || f.signature);
