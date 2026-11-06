@@ -173,7 +173,11 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({
-    document: doc,
+    document: {
+      ...doc,
+      content: "",
+      fileDataUrl: undefined,
+    },
     inviteEmailsSent: inviteMail?.sent ?? 0,
     inviteEmailDryRun: Boolean(inviteMail?.dryRun),
   });

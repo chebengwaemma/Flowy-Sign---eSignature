@@ -1,4 +1,6 @@
 import { promises as fs } from "fs";
+import { cache } from "react";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { isLegacyPlanCatalog, normalizePlanId } from "./plans";
 import { packageFromPlan } from "./packages";
 import path from "path";
@@ -279,6 +281,94 @@ type StoreRead = {
 
 /** Long enough for a cold Vercel → Atlas connect. Login must not give up at 4s. */
 const MONGO_READ_BUDGET_MS = 12_000;
+const STORE_CACHE_TAG = "flowy-store";
+
+/**
+ * List, login, and layout reads must not download PDF/image bytes.
+ * A focused read loads one document (sign, open, download).
+ * Only a full read may be written back — a light copy would wipe every file.
+ */
+type StoreFocus =
+  | { kind: "light" }
+  | { kind: "full" }
+  | { kind: "id"; id: string }
+  | { kind: "sign"; token: string }
+  | { kind: "download"; token: string };
+
+let storeGeneration = 0;
+let bypassSharedCacheUntil = 0;
+
+function invalidateStoreCaches() {
+  storeGeneration += 1;
+  bypassSharedCacheUntil = Date.now() + 15_000;
+  try {
+    revalidateTag(STORE_CACHE_TAG, "max");
+  } catch (err) {
+    console.warn("[store] cache refresh skipped:", (err as Error).message);
+  }
+}
+
+function withoutFileBytes(store: PlatformStore): PlatformStore {
+  return {
+    ...store,
+    documents: store.documents.map((doc) => ({
+      ...doc,
+      content: "",
+      fileDataUrl: undefined,
+      fields: (doc.fields || []).map((field) => {
+        if (!field.signature?.imageDataUrl) return field;
+        return {
+          ...field,
+          signature: { ...field.signature, imageDataUrl: undefined },
+        };
+      }),
+    })),
+  };
+}
+
+async function loadPlatformDoc(focus: StoreFocus): Promise<{ data?: unknown; rev?: number } | null> {
+  if (focus.kind === "id" || focus.kind === "sign" || focus.kind === "download") {
+    const cond =
+      focus.kind === "id"
+        ? { $eq: ["$$d.id", focus.id] }
+        : focus.kind === "sign"
+          ? { $in: [focus.token, { $ifNull: ["$$d.recipients.token", []] }] }
+          : { $eq: ["$$d.downloadToken", focus.token] };
+    const rows = await Platform.aggregate<{ data?: unknown; rev?: number }>([
+      { $match: { key: "main" } },
+      {
+        $project: {
+          rev: 1,
+          data: {
+            users: "$data.users",
+            organizations: "$data.organizations",
+            faxes: "$data.faxes",
+            invites: "$data.invites",
+            deviceSessions: "$data.deviceSessions",
+            notifications: "$data.notifications",
+            site: "$data.site",
+            documents: {
+              $filter: {
+                input: { $ifNull: ["$data.documents", []] },
+                as: "d",
+                cond,
+              },
+            },
+          },
+        },
+      },
+    ]).option({ maxTimeMS: 8_000 });
+    return rows[0] ?? null;
+  }
+
+  const query = Platform.findOne({ key: "main" }).maxTimeMS(8_000);
+  if (focus.kind === "light") {
+    query.select(
+      "-data.documents.fileDataUrl -data.documents.content -data.documents.fields.signature.imageDataUrl",
+    );
+  }
+  return query.lean<{ data?: unknown; rev?: number }>().exec();
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -299,16 +389,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-async function readMongoStore(): Promise<StoreRead | null> {
+async function readMongoStore(focus: StoreFocus = { kind: "full" }): Promise<StoreRead | null> {
   try {
     return await withTimeout(
       (async () => {
         await connectDB();
         // lean() = plain object, always fresh from Mongo (no mongoose doc cache)
-        let doc = await Platform.findOne({ key: "main" })
-          .maxTimeMS(8_000)
-          .lean<{ data?: unknown; rev?: number }>()
-          .exec();
+        const doc = await loadPlatformDoc(focus);
         if (!doc?.data) {
           const initial = seed();
           try {
@@ -329,11 +416,11 @@ async function readMongoStore(): Promise<StoreRead | null> {
           ).maxTimeMS(4_000);
         }
         const raw = doc.data as PlatformStore;
-        const legacyPlans = isLegacyPlanCatalog(
-          raw?.site?.plans,
-          raw?.site?.planCatalogVersion,
-        );
-        const store = normalizeStore(raw);
+        const legacyPlans =
+          focus.kind === "full" &&
+          isLegacyPlanCatalog(raw?.site?.plans, raw?.site?.planCatalogVersion);
+        const normalized = normalizeStore(raw);
+        const store = focus.kind === "light" ? withoutFileBytes(normalized) : normalized;
         if (legacyPlans) {
           try {
             const written = await writeMongoStoreCas(store, rev);
@@ -382,6 +469,7 @@ async function writeMongoStoreCas(
       .lean<{ rev?: number }>()
       .exec();
     if (!updated) return null;
+    invalidateStoreCaches();
     return { rev: typeof updated.rev === "number" ? updated.rev : expectedRev + 1 };
   } catch (err) {
     console.warn("[store] MongoDB CAS write failed:", (err as Error).message);
@@ -401,6 +489,7 @@ async function writeMongoStore(store: PlatformStore): Promise<boolean> {
     )
       .maxTimeMS(12_000)
       .exec();
+    invalidateStoreCaches();
     return true;
   } catch (err) {
     console.warn("[store] MongoDB write failed:", (err as Error).message);
@@ -408,16 +497,86 @@ async function writeMongoStore(store: PlatformStore): Promise<boolean> {
   }
 }
 
-export async function readStore(): Promise<PlatformStore> {
-  const mongo = await readMongoStore();
-  if (mongo) return mongo.store;
-  // On Vercel, /tmp file seed is NOT real user data — never pretend Mongo is fine.
+export type ReadStoreOptions = {
+  /** Every document, including file bytes. Writes use this. Pages should not. */
+  files?: boolean;
+  /** One document with its file, for the open-document page. */
+  documentId?: string;
+  /** One document with its file, for the signer. */
+  signToken?: string;
+  /** One document with its file, for the paid download. */
+  downloadToken?: string;
+};
+
+function focusOf(options?: ReadStoreOptions): StoreFocus {
+  if (options?.documentId) return { kind: "id", id: options.documentId };
+  if (options?.signToken) return { kind: "sign", token: options.signToken };
+  if (options?.downloadToken) return { kind: "download", token: options.downloadToken };
+  if (options?.files) return { kind: "full" };
+  return { kind: "light" };
+}
+
+const fetchLightShared = unstable_cache(
+  async () => {
+    const mongo = await readMongoStore({ kind: "light" });
+    if (!mongo) throw new Error("mongo light unavailable");
+    return mongo.store;
+  },
+  ["flowy-store-light-v3"],
+  { revalidate: 20, tags: [STORE_CACHE_TAG] },
+);
+
+async function readLightShared(): Promise<PlatformStore | null> {
+  if (Date.now() < bypassSharedCacheUntil) {
+    const mongo = await readMongoStore({ kind: "light" });
+    return mongo?.store ?? null;
+  }
+  try {
+    const store = await fetchLightShared();
+    return structuredClone(store);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/timed out|unavailable|Mongo|querySrv|server selection|ECONN/i.test(message)) {
+      return null;
+    }
+    const mongo = await readMongoStore({ kind: "light" });
+    return mongo?.store ?? null;
+  }
+}
+
+async function readStoreInner(options?: ReadStoreOptions): Promise<PlatformStore> {
+  const focus = focusOf(options);
+  if (focus.kind === "light") {
+    const shared = await readLightShared();
+    if (shared) return shared;
+  } else {
+    const mongo = await readMongoStore(focus);
+    if (mongo) return mongo.store;
+  }
   if (isMongoRequired()) {
     throw new Error(
       "Database unavailable. In MongoDB Atlas → Network Access, allow 0.0.0.0/0 so Vercel can connect.",
     );
   }
-  return readFileStore();
+  const file = await readFileStore();
+  return focus.kind === "light" ? withoutFileBytes(file) : file;
+}
+
+const readStoreCached = cache(async (key: string) => {
+  const options = JSON.parse(key) as ReadStoreOptions;
+  return readStoreInner(options);
+});
+
+export async function readStore(options?: ReadStoreOptions): Promise<PlatformStore> {
+  return readStoreCached(
+    JSON.stringify({
+      files: Boolean(options?.files),
+      documentId: options?.documentId || "",
+      signToken: options?.signToken || "",
+      downloadToken: options?.downloadToken || "",
+      generation: storeGeneration,
+    }),
+  );
 }
 
 export async function writeStore(store: PlatformStore): Promise<void> {

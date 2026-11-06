@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   // Tailwind v4 via postcss.config.mjs (@tailwindcss/postcss).
   // Do NOT add turbopack CSS "as: *.css" rules — that creates globals.css.css and breaks builds.
   experimental: {
+    optimizePackageImports: ["lucide-react"],
     // Hostinger shared hosts hit ulimit when Next spawns dozens of page-data workers
     // ("OS can't spawn worker thread: Resource temporarily unavailable").
     workerThreads: false,

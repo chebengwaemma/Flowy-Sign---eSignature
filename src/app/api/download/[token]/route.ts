@@ -22,7 +22,7 @@ export async function GET(
     );
   }
 
-  const store = await readStore();
+  const store = await readStore({ downloadToken: token });
   const doc = store.documents.find((d) => d.downloadToken === token);
   if (!doc) {
     return NextResponse.json({ error: "Invalid or expired download link" }, { status: 404 });

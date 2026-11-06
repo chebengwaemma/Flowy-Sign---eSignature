@@ -5,6 +5,7 @@ import { Chatbot } from "@/components/Chatbot";
 import { buildPricingLinks } from "@/components/marketing/nav-data";
 import { getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
+import { elegantFontClassName } from "@/components/signature/elegant-font";
 import "./landing.css";
 
 /** Public marketing shell — ISR so cold Mongo hangs don't block every visitor. */
@@ -26,7 +27,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
   } as CSSProperties;
 
   return (
-    <div className="lp-shell" style={theme}>
+    <div className={`lp-shell ${elegantFontClassName}`} style={theme}>
       <SiteHeader
         nav={{
           why: m.navWhy,

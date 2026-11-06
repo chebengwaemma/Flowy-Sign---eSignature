@@ -21,7 +21,7 @@ async function loadSiteSettingsLive(): Promise<OrgSettings> {
 const getCachedSiteSettings = unstable_cache(
   async () => loadSiteSettingsLive(),
   ["flowy-site-settings-v2"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["flowy-store"] },
 );
 
 /** Public marketing/settings — cached; falls back instantly if Mongo is down. */

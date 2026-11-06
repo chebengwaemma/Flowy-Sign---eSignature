@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { getSessionUser, SessionStoreUnavailable } from "@/lib/auth";
+import { signatureFontsClassName } from "@/components/signature/signature-fonts";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +23,5 @@ export default async function WizardLayout({ children }: { children: React.React
     throw err;
   }
   if (!user) redirect("/login");
-  return <div className="send-shell">{children}</div>;
+  return <div className={`send-shell ${signatureFontsClassName}`}>{children}</div>;
 }

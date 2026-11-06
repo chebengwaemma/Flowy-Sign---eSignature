@@ -56,7 +56,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const store = await readStore();
+  const store = await readStore({ signToken: token });
   const doc = store.documents.find((d) =>
     (d.recipients || []).some((r) => r.token === token),
   );
@@ -79,19 +79,21 @@ export async function GET(
     d.updatedAt = new Date().toISOString();
   });
 
-  const fresh = (await readStore()).documents.find((d) => d.id === doc.id) || doc;
+  if (doc.status === "sent") doc.status = "viewed";
+  const liveRecipient = (doc.recipients || []).find((r) => r.id === recipient.id);
+  if (liveRecipient && liveRecipient.status === "pending") liveRecipient.status = "viewed";
 
   return NextResponse.json({
-    document: publicDoc(fresh, recipient.id),
+    document: publicDoc(doc, recipient.id),
     recipient: {
       id: recipient.id,
       name: recipient.name,
       email: recipient.email,
-      status: recipient.status === "pending" ? "viewed" : recipient.status,
+      status: liveRecipient?.status || (recipient.status === "pending" ? "viewed" : recipient.status),
       preferredSignatureStyle: recipient.preferredSignatureStyle || "elegant",
     },
-    canComplete: canCompleteSigning(fresh, recipient.id),
-    fullDocument: fresh.status === "completed" ? sanitizeDoc(fresh) : null,
+    canComplete: canCompleteSigning(doc, recipient.id),
+    fullDocument: doc.status === "completed" ? sanitizeDoc(doc) : null,
   });
 }
 

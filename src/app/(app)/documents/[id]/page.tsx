@@ -17,7 +17,7 @@ export default async function DocumentDetailPage({
   const user = await getSessionUser();
   if (!user) return null;
   const { id } = await params;
-  const store = await readStore();
+  const store = await readStore({ documentId: id });
   const doc = store.documents.find((d) => d.id === id && d.orgId === user.orgId);
   // Missing docs (lost concurrent writes) used to hard-404 — send users back to the list.
   if (!doc) redirect("/documents?missing=1");

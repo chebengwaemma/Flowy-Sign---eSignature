@@ -12,7 +12,7 @@ export async function GET(
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const store = await readStore();
+  const store = await readStore({ documentId: id });
   const doc = store.documents.find((d) => d.id === id && d.orgId === user.orgId);
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ document: doc });
@@ -59,7 +59,7 @@ export async function PATCH(
   }
 
   return NextResponse.json({
-    document: updated,
+    ok: true,
     inviteEmailsSent: inviteMail?.sent ?? 0,
     inviteEmailDryRun: Boolean(inviteMail?.dryRun),
   });
