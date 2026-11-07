@@ -151,15 +151,15 @@ export function SendWizard({
   const bodyRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(0);
   const [docs, setDocs] = useState<SelectedDoc[]>([]);
-  const [signers, setSigners] = useState<Signer[]>([
-    {
+  const [signers, setSigners] = useState<Signer[]>(() =>
+    Array.from({ length: Math.max(1, signerLimit) }, (_, index) => ({
       id: uid(),
-      name: accountName,
-      email: accountEmail,
-      color: SIGNER_COLORS[0],
-      signatureStyle: "elegant",
-    },
-  ]);
+      name: index === 0 ? accountName : "",
+      email: index === 0 ? accountEmail : "",
+      color: SIGNER_COLORS[index % SIGNER_COLORS.length],
+      signatureStyle: "elegant" as const,
+    })),
+  );
   const [fields, setFields] = useState<Field[]>([]);
   const [activeSigner, setActiveSigner] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -172,7 +172,13 @@ export function SendWizard({
   const canNext = useMemo(() => {
     if (step === 0) return docs.length > 0;
     if (step === 1)
-      return signers.every((s) => s.name.trim() && s.email.includes("@")) && signers.length > 0;
+      return signers.every((s, index) => {
+        if (index === 0) return s.name.trim().length > 0;
+        const name = s.name.trim();
+        const email = s.email.trim();
+        if (!name && !email) return true;
+        return name.length > 0 && email.includes("@");
+      });
     if (step === 2)
       return docs.every((doc) => fields.some((f) => f.docId === doc.id && f.type === "signature"));
     return true;
@@ -181,7 +187,7 @@ export function SendWizard({
   const nextHint = useMemo(() => {
     if (canNext) return "";
     if (step === 0) return "Upload a document to continue.";
-    if (step === 1) return "Enter a name and email for every signer.";
+    if (step === 1) return "Enter your name. Each extra email needs a name as well.";
     if (step === 2) return "Place at least one signature field on every document.";
     return "";
   }, [canNext, step]);
@@ -397,7 +403,13 @@ export function SendWizard({
     setLoading(true);
     setError("");
     setUpgradeNeeded(false);
-    const signerIndex = (signerId: string) => signers.findIndex((s) => s.id === signerId);
+    const recipients = signers.slice(0, signerLimit).flatMap((s, index) => {
+      const email = (index === 0 ? accountEmail : s.email).trim();
+      const name = s.name.trim();
+      if (!email || (index > 0 && !name)) return [];
+      return [{ id: s.id, name, email, preferredSignatureStyle: s.signatureStyle }];
+    });
+    const signerIndex = (signerId: string) => recipients.findIndex((s) => s.id === signerId);
     const made: string[] = [];
     for (const doc of docs) {
       let fileId: string | undefined;
@@ -421,20 +433,24 @@ export function SendWizard({
           fileId,
           fileName: doc.fileName,
           send: true,
-          recipients: signers.slice(0, signerLimit).map((s, index) => ({
-            name: s.name.trim(),
-            email: (index === 0 ? accountEmail : s.email).trim(),
-            preferredSignatureStyle: s.signatureStyle,
+          recipients: recipients.map((s) => ({
+            name: s.name,
+            email: s.email,
+            preferredSignatureStyle: s.preferredSignatureStyle,
           })),
-          fields: docFields.map((f) => ({
-            type: f.type,
-            signerIndex: Math.max(0, signerIndex(f.signerId)),
-            x: f.x,
-            y: f.y,
-            width: f.width,
-            height: f.height,
-            page: f.page || 1,
-          })),
+          fields: docFields.flatMap((f) => {
+            const signerIndexValue = signerIndex(f.signerId);
+            if (signerIndexValue < 0) return [];
+            return [{
+              type: f.type,
+              signerIndex: signerIndexValue,
+              x: f.x,
+              y: f.y,
+              width: f.width,
+              height: f.height,
+              page: f.page || 1,
+            }];
+          }),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -640,7 +656,7 @@ export function SendWizard({
             <p className="send-sub">
               {signerLimit <= 1
                 ? "This plan is 1 device. Your account email is the signer, and it cannot be changed."
-                : `This plan is ${signerLimit} devices. Signer 1 is your account email and cannot be changed. You can add ${signerLimit - 1} more emails.`}
+                : `This plan is ${signerLimit} devices, so you can add ${signerLimit} emails. Email 1 is your account email and cannot be changed.`}
             </p>
 
             <div className="signer-list">
@@ -735,8 +751,6 @@ export function SendWizard({
               >
                 <Plus size={16} /> Add signer
               </button>
-            ) : signerLimit > 1 ? (
-              <p className="send-note">All {signerLimit} device emails are in use.</p>
             ) : null}
           </section>
         )}
