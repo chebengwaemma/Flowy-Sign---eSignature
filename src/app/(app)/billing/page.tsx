@@ -2,6 +2,7 @@ import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
 import { getPaidPlans, getPlanFromSettings, getPlans, planDisplayFeatures } from "@/lib/plans";
+import { purchasedInterval } from "@/lib/packages";
 import { getStripePaymentsStatus } from "@/lib/stripe";
 import { BillingCards } from "./BillingCards";
 import { BillingResult } from "./BillingResult";
@@ -27,6 +28,7 @@ export default async function BillingPage({
   const [stripeStatus, site] = await Promise.all([getStripePaymentsStatus(), getSiteSettings()]);
   const plans = getPaidPlans(site);
   const current = getPlanFromSettings(user.plan, site);
+  const interval = purchasedInterval(user);
   const maxDevices = current.maxDevices || user.maxConcurrentSessions || 1;
   const needsPayForDownload = params.reason === "download";
   const downloadToken = params.token || "";
@@ -50,7 +52,7 @@ export default async function BillingPage({
           Current plan:{" "}
           <strong className="text-ink">{user.plan === "free" ? "None" : current.name}</strong>
           {user.plan !== "free"
-            ? ` · ${user.activeDevicesCount ?? 0}/${maxDevices} devices active`
+            ? ` · ${interval === "yearly" ? "Yearly" : "Monthly"} · ${user.activeDevicesCount ?? 0}/${maxDevices} devices active`
             : ""}
           {user.packageActivatedAt
             ? ` · activated ${new Date(user.packageActivatedAt).toLocaleDateString()}`
@@ -94,7 +96,7 @@ export default async function BillingPage({
 
       <BillingCards
         currentPlan={user.plan}
-        currentInterval={user.billingInterval}
+        currentInterval={interval}
         plans={plans.map((p) => ({
           id: p.id,
           name: p.name,

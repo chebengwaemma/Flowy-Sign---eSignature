@@ -4,6 +4,7 @@ import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
 import { getSessionUser } from "@/lib/auth";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
+import { purchasedInterval } from "@/lib/packages";
 import { getPaidPlans, planDisplayFeatures } from "@/lib/plans";
 
 export default async function PricingPage() {
@@ -50,7 +51,7 @@ export default async function PricingPage() {
             mode={user && user.plan !== "free" ? "billing" : "marketing"}
             plans={paid}
             currentPlan={user?.plan}
-            currentInterval={user?.billingInterval}
+            currentInterval={user ? purchasedInterval(user) : null}
             ctaLabel={p.cta}
             compareCta={pp.compareCta || p.cta}
           />

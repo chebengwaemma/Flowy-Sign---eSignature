@@ -51,6 +51,27 @@ export function applyPackageFields(
   user.packageExpiresAt = packageExpiresAt(packageType, interval);
 }
 
+/**
+ * The billing column this account actually purchased.
+ * A paid plan with no saved period is treated as monthly — admin plan
+ * changes and older accounts stored the plan id only.
+ */
+export function purchasedInterval(
+  user: Pick<User, "plan" | "billingInterval" | "packageActivatedAt" | "packageExpiresAt">,
+): BillingInterval | null {
+  if (!user.plan || user.plan === "free") return null;
+  if (user.billingInterval === "monthly" || user.billingInterval === "yearly") {
+    return user.billingInterval;
+  }
+  if (user.packageActivatedAt && user.packageExpiresAt) {
+    const days =
+      (Date.parse(user.packageExpiresAt) - Date.parse(user.packageActivatedAt)) / 86_400_000;
+    if (Number.isFinite(days) && days >= 300) return "yearly";
+    if (Number.isFinite(days) && days >= 20) return "monthly";
+  }
+  return "monthly";
+}
+
 /** How many signer emails this account may enter. The first slot is always the account email. */
 export function signerEmailLimit(user: User, settings?: OrgSettings | null): number {
   const planMax = getPlanFromSettings(user.plan, settings).maxDevices || 0;
