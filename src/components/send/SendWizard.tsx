@@ -87,7 +87,7 @@ Fees are due as invoiced.
 3. Signatures
 By signing below, each party agrees to these terms.`;
 
-const MAX_UPLOAD_BYTES = 32 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 80 * 1024 * 1024;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -180,7 +180,7 @@ export function SendWizard() {
       const baseName = file.name.replace(/\.[^.]+$/, "") || file.name;
       if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) {
         if (file.size > MAX_UPLOAD_BYTES) {
-          setError("Images must be under 32 MB");
+          setError("Images must be under 80 MB");
           continue;
         }
         next.push({
@@ -196,7 +196,7 @@ export function SendWizard() {
         });
       } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
         if (file.size > MAX_UPLOAD_BYTES) {
-          setError("PDFs must be under 32 MB. Compress the file and try again.");
+          setError("PDFs must be under 80 MB. Compress the file and try again.");
           continue;
         }
         next.push({
@@ -705,7 +705,7 @@ export function SendWizard() {
             <div>
               <h1>Place fields</h1>
               <p className="send-sub">
-                Click to place. Drag a field to move it. Drag a corner handle to make it bigger or smaller.
+                Scroll inside the document to move from page to page, or use Previous page and Next page. Click a page to place a field.
               </p>
               <div className="field-tools">
                 {(["signature", "initials", "date", "text"] as const).map((t) => (

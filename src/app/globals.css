@@ -1639,13 +1639,16 @@ textarea.field {
   cursor: default;
 }
 
-.doc-canvas.doc-scroll {
-  overflow: auto;
-  max-height: min(72dvh, 920px);
-  -webkit-overflow-scrolling: touch;
-  border: 1px solid #ebe8e5;
-  border-radius: 14px;
-  background: #e7eeeb;
+.doc-canvas.doc-canvas-plain.doc-scroll {
+  overflow: visible;
+  max-height: none;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .doc-canvas {
@@ -2457,6 +2460,60 @@ body:has(.admin-nav-mobile) {
   min-height: 70vh;
   border: 0;
   pointer-events: none;
+}
+
+.doc-page-scroller {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+}
+
+.doc-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #ebe8e5;
+  border-radius: 12px;
+  background: #fff;
+  color: #0b1220;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.doc-page-nav button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: #0b3d38;
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.doc-page-nav button:disabled {
+  background: #e7eeeb;
+  color: #8a847d;
+  cursor: default;
+}
+
+.doc-page-list {
+  flex: 0 0 auto;
+  min-height: 360px;
+  height: min(70dvh, 860px);
+  max-height: min(70dvh, 860px);
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  border: 1px solid #ebe8e5;
+  border-radius: 14px;
+  background: #e7eeeb;
 }
 
 .doc-pages {

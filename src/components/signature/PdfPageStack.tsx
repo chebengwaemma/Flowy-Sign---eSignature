@@ -27,16 +27,33 @@ function PdfPageCanvas({
   page,
   overlay,
   onPlace,
+  eager,
 }: {
   pdf: PdfDoc;
   page: PageInfo;
   overlay: ReactNode;
   onPlace?: (page: number, xPct: number, yPct: number) => void;
+  eager?: boolean;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [near, setNear] = useState(Boolean(eager));
 
   useEffect(() => {
+    const box = boxRef.current;
+    if (!box || near) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setNear(true);
+      },
+      { root: box.closest(".doc-page-list"), rootMargin: "800px 0px" },
+    );
+    io.observe(box);
+    return () => io.disconnect();
+  }, [near]);
+
+  useEffect(() => {
+    if (!near) return;
     let cancelled = false;
     let task: { promise?: Promise<void>; cancel: () => void } | null = null;
     const box = boxRef.current;
@@ -48,14 +65,18 @@ function PdfPageCanvas({
         const pdfPage = await pdf.getPage(page.number);
         if (cancelled) return;
         const cssWidth = box.clientWidth || page.width;
-        const scale = (cssWidth / page.width) * (window.devicePixelRatio || 1);
+        const scale = (cssWidth / page.width) * Math.min(window.devicePixelRatio || 1, 1.25);
         const viewport = pdfPage.getViewport({ scale });
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
+        const w = Math.max(1, Math.floor(viewport.width));
+        const h = Math.max(1, Math.floor(viewport.height));
+        if (canvas.dataset.drawn === "1" && canvas.width === w && canvas.height === h) return;
+        canvas.width = w;
+        canvas.height = h;
         task?.cancel();
         task = pdfPage.render({ canvas, viewport });
         try {
           await task.promise;
+          canvas.dataset.drawn = "1";
         } catch {
           /* cancelled render */
         }
@@ -70,7 +91,7 @@ function PdfPageCanvas({
       task?.cancel();
       ro.disconnect();
     };
-  }, [pdf, page.number, page.width]);
+  }, [pdf, page.number, page.width, near]);
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
     if (!onPlace) return;
@@ -109,9 +130,33 @@ export function PdfPageStack({
   renderOverlay: (page: number) => ReactNode;
 }) {
   const source = src || dataUrl || "";
+  const listRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PdfDoc | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
   const [error, setError] = useState("");
+  const [current, setCurrent] = useState(1);
+
+  function scrollToPage(number: number) {
+    const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>(`[data-page-wrap="${number}"]`);
+    if (!list || !el) return;
+    const top = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    list.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
+    setCurrent(number);
+  }
+
+  function onListScroll() {
+    const list = listRef.current;
+    if (!list) return;
+    const marks = [...list.querySelectorAll<HTMLElement>("[data-page-wrap]")];
+    const edge = list.getBoundingClientRect().top + 24;
+    let seen = 1;
+    for (const mark of marks) {
+      const box = mark.getBoundingClientRect();
+      if (box.top - edge <= 0) seen = Number(mark.dataset.pageWrap || seen);
+    }
+    setCurrent(seen);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -181,18 +226,38 @@ export function PdfPageStack({
   if (!pdf || !pages.length) return <p className="p-4 text-sm text-muted">Opening document…</p>;
 
   return (
-    <div className="doc-pages">
-      {pages.map((page) => (
-        <div key={page.number} className="doc-page-wrap">
-          <p className="doc-page-label">Page {page.number}</p>
-          <PdfPageCanvas
-            pdf={pdf}
-            page={page}
-            onPlace={onPlace}
-            overlay={renderOverlay(page.number)}
-          />
+    <div className="doc-page-scroller">
+      <div className="doc-page-nav">
+        <button type="button" onClick={() => scrollToPage(Math.max(1, current - 1))} disabled={current <= 1}>
+          Previous page
+        </button>
+        <span>
+          Page {current} of {pages.length}
+        </span>
+        <button
+          type="button"
+          onClick={() => scrollToPage(Math.min(pages.length, current + 1))}
+          disabled={current >= pages.length}
+        >
+          Next page
+        </button>
+      </div>
+      <div className="doc-page-list" ref={listRef} onScroll={onListScroll}>
+        <div className="doc-pages">
+          {pages.map((page) => (
+            <div key={page.number} className="doc-page-wrap" data-page-wrap={page.number}>
+              <p className="doc-page-label">Page {page.number}</p>
+              <PdfPageCanvas
+                pdf={pdf}
+                page={page}
+                eager={page.number <= 2}
+                onPlace={onPlace}
+                overlay={renderOverlay(page.number)}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

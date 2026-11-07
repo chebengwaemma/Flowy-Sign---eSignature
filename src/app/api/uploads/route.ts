@@ -8,8 +8,8 @@ export const maxDuration = 60;
 
 const chunkSchema = z.object({
   uploadId: z.string().min(8).max(80),
-  index: z.number().int().min(0).max(40),
-  total: z.number().int().min(1).max(40),
+  index: z.number().int().min(0).max(50),
+  total: z.number().int().min(1).max(50),
   fileName: z.string().min(1).max(180),
   mime: z.string().min(3).max(120),
   data: z.string().min(1).max(4_000_000),
@@ -18,7 +18,7 @@ const chunkSchema = z.object({
 const finishSchema = z.object({
   uploadId: z.string().min(8).max(80),
   finalize: z.literal(true),
-  total: z.number().int().min(1).max(40),
+  total: z.number().int().min(1).max(50),
   fileName: z.string().min(1).max(180),
   mime: z.string().min(3).max(120),
 });
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Upload chunk is too large" }, { status: 400 });
   }
   if (bytes.length * chunk.data.total > MAX_UPLOAD_BYTES + 2_600_000) {
-    return NextResponse.json({ error: "File is too large (max 32 MB)." }, { status: 400 });
+    return NextResponse.json({ error: "File is too large (max 80 MB)." }, { status: 400 });
   }
 
   try {

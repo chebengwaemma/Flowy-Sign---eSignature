@@ -6,7 +6,7 @@ const CHUNKS = "flowy_upload_chunks";
 const BUCKET = "flowyFiles";
 
 /** Contracts of 10–20 pages. Each upload request stays under the host body limit. */
-export const MAX_UPLOAD_BYTES = 32 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 80 * 1024 * 1024;
 export const FILE_PART_BYTES = 3 * 1024 * 1024;
 
 type StoredMeta = { mime?: string; orgId?: string; ownerId?: string };
@@ -66,7 +66,7 @@ export async function finalizeUpload(input: {
   const size = buffers.reduce((sum, buf) => sum + buf.length, 0);
   if (!size || size > MAX_UPLOAD_BYTES) {
     await col.deleteMany({ uploadId: input.uploadId });
-    throw new Error("File is too large (max 32 MB).");
+    throw new Error("File is too large (max 80 MB).");
   }
 
   const bucket = new GridFSBucket(db, { bucketName: BUCKET });
