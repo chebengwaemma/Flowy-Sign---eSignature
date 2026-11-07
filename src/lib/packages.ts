@@ -72,11 +72,102 @@ export function purchasedInterval(
   return "monthly";
 }
 
-/** How many signer emails this account may enter. The first slot is always the account email. */
+/** How many signer emails this account may use. One device stays on the account email. */
 export function signerEmailLimit(user: User, settings?: OrgSettings | null): number {
   const planMax = getPlanFromSettings(user.plan, settings).maxDevices || 0;
   const sessionMax = typeof user.maxConcurrentSessions === "number" ? user.maxConcurrentSessions : 0;
   return Math.max(1, planMax, sessionMax);
+}
+
+export type DeviceSignerSlot = { name: string; email: string };
+
+export function cleanDeviceSigners(raw: unknown): DeviceSignerSlot[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DeviceSignerSlot[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const name = String((item as { name?: unknown }).name || "").trim();
+    const email = String((item as { email?: unknown }).email || "")
+      .trim()
+      .toLowerCase();
+    if (!name || !email.includes("@") || seen.has(email)) continue;
+    seen.add(email);
+    out.push({ name, email });
+  }
+  return out;
+}
+
+/** 1 device is always locked to the account email. More devices lock once every slot is saved. */
+export function deviceSignersLocked(user: User, settings?: OrgSettings | null): boolean {
+  const limit = signerEmailLimit(user, settings);
+  if (limit <= 1) return true;
+  return cleanDeviceSigners(user.deviceSigners).length >= limit;
+}
+
+export function lockDeviceSigners(
+  user: User,
+  incoming: { name: string; email: string }[],
+  settings?: OrgSettings | null,
+): { ok: true; signers: DeviceSignerSlot[] } | { ok: false; error: string } {
+  const limit = signerEmailLimit(user, settings);
+  if (limit <= 1) {
+    return { ok: false, error: "This plan uses only the account email." };
+  }
+  if (cleanDeviceSigners(user.deviceSigners).length >= limit) {
+    return { ok: false, error: "These device emails are locked and cannot be changed." };
+  }
+  if (incoming.length !== limit) {
+    return { ok: false, error: `Enter all ${limit} device emails before they can lock.` };
+  }
+  const signers = cleanDeviceSigners(incoming);
+  if (signers.length !== limit) {
+    return { ok: false, error: "Each slot needs a name and a different email." };
+  }
+  return { ok: true, signers };
+}
+
+/** Reject any recipient outside the account email (1 device) or the locked roster (5 devices). */
+export function assertSignerRecipients(
+  user: User,
+  recipients: { email: string }[],
+  settings?: OrgSettings | null,
+): { ok: true; emails: string[] } | { ok: false; error: string } {
+  const limit = signerEmailLimit(user, settings);
+  const emails = recipients.map((r) => r.email.trim().toLowerCase());
+  if (emails.length > limit) {
+    return {
+      ok: false,
+      error: `This plan allows ${limit} signer email${limit === 1 ? "" : "s"}.`,
+    };
+  }
+  if (new Set(emails).size !== emails.length) {
+    return { ok: false, error: "Each signer email must be different." };
+  }
+  if (limit <= 1) {
+    const account = user.email.trim().toLowerCase();
+    if (emails.length !== 1 || emails[0] !== account) {
+      return { ok: false, error: "This plan can only use the account email." };
+    }
+    return { ok: true, emails: [account] };
+  }
+  const roster = cleanDeviceSigners(user.deviceSigners).slice(0, limit);
+  if (roster.length < limit) {
+    return { ok: false, error: `Save all ${limit} device emails before sending a document.` };
+  }
+  const allowed = new Map(roster.map((slot) => [slot.email, slot.email]));
+  const canonical: string[] = [];
+  for (const email of emails) {
+    const match = allowed.get(email);
+    if (!match) {
+      return {
+        ok: false,
+        error: "Only the locked device emails can be used. A new email cannot be added.",
+      };
+    }
+    canonical.push(match);
+  }
+  return { ok: true, emails: canonical };
 }
 
 export function effectiveMaxSessions(user: User, settings?: OrgSettings | null): number | null {

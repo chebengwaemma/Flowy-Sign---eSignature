@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
-import { signerEmailLimit } from "@/lib/packages";
+import { assertSignerRecipients } from "@/lib/packages";
 import { getSignatureQuota, quotaBlockedResponse } from "@/lib/plan-usage";
 import { sendSigningInvitationEmails } from "@/lib/signing-email";
 import { getOrgDocuments, updateStore } from "@/lib/store";
@@ -95,19 +95,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const signerLimit = signerEmailLimit(user, await getSiteSettings());
-  if (body.data.recipients.length > signerLimit) {
-    return NextResponse.json(
-      { error: `This plan allows ${signerLimit} signer email${signerLimit === 1 ? "" : "s"}.` },
-      { status: 400 },
-    );
-  }
-  const accountEmail = user.email.trim().toLowerCase();
-  const firstEmail = body.data.recipients[0]?.email.trim().toLowerCase() || "";
-  if (firstEmail !== accountEmail) {
-    return NextResponse.json({ error: "The first signer must be the account email." }, { status: 400 });
-  }
-
+  const settings = await getSiteSettings();
   const now = new Date().toISOString();
   const recipients: Recipient[] = body.data.recipients.map((r) => ({
     id: nanoid(8),
@@ -184,9 +172,26 @@ export async function POST(req: Request) {
     downloadToken,
   };
 
-  await updateStore((store) => {
-    store.documents.unshift(doc);
-  });
+  try {
+    await updateStore((store) => {
+      const live = store.users.find((u) => u.id === user.id);
+      const verdict = assertSignerRecipients(live || user, body.data.recipients, settings);
+      if (!verdict.ok) {
+        const blocked = new Error(verdict.error);
+        blocked.name = "SignerRuleError";
+        throw blocked;
+      }
+      verdict.emails.forEach((email, index) => {
+        if (recipients[index]) recipients[index].email = email;
+      });
+      store.documents.unshift(doc);
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "SignerRuleError") {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    throw err;
+  }
 
   let inviteMail: Awaited<ReturnType<typeof sendSigningInvitationEmails>> | null = null;
   if (body.data.send) {

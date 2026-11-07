@@ -1451,10 +1451,20 @@ textarea.field {
   background: #fff;
 }
 
-.signer-field .field:read-only {
+.signer-field .field:read-only,
+.signer-field select.field {
   background: #eef2f1;
   color: #3d4a46;
+}
+
+.signer-field .field:read-only {
   cursor: not-allowed;
+}
+
+.signer-field select.field {
+  cursor: pointer;
+  appearance: menulist;
+  -webkit-appearance: menulist;
 }
 
 .signer-email-lock {

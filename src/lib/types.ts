@@ -88,6 +88,11 @@ export interface User {
   resetTokenExpires?: string;
   /** Stripe Checkout session already emailed, so confirm + webhook do not double-send */
   lastBillingEmailSessionId?: string;
+  /**
+   * Emails this account may send to or request a signature from.
+   * A full list — one address per device — is permanent.
+   */
+  deviceSigners?: { name: string; email: string }[];
 }
 
 /** Concurrent login / device tracking */
