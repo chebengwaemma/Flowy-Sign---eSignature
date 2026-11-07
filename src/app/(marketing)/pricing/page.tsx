@@ -2,15 +2,15 @@ import Link from "next/link";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
+import { getSessionUser } from "@/lib/auth";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPaidPlans, planDisplayFeatures } from "@/lib/plans";
 
-export const revalidate = 60;
-
 export default async function PricingPage() {
-  const [{ pricing: p, pricingPage: pp }, site] = await Promise.all([
+  const [{ pricing: p, pricingPage: pp }, site, user] = await Promise.all([
     getMarketing(),
     getSiteSettings(),
+    getSessionUser().catch(() => null),
   ]);
   const paid = getPaidPlans(site).map((plan) => ({
     id: plan.id,
@@ -47,8 +47,10 @@ export default async function PricingPage() {
             <h2 className="lp-h2">Pick Pro or Business, then your device tier</h2>
           </ScrollMeetBlock>
           <PlanCatalog
-            mode="marketing"
+            mode={user && user.plan !== "free" ? "billing" : "marketing"}
             plans={paid}
+            currentPlan={user?.plan}
+            currentInterval={user?.billingInterval}
             ctaLabel={p.cta}
             compareCta={pp.compareCta || p.cta}
           />

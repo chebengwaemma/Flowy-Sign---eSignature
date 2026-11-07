@@ -45,7 +45,6 @@ export function PlanCatalog({
   ctaLabel?: string;
   compareCta?: string;
 }) {
-  const [interval, setInterval] = useState<BillingInterval>(currentInterval || "monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -63,9 +62,10 @@ export function PlanCatalog({
       .filter((g) => g.items.length > 0);
   }, [plans]);
 
-  async function checkout(plan: PlanId) {
+  async function checkout(plan: PlanId, interval: BillingInterval) {
     if (mode !== "billing" || plan === "free") return;
-    setLoading(plan);
+    const key = `${plan}:${interval}`;
+    setLoading(key);
     setError("");
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
@@ -99,23 +99,6 @@ export function PlanCatalog({
         </ScrollMeetBlock>
       )}
 
-      <ScrollMeetBlock side="left" distance={80}>
-        <div className="pkg-billing-toggle" role="group" aria-label="Billing interval">
-          {(["monthly", "yearly"] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`pkg-billing-btn${interval === item ? " is-active" : ""}`}
-              onClick={() => setInterval(item)}
-              aria-pressed={interval === item}
-            >
-              <span>{item === "monthly" ? "Monthly" : "Yearly"}</span>
-              {item === "yearly" ? <em>Save ~20%</em> : null}
-            </button>
-          ))}
-        </div>
-      </ScrollMeetBlock>
-
       {groups.map((group) => (
         <section key={group.category} className="pkg-group">
           <ScrollMeetBlock side={group.category === "pro" ? "left" : "right"} distance={90}>
@@ -135,14 +118,8 @@ export function PlanCatalog({
             stagger={0.1}
           >
             {group.items.map((plan) => {
-              const price = interval === "monthly" ? plan.monthly : plan.yearly;
-              const active = mode === "billing" && currentPlan === plan.id;
               const featured = plan.maxDevices > 1;
               const save = yearlySavePct(plan.monthly, plan.yearly);
-              const perMonth =
-                interval === "yearly" && plan.yearly > 0
-                  ? Math.round((plan.yearly / 12) * 100) / 100
-                  : null;
               const features = (() => {
                 const seen = new Set<string>();
                 return (plan.features || [])
@@ -165,7 +142,6 @@ export function PlanCatalog({
                     "pkg-card",
                     featured ? "pkg-card-featured" : "",
                     group.category === "business" ? "pkg-card-business" : "",
-                    active ? "is-current" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -186,19 +162,51 @@ export function PlanCatalog({
                     </p>
                   </div>
 
-                  <div className="pkg-card-price">
-                    <span className="pkg-price-amount">${price}</span>
-                    <span className="pkg-price-unit">
-                      /{interval === "monthly" ? "mo" : "yr"}
-                    </span>
-                    {interval === "yearly" && perMonth != null ? (
-                      <span className="pkg-price-note">
-                        ≈ ${perMonth}/mo
-                        {save > 0 ? ` · save ${save}%` : ""}
-                      </span>
-                    ) : (
-                      <span className="pkg-price-note">Billed {interval}</span>
-                    )}
+                  <div className="pkg-intervals">
+                    {(["monthly", "yearly"] as const).map((item) => {
+                      const price = item === "monthly" ? plan.monthly : plan.yearly;
+                      const active =
+                        mode === "billing" && currentPlan === plan.id && currentInterval === item;
+                      const perMonth =
+                        item === "yearly" && plan.yearly > 0
+                          ? Math.round((plan.yearly / 12) * 100) / 100
+                          : null;
+                      const busy = loading === `${plan.id}:${item}`;
+                      return (
+                        <div key={item} className={`pkg-interval${active ? " is-current" : ""}`}>
+                          <div className="pkg-interval-label">
+                            <span>{item === "monthly" ? "Monthly" : "Yearly"}</span>
+                            {active ? <span className="pkg-chip pkg-chip-active">Active</span> : null}
+                          </div>
+                          <div className="pkg-card-price">
+                            <span className="pkg-price-amount">${price}</span>
+                            <span className="pkg-price-unit">/{item === "monthly" ? "mo" : "yr"}</span>
+                            {item === "yearly" && perMonth != null ? (
+                              <span className="pkg-price-note">
+                                ≈ ${perMonth}/mo
+                                {save > 0 ? ` · save ${save}%` : ""}
+                              </span>
+                            ) : (
+                              <span className="pkg-price-note">Billed monthly</span>
+                            )}
+                          </div>
+                          {mode === "billing" ? (
+                            <button
+                              type="button"
+                              className={`pkg-cta${active ? " is-ghost" : ""}`}
+                              disabled={active || busy}
+                              onClick={() => checkout(plan.id, item)}
+                            >
+                              {active ? "Current plan" : busy ? "Redirecting…" : "Choose plan"}
+                            </button>
+                          ) : (
+                            <Link href="/signup" className="pkg-cta">
+                              {compareCta || ctaLabel}
+                            </Link>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <ul className="pkg-features">
@@ -211,21 +219,6 @@ export function PlanCatalog({
                       </li>
                     ))}
                   </ul>
-
-                  {mode === "billing" ? (
-                    <button
-                      type="button"
-                      className={`pkg-cta${active ? " is-ghost" : ""}`}
-                      disabled={active || loading === plan.id}
-                      onClick={() => checkout(plan.id)}
-                    >
-                      {active ? "Current plan" : loading === plan.id ? "Redirecting…" : "Choose plan"}
-                    </button>
-                  ) : (
-                    <Link href="/signup" className="pkg-cta">
-                      {compareCta || ctaLabel}
-                    </Link>
-                  )}
                 </article>
               );
             })}
