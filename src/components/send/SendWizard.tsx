@@ -18,7 +18,6 @@ import {
   Check,
   GripVertical,
   Trash2,
-  Plus,
 } from "lucide-react";
 import type { SignatureStyle } from "@/lib/types";
 import { ESignatureGenerator } from "@/components/signature/ESignatureGenerator";
@@ -165,17 +164,13 @@ export function SendWizard({
   const bodyRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(0);
   const [docs, setDocs] = useState<SelectedDoc[]>([]);
-  const [savedSigners, setSavedSigners] = useState(savedSignersProp);
-  const [emailsLocked, setEmailsLocked] = useState(signerLimit <= 1 || signersLocked);
-  const [locking, setLocking] = useState(false);
+  const savedSigners = savedSignersProp;
+  const emailsLocked = signerLimit <= 1 || signersLocked;
   const [signers, setSigners] = useState<Signer[]>(() => {
-    if (signerLimit <= 1) return [makeSigner(0, accountName, accountEmail)];
-    if (signersLocked && savedSignersProp.length) {
-      return savedSignersProp.slice(0, signerLimit).map((slot, index) => makeSigner(index, slot.name, slot.email));
+    if (signerLimit > 1 && signersLocked && savedSignersProp[0]) {
+      return [makeSigner(0, savedSignersProp[0].name, savedSignersProp[0].email)];
     }
-    return Array.from({ length: signerLimit }, (_, index) =>
-      makeSigner(index, index === 0 ? accountName : "", index === 0 ? accountEmail : ""),
-    );
+    return [makeSigner(0, accountName, accountEmail)];
   });
   const [fields, setFields] = useState<Field[]>([]);
   const [activeSigner, setActiveSigner] = useState(0);
@@ -188,41 +183,19 @@ export function SendWizard({
 
   const canNext = useMemo(() => {
     if (step === 0) return docs.length > 0;
-    if (step === 1) {
-      if (signerLimit <= 1) return (signers[0]?.name.trim().length || 0) > 0;
-      if (!emailsLocked) {
-        const slots = signers.slice(0, signerLimit);
-        if (slots.length < signerLimit) return false;
-        const emails = slots.map((s) => s.email.trim().toLowerCase());
-        if (emails.some((email) => !email.includes("@"))) return false;
-        if (new Set(emails).size !== emails.length) return false;
-        return slots.every((s) => s.name.trim().length > 0);
-      }
-      const picked = signers.filter((s) => s.email.trim());
-      if (!picked.length) return false;
-      const emails = picked.map((s) => s.email.trim().toLowerCase());
-      if (new Set(emails).size !== emails.length) return false;
-      const allowed = new Set(savedSigners.map((s) => s.email.toLowerCase()));
-      return picked.every((s) => s.name.trim() && allowed.has(s.email.trim().toLowerCase()));
-    }
+    if (step === 1) return (signers[0]?.name.trim().length || 0) > 0;
     if (step === 2)
       return docs.every((doc) => fields.some((f) => f.docId === doc.id && f.type === "signature"));
     return true;
-  }, [step, docs, signers, fields, signerLimit, emailsLocked, savedSigners]);
+  }, [step, docs, signers, fields]);
 
   const nextHint = useMemo(() => {
     if (canNext) return "";
     if (step === 0) return "Upload a document to continue.";
-    if (step === 1) {
-      if (signerLimit <= 1) return "Enter your name. The account email is locked.";
-      if (!emailsLocked) {
-        return `Enter a name and a different email in all ${signerLimit} slots. They lock when you continue.`;
-      }
-      return "Choose one of the locked emails for each signer.";
-    }
+    if (step === 1) return "Enter your name. Signer 1 uses the account email.";
     if (step === 2) return "Place at least one signature field on every document.";
     return "";
-  }, [canNext, step, signerLimit, emailsLocked]);
+  }, [canNext, step]);
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0 });
@@ -431,42 +404,8 @@ export function SendWizard({
     window.addEventListener("pointerup", onUp);
   }
 
-  async function goNext() {
-    if (!canNext || locking) return;
-    if (step === 1 && signerLimit > 1 && !emailsLocked) {
-      setLocking(true);
-      setError("");
-      const payload = signers.slice(0, signerLimit).map((s) => ({
-        name: s.name.trim(),
-        email: s.email.trim(),
-      }));
-      try {
-        const res = await fetch("/api/account/device-signers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ signers: payload }),
-        });
-        const data = await res.json().catch(() => ({}));
-        const saved = Array.isArray(data?.signers) ? data.signers : [];
-        if (!res.ok || saved.length < signerLimit) {
-          setError(data?.error || "Could not lock the device emails.");
-          setLocking(false);
-          return;
-        }
-        const nextSaved = saved.slice(0, signerLimit).map((slot: { name?: string; email?: string }) => ({
-          name: String(slot?.name || "").trim(),
-          email: String(slot?.email || "").trim().toLowerCase(),
-        }));
-        setSavedSigners(nextSaved);
-        setEmailsLocked(true);
-        setSigners(nextSaved.map((slot: { name: string; email: string }, index: number) => makeSigner(index, slot.name, slot.email)));
-      } catch {
-        setError("Could not lock the device emails.");
-        setLocking(false);
-        return;
-      }
-      setLocking(false);
-    }
+  function goNext() {
+    if (!canNext) return;
     setStep((s) => (s + 1) as Step);
   }
 
@@ -474,12 +413,13 @@ export function SendWizard({
     setLoading(true);
     setError("");
     setUpgradeNeeded(false);
-    const recipients = signers.slice(0, signerLimit).flatMap((s) => {
-      const email = (signerLimit <= 1 ? accountEmail : s.email).trim();
-      const name = s.name.trim();
-      if (!email || !name) return [];
-      return [{ id: s.id, name, email, preferredSignatureStyle: s.signatureStyle }];
-    });
+    const signer = signers[0];
+    const email = (signerLimit > 1 && emailsLocked ? signer?.email : accountEmail).trim();
+    const name = signer?.name.trim() || "";
+    const recipients =
+      signer && email && name
+        ? [{ id: signer.id, name, email, preferredSignatureStyle: signer.signatureStyle }]
+        : [];
     const signerIndex = (signerId: string) => recipients.findIndex((s) => s.id === signerId);
     const made: string[] = [];
     for (const doc of docs) {
@@ -725,37 +665,20 @@ export function SendWizard({
           <section className="send-panel rise">
             <h1>Add signers</h1>
             <p className="send-sub">
-              {signerLimit <= 1
-                ? "This plan is 1 device. Only your account email can be used, and it cannot be changed."
-                : emailsLocked
-                  ? `These ${signerLimit} emails are locked. Pick them from the list. A new email cannot be added.`
-                  : `This plan has ${signerLimit} email slots. Use your account email and any other emails. When you continue, these ${signerLimit} emails lock and cannot be changed.`}
+              Only Signer 1 is used. The account email is locked and cannot be changed.
             </p>
             {error ? <p className="send-error">{error}</p> : null}
 
             <div className="signer-list">
-              {signers.map((signer, index) => {
-                const choosing = signerLimit > 1 && emailsLocked;
+              {signers.slice(0, 1).map((signer) => {
+                const choosing = signerLimit > 1 && emailsLocked && savedSigners.length > 0;
                 return (
                 <article key={signer.id} className="signer-card">
                   <header className="signer-card-head">
                     <div className="signer-card-title">
                       <span className="signer-swatch" style={{ background: signer.color }} />
-                      <span>Signer {index + 1}</span>
+                      <span>Signer 1</span>
                     </div>
-                    {choosing && signers.length > 1 && (
-                      <button
-                        type="button"
-                        className="icon-quiet"
-                        aria-label={`Remove signer ${index + 1}`}
-                        onClick={() => {
-                          setSigners((prev) => prev.filter((s) => s.id !== signer.id));
-                          setFields((prev) => prev.filter((f) => f.signerId !== signer.id));
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
                   </header>
 
                   <div className="signer-fields">
@@ -829,10 +752,8 @@ export function SendWizard({
                       {signerLimit <= 1 ? (
                         <span className="signer-email-lock">Account email. Locked for this device.</span>
                       ) : choosing ? (
-                        <span className="signer-email-lock">Locked email. Choose one of the saved {signerLimit}.</span>
-                      ) : (
-                        <span className="signer-email-lock">Slot {index + 1} of {signerLimit}. This locks when you continue.</span>
-                      )}
+                        <span className="signer-email-lock">Locked email. Choose one of the saved emails.</span>
+                      ) : null}
                     </label>
                   </div>
 
@@ -851,23 +772,6 @@ export function SendWizard({
                 );
               })}
             </div>
-
-            {signerLimit > 1 && emailsLocked && signers.length < savedSigners.length ? (
-              <button
-                type="button"
-                className="source-btn signer-add-btn"
-                onClick={() =>
-                  setSigners((prev) => {
-                    const taken = new Set(prev.map((s) => s.email.trim().toLowerCase()));
-                    const next = savedSigners.find((slot) => !taken.has(slot.email));
-                    if (!next || prev.length >= signerLimit) return prev;
-                    return [...prev, makeSigner(prev.length, next.name, next.email)];
-                  })
-                }
-              >
-                <Plus size={16} /> Add signer
-              </button>
-            ) : null}
           </section>
         )}
 
@@ -1012,10 +916,10 @@ export function SendWizard({
           <button
             type="button"
             className="send-next"
-            disabled={!canNext || locking}
-            onClick={() => void goNext()}
+            disabled={!canNext}
+            onClick={() => goNext()}
           >
-            {locking ? "Locking emails…" : "Next"}
+            Next
           </button>
         ) : (
           <button type="button" className="send-next ready" disabled={loading} onClick={sendDocument}>

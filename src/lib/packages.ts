@@ -153,7 +153,9 @@ export function assertSignerRecipients(
   }
   const roster = cleanDeviceSigners(user.deviceSigners).slice(0, limit);
   if (roster.length < limit) {
-    return { ok: false, error: `Save all ${limit} device emails before sending a document.` };
+    const account = user.email.trim().toLowerCase();
+    if (emails.length === 1 && emails[0] === account) return { ok: true, emails: [account] };
+    return { ok: false, error: "Only Signer 1, the account email, can be used." };
   }
   const allowed = new Map(roster.map((slot) => [slot.email, slot.email]));
   const canonical: string[] = [];
