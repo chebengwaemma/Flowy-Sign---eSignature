@@ -2521,10 +2521,13 @@ body:has(.admin-nav-mobile) {
   overflow: hidden;
 }
 
-.fields-layout .doc-page-stage {
-  flex: 1 1 auto;
-  height: auto;
+.fields-layout .doc-page-list {
+  flex: 1 1 0%;
+  height: 0;
   min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .doc-page-jump {

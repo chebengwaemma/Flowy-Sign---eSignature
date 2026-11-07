@@ -46,7 +46,7 @@ function PdfPageCanvas({
       ([entry]) => {
         if (entry?.isIntersecting) setNear(true);
       },
-      { root: box.closest(".doc-page-list"), rootMargin: "800px 0px" },
+      { root: box.closest(".doc-page-list"), rootMargin: "1200px 0px" },
     );
     io.observe(box);
     return () => io.disconnect();
@@ -130,7 +130,7 @@ export function PdfPageStack({
   renderOverlay: (page: number) => ReactNode;
 }) {
   const source = src || dataUrl || "";
-  const stageRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PdfDoc | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
   const [error, setError] = useState("");
@@ -141,7 +141,26 @@ export function PdfPageStack({
     const next = Math.min(pages.length || 1, Math.max(1, Math.floor(number) || 1));
     setCurrent(next);
     setJump(String(next));
-    if (stageRef.current) stageRef.current.scrollTop = 0;
+    const list = listRef.current;
+    const wrap = list?.querySelector<HTMLElement>(`[data-page-wrap="${next}"]`);
+    if (!list || !wrap) return;
+    const top = wrap.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    list.scrollTo({ top, behavior: "auto" });
+  }
+
+  function onListScroll() {
+    const list = listRef.current;
+    if (!list) return;
+    const edge = list.getBoundingClientRect().top + 24;
+    let best = 1;
+    list.querySelectorAll<HTMLElement>("[data-page-wrap]").forEach((wrap) => {
+      if (wrap.getBoundingClientRect().top <= edge) {
+        best = Number(wrap.dataset.pageWrap) || best;
+      }
+    });
+    setCurrent(best);
+    const field = document.activeElement;
+    if (!(field instanceof HTMLInputElement) || field.name !== "page") setJump(String(best));
   }
 
   useEffect(() => {
@@ -211,15 +230,12 @@ export function PdfPageStack({
     if (!pages.length) return;
     setCurrent(1);
     setJump("1");
-    if (stageRef.current) stageRef.current.scrollTop = 0;
+    if (listRef.current) listRef.current.scrollTop = 0;
   }, [pages]);
 
   if (!source) return null;
   if (error) return <p className="p-4 text-sm text-muted">{error}</p>;
   if (!pdf || !pages.length) return <p className="p-4 text-sm text-muted">Opening document…</p>;
-
-  const page = pages[current - 1] || pages[0];
-  if (!page) return null;
 
   return (
     <div className="doc-page-scroller">
@@ -236,7 +252,6 @@ export function PdfPageStack({
             showPage(Number(raw));
           }}
         >
-          <span>Page</span>
           <input
             name="page"
             aria-label="Page number"
@@ -245,23 +260,30 @@ export function PdfPageStack({
             onChange={(e) => setJump(e.target.value.replace(/[^\d]/g, ""))}
             onBlur={(e) => showPage(Number(e.currentTarget.value))}
           />
-          <span>of {pages.length}</span>
+          <span>
+            / {pages.length}
+          </span>
         </form>
         <button type="button" onClick={() => showPage(current + 1)} disabled={current >= pages.length}>
           Next page
         </button>
       </div>
-      <div className="doc-page-stage" ref={stageRef}>
-        <div className="doc-page-sheet" data-page-wrap={page.number}>
-          <p className="doc-page-label">Page {page.number}</p>
-          <PdfPageCanvas
-            key={page.number}
-            pdf={pdf}
-            page={page}
-            eager
-            onPlace={onPlace}
-            overlay={renderOverlay(page.number)}
-          />
+      <div className="doc-page-list" ref={listRef} onScroll={onListScroll}>
+        <div className="doc-pages">
+          {pages.map((page) => (
+            <div className="doc-page-sheet" data-page-wrap={page.number} key={page.number}>
+              <p className="doc-page-label">
+                {page.number}/{pages.length}
+              </p>
+              <PdfPageCanvas
+                pdf={pdf}
+                page={page}
+                eager={page.number <= 2}
+                onPlace={onPlace}
+                overlay={renderOverlay(page.number)}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

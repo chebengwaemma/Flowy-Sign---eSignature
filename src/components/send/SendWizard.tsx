@@ -705,7 +705,7 @@ export function SendWizard() {
             <div>
               <h1>Place fields</h1>
               <p className="send-sub">
-                Type a page number, or use Previous page and Next page. One page shows at a time. Click the page to place a field.
+                Every page of the upload shows as its own page, numbered 1/20 or however many pages are in the file. Scroll, or use Previous page and Next page. Click a page to place a field.
               </p>
               <div className="field-tools">
                 {(["signature", "initials", "date", "text"] as const).map((t) => (
