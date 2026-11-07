@@ -257,10 +257,11 @@ export function mergePlans(
       ...base,
       id: base.id,
       category: base.category,
-      name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
-      maxDevices: numOr(over.maxDevices, base.maxDevices),
-      monthly: numOr(over.monthly, base.monthly),
-      yearly: numOr(over.yearly, base.yearly),
+      name: base.name,
+      maxDevices: base.maxDevices,
+      // Public prices come from this catalog so localhost and live match.
+      monthly: base.monthly,
+      yearly: base.yearly,
       // Paid catalog is always unlimited quotas (device tier is the only cap)
       docs: -1,
       downloads: -1,
@@ -269,7 +270,7 @@ export function mergePlans(
       features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
       stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
       stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
-      visible: over.visible ?? base.visible,
+      visible: base.visible,
     });
   });
 }
