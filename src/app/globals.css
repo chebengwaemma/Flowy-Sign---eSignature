@@ -1600,7 +1600,21 @@ textarea.field {
 
 .fields-layout {
   display: grid;
-  gap: 1rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.send-body:has(.fields-layout) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.send-body:has(.fields-layout) > .fields-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .field-tools,
@@ -2501,9 +2515,22 @@ body:has(.admin-nav-mobile) {
   cursor: default;
 }
 
+.fields-layout .doc-canvas.doc-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fields-layout .doc-page-list {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+}
+
 .doc-page-list {
-  flex: 0 0 auto;
-  min-height: 360px;
+  flex: 1 1 auto;
+  min-height: 0;
   height: min(70dvh, 860px);
   max-height: min(70dvh, 860px);
   overflow-x: hidden;

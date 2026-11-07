@@ -221,6 +221,13 @@ export function PdfPageStack({
     };
   }, [source]);
 
+  useEffect(() => {
+    if (!pages.length) return;
+    const list = listRef.current;
+    if (list) list.scrollTop = 0;
+    setCurrent(1);
+  }, [pages]);
+
   if (!source) return null;
   if (error) return <p className="p-4 text-sm text-muted">{error}</p>;
   if (!pdf || !pages.length) return <p className="p-4 text-sm text-muted">Opening document…</p>;
