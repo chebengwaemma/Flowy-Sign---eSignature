@@ -1609,10 +1609,31 @@ textarea.field {
   overflow: auto;
 }
 
+.place-doc-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.place-doc-picks button {
+  border: 1px solid #d9d4cf;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-weight: 750;
+  color: #0b3d38;
+  cursor: pointer;
+}
+
 .place-docs {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.place-doc {
+  scroll-margin-top: 0.75rem;
 }
 
 .place-doc-head {
@@ -1636,8 +1657,8 @@ textarea.field {
 }
 
 .place-doc .doc-canvas.doc-canvas-plain.doc-scroll {
-  height: min(68dvh, 760px);
-  min-height: 280px;
+  height: min(46dvh, 520px);
+  min-height: 240px;
   overflow: hidden;
 }
 

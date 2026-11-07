@@ -23,6 +23,7 @@ import {
 import type { SignatureStyle } from "@/lib/types";
 import { ESignatureGenerator } from "@/components/signature/ESignatureGenerator";
 import { PdfPageStack } from "@/components/signature/PdfPageStack";
+import { takeUploads } from "@/lib/pending-uploads";
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -174,6 +175,19 @@ export function SendWizard() {
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0 });
   }, [step]);
+
+  const tookUploads = useRef(false);
+  useEffect(() => {
+    if (tookUploads.current) return;
+    tookUploads.current = true;
+    const files = takeUploads();
+    if (!files.length) return;
+    const list = new DataTransfer();
+    for (const file of files) list.items.add(file);
+    void addFiles(list.files);
+    // One-shot handoff from the dashboard dropzone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
@@ -543,7 +557,10 @@ export function SendWizard() {
                 multiple
                 accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif,text/plain,application/pdf,image/*"
                 className="hidden"
-                onChange={(e) => addFiles(e.target.files)}
+                onChange={(e) => {
+                  void addFiles(e.target.files);
+                  e.target.value = "";
+                }}
               />
             </div>
 
@@ -701,8 +718,23 @@ export function SendWizard() {
             <div>
               <h1>Place fields</h1>
               <p className="send-sub">
-                Each uploaded document gets its own Place fields block, in the same order. Five files show five blocks. Click a page to place a field.
+                {docs.length === 1
+                  ? "1 document uploaded. It is listed below. Click a page to place a field."
+                  : `${docs.length} documents uploaded. Each one is listed below, in order. Click a name to jump to it, then click a page to place a field.`}
               </p>
+              <div className="place-doc-picks" aria-label="Uploaded documents">
+                {docs.map((doc, index) => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() =>
+                      document.getElementById(`place-doc-${doc.id}`)?.scrollIntoView({ block: "start" })
+                    }
+                  >
+                    {index + 1}. {doc.name}
+                  </button>
+                ))}
+              </div>
               <div className="field-tools">
                 {(["signature", "initials", "date", "text"] as const).map((t) => (
                   <button
@@ -731,7 +763,7 @@ export function SendWizard() {
             </div>
             <div className="place-docs">
               {docs.map((doc, index) => (
-                <section className="place-doc" key={doc.id}>
+                <section className="place-doc" id={`place-doc-${doc.id}`} key={doc.id}>
                   <div className="place-doc-head">
                     <span className="place-doc-index">{index + 1}/{docs.length}</span>
                     <h2>{doc.name}</h2>
