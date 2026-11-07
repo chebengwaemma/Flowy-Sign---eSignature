@@ -1451,6 +1451,20 @@ textarea.field {
   background: #fff;
 }
 
+.signer-field .field:read-only {
+  background: #eef2f1;
+  color: #3d4a46;
+  cursor: not-allowed;
+}
+
+.signer-email-lock {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #5a736e;
+}
+
 .signer-style-block {
   margin-top: 1rem;
   padding-top: 1rem;

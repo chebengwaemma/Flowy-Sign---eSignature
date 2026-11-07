@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/get-marketing";
+import { signerEmailLimit } from "@/lib/packages";
 import { getSignatureQuota, quotaBlockedResponse } from "@/lib/plan-usage";
 import { sendSigningInvitationEmails } from "@/lib/signing-email";
 import { getOrgDocuments, updateStore } from "@/lib/store";
@@ -91,6 +93,19 @@ export async function POST(req: Request) {
     if (!quota.allowed) {
       return NextResponse.json(quotaBlockedResponse(quota), { status: 402 });
     }
+  }
+
+  const signerLimit = signerEmailLimit(user, await getSiteSettings());
+  if (body.data.recipients.length > signerLimit) {
+    return NextResponse.json(
+      { error: `This plan allows ${signerLimit} signer email${signerLimit === 1 ? "" : "s"}.` },
+      { status: 400 },
+    );
+  }
+  const accountEmail = user.email.trim().toLowerCase();
+  const firstEmail = body.data.recipients[0]?.email.trim().toLowerCase() || "";
+  if (firstEmail !== accountEmail) {
+    return NextResponse.json({ error: "The first signer must be the account email." }, { status: 400 });
   }
 
   const now = new Date().toISOString();

@@ -137,14 +137,28 @@ async function uploadLocalFile(file: File) {
   return saved.fileId as string;
 }
 
-export function SendWizard() {
+export function SendWizard({
+  accountEmail,
+  accountName,
+  signerLimit,
+}: {
+  accountEmail: string;
+  accountName: string;
+  signerLimit: number;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(0);
   const [docs, setDocs] = useState<SelectedDoc[]>([]);
   const [signers, setSigners] = useState<Signer[]>([
-    { id: uid(), name: "", email: "", color: SIGNER_COLORS[0], signatureStyle: "elegant" },
+    {
+      id: uid(),
+      name: accountName,
+      email: accountEmail,
+      color: SIGNER_COLORS[0],
+      signatureStyle: "elegant",
+    },
   ]);
   const [fields, setFields] = useState<Field[]>([]);
   const [activeSigner, setActiveSigner] = useState(0);
@@ -407,9 +421,9 @@ export function SendWizard() {
           fileId,
           fileName: doc.fileName,
           send: true,
-          recipients: signers.map((s) => ({
+          recipients: signers.slice(0, signerLimit).map((s, index) => ({
             name: s.name.trim(),
-            email: s.email.trim(),
+            email: (index === 0 ? accountEmail : s.email).trim(),
             preferredSignatureStyle: s.signatureStyle,
           })),
           fields: docFields.map((f) => ({
@@ -623,7 +637,11 @@ export function SendWizard() {
         {step === 1 && (
           <section className="send-panel rise">
             <h1>Add signers</h1>
-            <p className="send-sub">People who need to sign this request.</p>
+            <p className="send-sub">
+              {signerLimit <= 1
+                ? "This plan is 1 device. Your account email is the signer, and it cannot be changed."
+                : `This plan is ${signerLimit} devices. Signer 1 is your account email and cannot be changed. You can add ${signerLimit - 1} more emails.`}
+            </p>
 
             <div className="signer-list">
               {signers.map((signer, index) => (
@@ -633,7 +651,7 @@ export function SendWizard() {
                       <span className="signer-swatch" style={{ background: signer.color }} />
                       <span>Signer {index + 1}</span>
                     </div>
-                    {signers.length > 1 && (
+                    {index > 0 && (
                       <button
                         type="button"
                         className="icon-quiet"
@@ -666,14 +684,17 @@ export function SendWizard() {
                         className="field"
                         type="email"
                         placeholder="jane@company.com"
-                        value={signer.email}
+                        value={index === 0 ? accountEmail : signer.email}
                         autoComplete="email"
-                        onChange={(e) =>
-                          setSigners((prev) =>
-                            prev.map((s) => (s.id === signer.id ? { ...s, email: e.target.value } : s)),
-                          )
-                        }
+                        readOnly={index === 0}
+                        aria-readonly={index === 0 || undefined}
+                        onChange={(e) => {
+                          if (index === 0) return;
+                          const email = e.target.value;
+                          setSigners((prev) => prev.map((s) => (s.id === signer.id ? { ...s, email } : s)));
+                        }}
                       />
+                      {index === 0 ? <span className="signer-email-lock">Account email. Locked for this device.</span> : null}
                     </label>
                   </div>
 
@@ -692,24 +713,31 @@ export function SendWizard() {
               ))}
             </div>
 
-            <button
-              type="button"
-              className="source-btn signer-add-btn"
-              onClick={() =>
-                setSigners((prev) => [
-                  ...prev,
-                  {
-                    id: uid(),
-                    name: "",
-                    email: "",
-                    color: SIGNER_COLORS[prev.length % SIGNER_COLORS.length],
-                    signatureStyle: "elegant",
-                  },
-                ])
-              }
-            >
-              <Plus size={16} /> Add signer
-            </button>
+            {signers.length < signerLimit ? (
+              <button
+                type="button"
+                className="source-btn signer-add-btn"
+                onClick={() =>
+                  setSigners((prev) => {
+                    if (prev.length >= signerLimit) return prev;
+                    return [
+                      ...prev,
+                      {
+                        id: uid(),
+                        name: "",
+                        email: "",
+                        color: SIGNER_COLORS[prev.length % SIGNER_COLORS.length],
+                        signatureStyle: "elegant",
+                      },
+                    ];
+                  })
+                }
+              >
+                <Plus size={16} /> Add signer
+              </button>
+            ) : signerLimit > 1 ? (
+              <p className="send-note">All {signerLimit} device emails are in use.</p>
+            ) : null}
           </section>
         )}
 

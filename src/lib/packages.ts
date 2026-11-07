@@ -51,6 +51,13 @@ export function applyPackageFields(
   user.packageExpiresAt = packageExpiresAt(packageType, interval);
 }
 
+/** How many signer emails this account may enter. The first slot is always the account email. */
+export function signerEmailLimit(user: User, settings?: OrgSettings | null): number {
+  const planMax = getPlanFromSettings(user.plan, settings).maxDevices;
+  const sessionMax = typeof user.maxConcurrentSessions === "number" ? user.maxConcurrentSessions : 0;
+  return Math.max(1, planMax || sessionMax || 1);
+}
+
 export function effectiveMaxSessions(user: User, settings?: OrgSettings | null): number | null {
   if (typeof user.maxConcurrentSessions === "number" || user.maxConcurrentSessions === null) {
     return user.maxConcurrentSessions;
