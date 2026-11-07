@@ -20,7 +20,7 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 6;
+export const PLAN_CATALOG_VERSION = 5;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -51,8 +51,8 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     name: "Pro · 1 device",
     category: "pro",
     maxDevices: 1,
-    monthly: 12,
-    yearly: 120,
+    monthly: 29,
+    yearly: 278,
     docs: -1,
     downloads: -1,
     faxes: -1,
@@ -74,7 +74,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     faxes: -1,
     seats: -1,
     features: [...UNLIMITED_FEATURES],
-    visible: false,
+    visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
@@ -90,7 +90,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     faxes: -1,
     seats: -1,
     features: [...UNLIMITED_FEATURES, "Priority support"],
-    visible: false,
+    visible: true,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
@@ -99,8 +99,8 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     name: "Business · 5 devices",
     category: "business",
     maxDevices: 5,
-    monthly: 30,
-    yearly: 240,
+    monthly: 89,
+    yearly: 854,
     docs: -1,
     downloads: -1,
     faxes: -1,
@@ -150,6 +150,8 @@ export function isLegacyPlanCatalog(
   partial?: Partial<PlanDefinition>[] | null,
   version?: number | null,
 ): boolean {
+  // Catalog 6 briefly replaced the package prices. Put the previous prices back.
+  if (version === 6) return true;
   if (typeof version === "number" && version >= PLAN_CATALOG_VERSION) return false;
   const rows = (partial || []).filter((p) => p?.id);
   if (!rows.length) return true;
@@ -162,7 +164,8 @@ export function isLegacyPlanCatalog(
   return false;
 }
 
-function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] {
+function mergeLegacyPlans(partial: Partial<PlanDefinition>[], version?: number | null): PlanDefinition[] {
+  const undoCatalog6 = version === 6;
   const byExact = new Map(
     partial.filter((p) => p?.id && String(p.id) !== "starter").map((p) => [String(p!.id), p!] as const),
   );
@@ -188,23 +191,28 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] 
         visible: false,
       });
     }
-    const keepStripe = base.id === "pro" || base.id === "business_5";
+    // Only keep prices from classic pro/business rows — never inherit Starter $ onto pro_5
+    const keepPrice = base.id === "pro" || base.id === "business";
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
       category: base.category,
       name: base.name,
       maxDevices: base.maxDevices,
-      monthly: base.monthly,
-      yearly: base.yearly,
+      monthly: undoCatalog6 ? base.monthly : keepPrice ? numOr(over.monthly, base.monthly) : base.monthly,
+      yearly: undoCatalog6 ? base.yearly : keepPrice ? numOr(over.yearly, base.yearly) : base.yearly,
       docs: -1,
       downloads: -1,
       faxes: -1,
       seats: -1,
       features: [...base.features],
-      stripePriceMonthly: keepStripe ? String(over.stripePriceMonthly ?? "") : "",
-      stripePriceYearly: keepStripe ? String(over.stripePriceYearly ?? "") : "",
-      visible: base.visible,
+      stripePriceMonthly: keepPrice
+        ? String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? "")
+        : String(base.stripePriceMonthly ?? ""),
+      stripePriceYearly: keepPrice
+        ? String(over.stripePriceYearly ?? base.stripePriceYearly ?? "")
+        : String(base.stripePriceYearly ?? ""),
+      visible: undoCatalog6 ? base.visible : true,
     });
   });
 }
@@ -215,7 +223,7 @@ export function mergePlans(
 ): PlanDefinition[] {
   const rows = (partial || []).filter((p) => p?.id);
   if (isLegacyPlanCatalog(rows, version)) {
-    return mergeLegacyPlans(rows);
+    return mergeLegacyPlans(rows, version);
   }
 
   const byId = new Map(

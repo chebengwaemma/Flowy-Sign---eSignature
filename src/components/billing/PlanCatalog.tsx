@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
+import { planCategoryLabel } from "@/lib/plans";
 import type { BillingInterval, PlanCategory, PlanId } from "@/lib/types";
 
 export type CatalogPlan = {
@@ -17,10 +18,16 @@ export type CatalogPlan = {
 };
 
 function shortName(plan: CatalogPlan) {
-  if (plan.id === "business_5") return "Business";
   if (plan.category === "pro") return "Pro";
   if (plan.category === "business") return "Business";
   return plan.name;
+}
+
+function yearlySavePct(monthly: number, yearly: number) {
+  if (monthly <= 0 || yearly <= 0) return 0;
+  const full = monthly * 12;
+  if (full <= yearly) return 0;
+  return Math.round(((full - yearly) / full) * 100);
 }
 
 export function PlanCatalog({
@@ -38,31 +45,27 @@ export function PlanCatalog({
   ctaLabel?: string;
   compareCta?: string;
 }) {
+  const [interval, setInterval] = useState<BillingInterval>(currentInterval || "monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const offers = useMemo(() => {
-    const pro = plans.find((p) => p.id === "pro");
-    const business = plans.find((p) => p.id === "business_5");
-    const rows: Array<{
-      plan: CatalogPlan;
-      interval: BillingInterval;
-      devices: string;
-    }> = [];
-    if (pro) {
-      rows.push({ plan: pro, interval: "yearly", devices: "1 Device" });
-      rows.push({ plan: pro, interval: "monthly", devices: "1 Device" });
-    }
-    if (business) {
-      rows.push({ plan: business, interval: "yearly", devices: "5 Devices or emails" });
-      rows.push({ plan: business, interval: "monthly", devices: "5 Devices or emails" });
-    }
-    return rows;
+  const groups = useMemo(() => {
+    const order: Array<"pro" | "business"> = ["pro", "business"];
+    return order
+      .map((category) => ({
+        category,
+        label: planCategoryLabel(category),
+        items: plans
+          .filter((p) => p.category === category)
+          .slice()
+          .sort((a, b) => a.maxDevices - b.maxDevices),
+      }))
+      .filter((g) => g.items.length > 0);
   }, [plans]);
 
-  async function checkout(plan: PlanId, interval: BillingInterval) {
+  async function checkout(plan: PlanId) {
     if (mode !== "billing" || plan === "free") return;
-    setLoading(plan + interval);
+    setLoading(plan);
     setError("");
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
@@ -96,56 +99,139 @@ export function PlanCatalog({
         </ScrollMeetBlock>
       )}
 
-      <ScrollMeetSplit className="pkg-grid app-meet-grid" itemClassName="app-meet-item" distance={100} stagger={0.08}>
-        {offers.map((offer) => {
-          const price = offer.interval === "monthly" ? offer.plan.monthly : offer.plan.yearly;
-          const per =
-            offer.interval === "yearly" && offer.plan.yearly > 0 ? offer.plan.yearly / 12 : null;
-          const active =
-            mode === "billing" && currentPlan === offer.plan.id && currentInterval === offer.interval;
-          const loadingKey = offer.plan.id + offer.interval;
-          const title =
-            offer.plan.id === "business_5" ? "Business" : shortName(offer.plan);
-          return (
-            <article
-              key={loadingKey}
-              className={["pkg-card", offer.plan.id === "business_5" ? "pkg-card-business" : "", active ? "is-current" : ""]
-                .filter(Boolean)
-                .join(" ")}
+      <ScrollMeetBlock side="left" distance={80}>
+        <div className="pkg-billing-toggle" role="group" aria-label="Billing interval">
+          {(["monthly", "yearly"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`pkg-billing-btn${interval === item ? " is-active" : ""}`}
+              onClick={() => setInterval(item)}
+              aria-pressed={interval === item}
             >
-              <div className="pkg-card-top">
-                <div className="pkg-card-badges">
-                  <span className="pkg-chip">{title}</span>
-                  <span className="pkg-chip pkg-chip-device">{offer.devices}</span>
-                </div>
-                <h3 className="pkg-card-name">
-                  {title} · {offer.devices}
-                </h3>
-                <p className="pkg-period">{offer.interval === "yearly" ? "Yearly" : "Monthly"}</p>
-              </div>
-              <div className="pkg-card-price">
-                <span className="pkg-price-amount">${price}</span>
-                <span className="pkg-price-unit">{offer.interval === "yearly" ? "/year" : "/month"}</span>
-                {per != null ? <span className="pkg-price-note">${per} × 12</span> : null}
-              </div>
-              {mode === "billing" ? (
-                <button
-                  type="button"
-                  className={`pkg-cta${active ? " is-ghost" : ""}`}
-                  disabled={active || loading === loadingKey}
-                  onClick={() => checkout(offer.plan.id, offer.interval)}
+              <span>{item === "monthly" ? "Monthly" : "Yearly"}</span>
+              {item === "yearly" ? <em>Save ~20%</em> : null}
+            </button>
+          ))}
+        </div>
+      </ScrollMeetBlock>
+
+      {groups.map((group) => (
+        <section key={group.category} className="pkg-group">
+          <ScrollMeetBlock side={group.category === "pro" ? "left" : "right"} distance={90}>
+            <header className="pkg-group-head">
+              <p className="pkg-group-kicker">{group.label}</p>
+              <h2 className="pkg-group-title">{group.label} packages</h2>
+              <p className="pkg-group-lead">
+                Everything unlimited after purchase — pick 1 device or up to 5.
+              </p>
+            </header>
+          </ScrollMeetBlock>
+
+          <ScrollMeetSplit
+            className="pkg-grid app-meet-grid"
+            itemClassName="app-meet-item"
+            distance={120}
+            stagger={0.1}
+          >
+            {group.items.map((plan) => {
+              const price = interval === "monthly" ? plan.monthly : plan.yearly;
+              const active = mode === "billing" && currentPlan === plan.id;
+              const featured = plan.maxDevices > 1;
+              const save = yearlySavePct(plan.monthly, plan.yearly);
+              const perMonth =
+                interval === "yearly" && plan.yearly > 0
+                  ? Math.round((plan.yearly / 12) * 100) / 100
+                  : null;
+              const features = (() => {
+                const seen = new Set<string>();
+                return (plan.features || [])
+                  .map((f) => f.trim())
+                  .filter(Boolean)
+                  .filter((f) => {
+                    // Device line already shown under the title
+                    if (/concurrent device/i.test(f)) return false;
+                    const key = f.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+              })();
+
+              return (
+                <article
+                  key={plan.id}
+                  className={[
+                    "pkg-card",
+                    featured ? "pkg-card-featured" : "",
+                    group.category === "business" ? "pkg-card-business" : "",
+                    active ? "is-current" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
-                  {active ? "Current plan" : loading === loadingKey ? "Redirecting…" : "Choose plan"}
-                </button>
-              ) : (
-                <Link href="/signup" className="pkg-cta">
-                  {compareCta || ctaLabel}
-                </Link>
-              )}
-            </article>
-          );
-        })}
-      </ScrollMeetSplit>
+                  <div className="pkg-card-top">
+                    <div className="pkg-card-badges">
+                      <span className="pkg-chip">{shortName(plan)}</span>
+                      <span className="pkg-chip pkg-chip-device">
+                        {plan.maxDevices <= 1 ? "1 device" : `${plan.maxDevices} devices`}
+                      </span>
+                      {featured ? <span className="pkg-chip pkg-chip-hot">Best value</span> : null}
+                    </div>
+                    <h3 className="pkg-card-name">{plan.name}</h3>
+                    <p className="pkg-card-device">
+                      {plan.maxDevices <= 1
+                        ? "Single user · 1 concurrent signed-in device"
+                        : `Team ready · up to ${plan.maxDevices} concurrent devices`}
+                    </p>
+                  </div>
+
+                  <div className="pkg-card-price">
+                    <span className="pkg-price-amount">${price}</span>
+                    <span className="pkg-price-unit">
+                      /{interval === "monthly" ? "mo" : "yr"}
+                    </span>
+                    {interval === "yearly" && perMonth != null ? (
+                      <span className="pkg-price-note">
+                        ≈ ${perMonth}/mo
+                        {save > 0 ? ` · save ${save}%` : ""}
+                      </span>
+                    ) : (
+                      <span className="pkg-price-note">Billed {interval}</span>
+                    )}
+                  </div>
+
+                  <ul className="pkg-features">
+                    {features.map((f) => (
+                      <li key={f}>
+                        <span className="pkg-check" aria-hidden>
+                          ✓
+                        </span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {mode === "billing" ? (
+                    <button
+                      type="button"
+                      className={`pkg-cta${active ? " is-ghost" : ""}`}
+                      disabled={active || loading === plan.id}
+                      onClick={() => checkout(plan.id)}
+                    >
+                      {active ? "Current plan" : loading === plan.id ? "Redirecting…" : "Choose plan"}
+                    </button>
+                  ) : (
+                    <Link href="/signup" className="pkg-cta">
+                      {compareCta || ctaLabel}
+                    </Link>
+                  )}
+                </article>
+              );
+            })}
+          </ScrollMeetSplit>
+        </section>
+      ))}
     </div>
   );
 }

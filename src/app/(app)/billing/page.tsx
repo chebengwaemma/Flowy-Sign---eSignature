@@ -36,7 +36,7 @@ export default async function BillingPage({
       <ScrollMeetBlock side="left" distance={90}>
         <h1 className="display text-3xl sm:text-4xl">Billing</h1>
         <p className="mt-1 text-muted">
-          Pro · 1 device, and Business · 5 devices or emails. Monthly and yearly are both listed. Prices in
+          Pro and Business — each with a 1-device or 5-device tier. All paid features are unlimited. Prices in
           USD
           {stripeStatus.testMode
             ? " · test mode."
