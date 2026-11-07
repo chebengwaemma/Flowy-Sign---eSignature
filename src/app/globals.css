@@ -2521,11 +2521,52 @@ body:has(.admin-nav-mobile) {
   overflow: hidden;
 }
 
-.fields-layout .doc-page-list {
+.fields-layout .doc-page-stage {
   flex: 1 1 auto;
   height: auto;
-  max-height: none;
   min-height: 0;
+}
+
+.doc-page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 800;
+}
+
+.doc-page-jump input {
+  width: 3.4rem;
+  border: 1px solid #d9d4cf;
+  border-radius: 8px;
+  padding: 0.28rem 0.2rem;
+  text-align: center;
+  font-weight: 800;
+  color: #0b1220;
+  background: #fff;
+}
+
+.doc-page-stage {
+  flex: 1 1 auto;
+  min-height: 280px;
+  height: min(70dvh, 860px);
+  overflow: auto;
+  background: #e7eeeb;
+  border: 1px solid #ebe8e5;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.doc-page-sheet {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-page-sheet .doc-page {
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(6, 41, 37, 0.12);
 }
 
 .doc-page-list {

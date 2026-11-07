@@ -130,32 +130,18 @@ export function PdfPageStack({
   renderOverlay: (page: number) => ReactNode;
 }) {
   const source = src || dataUrl || "";
-  const listRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PdfDoc | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
   const [error, setError] = useState("");
   const [current, setCurrent] = useState(1);
+  const [jump, setJump] = useState("1");
 
-  function scrollToPage(number: number) {
-    const list = listRef.current;
-    const el = list?.querySelector<HTMLElement>(`[data-page-wrap="${number}"]`);
-    if (!list || !el) return;
-    const top = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
-    list.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
-    setCurrent(number);
-  }
-
-  function onListScroll() {
-    const list = listRef.current;
-    if (!list) return;
-    const marks = [...list.querySelectorAll<HTMLElement>("[data-page-wrap]")];
-    const edge = list.getBoundingClientRect().top + 24;
-    let seen = 1;
-    for (const mark of marks) {
-      const box = mark.getBoundingClientRect();
-      if (box.top - edge <= 0) seen = Number(mark.dataset.pageWrap || seen);
-    }
-    setCurrent(seen);
+  function showPage(number: number) {
+    const next = Math.min(pages.length || 1, Math.max(1, Math.floor(number) || 1));
+    setCurrent(next);
+    setJump(String(next));
+    if (stageRef.current) stageRef.current.scrollTop = 0;
   }
 
   useEffect(() => {
@@ -223,46 +209,59 @@ export function PdfPageStack({
 
   useEffect(() => {
     if (!pages.length) return;
-    const list = listRef.current;
-    if (list) list.scrollTop = 0;
     setCurrent(1);
+    setJump("1");
+    if (stageRef.current) stageRef.current.scrollTop = 0;
   }, [pages]);
 
   if (!source) return null;
   if (error) return <p className="p-4 text-sm text-muted">{error}</p>;
   if (!pdf || !pages.length) return <p className="p-4 text-sm text-muted">Opening document…</p>;
 
+  const page = pages[current - 1] || pages[0];
+  if (!page) return null;
+
   return (
     <div className="doc-page-scroller">
       <div className="doc-page-nav">
-        <button type="button" onClick={() => scrollToPage(Math.max(1, current - 1))} disabled={current <= 1}>
+        <button type="button" onClick={() => showPage(current - 1)} disabled={current <= 1}>
           Previous page
         </button>
-        <span>
-          Page {current} of {pages.length}
-        </span>
-        <button
-          type="button"
-          onClick={() => scrollToPage(Math.min(pages.length, current + 1))}
-          disabled={current >= pages.length}
+        <form
+          className="doc-page-jump"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const field = e.currentTarget.elements.namedItem("page");
+            const raw = field instanceof HTMLInputElement ? field.value : jump;
+            showPage(Number(raw));
+          }}
         >
+          <span>Page</span>
+          <input
+            name="page"
+            aria-label="Page number"
+            inputMode="numeric"
+            value={jump}
+            onChange={(e) => setJump(e.target.value.replace(/[^\d]/g, ""))}
+            onBlur={(e) => showPage(Number(e.currentTarget.value))}
+          />
+          <span>of {pages.length}</span>
+        </form>
+        <button type="button" onClick={() => showPage(current + 1)} disabled={current >= pages.length}>
           Next page
         </button>
       </div>
-      <div className="doc-page-list" ref={listRef} onScroll={onListScroll}>
-        <div className="doc-pages">
-          {pages.map((page) => (
-            <div key={page.number} className="doc-page-wrap" data-page-wrap={page.number}>
-              <p className="doc-page-label">Page {page.number}</p>
-              <PdfPageCanvas
-                pdf={pdf}
-                page={page}
-                eager={page.number <= 2}
-                onPlace={onPlace}
-                overlay={renderOverlay(page.number)}
-              />
-            </div>
-          ))}
+      <div className="doc-page-stage" ref={stageRef}>
+        <div className="doc-page-sheet" data-page-wrap={page.number}>
+          <p className="doc-page-label">Page {page.number}</p>
+          <PdfPageCanvas
+            key={page.number}
+            pdf={pdf}
+            page={page}
+            eager
+            onPlace={onPlace}
+            overlay={renderOverlay(page.number)}
+          />
         </div>
       </div>
     </div>
