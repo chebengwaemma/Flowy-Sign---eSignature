@@ -84,6 +84,10 @@ export interface User {
   maxConcurrentSessions?: number | null;
   packageActivatedAt?: string;
   packageExpiresAt?: string | null;
+  resetTokenHash?: string;
+  resetTokenExpires?: string;
+  /** Stripe Checkout session already emailed, so confirm + webhook do not double-send */
+  lastBillingEmailSessionId?: string;
 }
 
 /** Concurrent login / device tracking */
@@ -221,6 +225,8 @@ export interface Document {
   fileKind?: DocFileKind;
   /** Original upload as data URL (image/pdf) — kept intact; marks overlay only */
   fileDataUrl?: string;
+  /** Large original stored outside the platform document */
+  fileId?: string;
   fileName?: string;
   fields: SignatureField[];
   recipients: Recipient[];

@@ -1077,11 +1077,12 @@ textarea.field {
 }
 
 .send-wizard {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  overflow-x: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   background:
     radial-gradient(800px 360px at 100% 0%, rgba(31, 169, 122, 0.08), transparent 55%),
     #fff;
@@ -1189,7 +1190,9 @@ textarea.field {
 .send-body {
   padding: 1.75rem 1.25rem 2rem;
   min-width: 0;
-  overflow-x: hidden;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .send-panel {
@@ -1636,6 +1639,15 @@ textarea.field {
   cursor: default;
 }
 
+.doc-canvas.doc-scroll {
+  overflow: auto;
+  max-height: min(72dvh, 920px);
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #ebe8e5;
+  border-radius: 14px;
+  background: #e7eeeb;
+}
+
 .doc-canvas {
   position: relative;
   min-height: 420px;
@@ -1776,6 +1788,14 @@ textarea.field {
   margin-top: 1rem;
   color: var(--bad);
   font-size: 0.9rem;
+}
+
+.send-next-hint {
+  margin: 0.35rem 0 0;
+  max-width: 28rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: #9a3412;
 }
 
 .send-footer {
@@ -2395,7 +2415,9 @@ body:has(.admin-nav-mobile) {
 
 .doc-surface {
   position: relative;
-  overflow: hidden;
+  overflow: auto;
+  max-height: min(78dvh, 980px);
+  -webkit-overflow-scrolling: touch;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: #fff;
@@ -2440,9 +2462,24 @@ body:has(.admin-nav-mobile) {
 .doc-pages {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   background: #e7eeeb;
   padding: 12px;
+}
+
+.doc-page-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-page-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3d4a46;
 }
 
 .doc-page {
@@ -3485,13 +3522,20 @@ body:has(.admin-nav-mobile) {
 }
 
 .pkg-card-name {
-  margin: 0 0 0.35rem;
+  margin: 0.35rem 0 0;
   padding: 0;
   font-family: var(--font-display), Georgia, serif;
   font-size: clamp(1.35rem, 2.2vw, 1.7rem);
   letter-spacing: -0.03em;
   line-height: 1.2;
-  color: var(--ink);
+}
+
+.pkg-period {
+  margin: 0.35rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0b1220;
 }
 
 .pkg-card-device {

@@ -65,6 +65,7 @@ export default async function DocumentDetailPage({
             content={doc.content}
             fileKind={doc.fileKind}
             fileDataUrl={doc.fileDataUrl}
+            fileId={doc.fileId}
             fields={fields}
             highlightPending
           />

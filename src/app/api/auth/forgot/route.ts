@@ -1,0 +1,58 @@
+import { createHash, randomBytes } from "crypto";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getEmailConfig, sendEmail } from "@/lib/email";
+import { getSiteSettings } from "@/lib/get-marketing";
+import { findUserByEmail, updateStore } from "@/lib/store";
+
+export const dynamic = "force-dynamic";
+
+const schema = z.object({
+  email: z.string().email(),
+});
+
+function appOrigin() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://flowysign.com";
+  return raw.replace(/\/$/, "");
+}
+
+export async function POST(req: Request) {
+  const body = schema.safeParse(await req.json().catch(() => null));
+  if (!body.success) {
+    return NextResponse.json({ error: "Enter the email on your account" }, { status: 400 });
+  }
+
+  const user = await findUserByEmail(body.data.email);
+  if (user && user.password) {
+    const token = randomBytes(24).toString("hex");
+    const resetTokenHash = createHash("sha256").update(token).digest("hex");
+    const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    await updateStore((store) => {
+      const row = store.users.find((u) => u.id === user.id);
+      if (!row) return;
+      row.resetTokenHash = resetTokenHash;
+      row.resetTokenExpires = resetTokenExpires;
+    });
+
+    const site = await getSiteSettings();
+    const { apiKey, from } = getEmailConfig(site);
+    const brand = site.brandName || "Flowy Sign - eSignature";
+    const link = `${appOrigin()}/reset-password?token=${token}`;
+    await sendEmail({
+      to: user.email,
+      subject: `Reset your ${brand} password`,
+      text: `Reset your password: ${link}\n\nThis link works for 1 hour.`,
+      html: `<div style="font-family:system-ui,sans-serif;line-height:1.55;color:#0b1220;max-width:560px">
+        <p>Reset your ${brand} password. This link works for 1 hour.</p>
+        <p style="margin:24px 0"><a href="${link}" style="display:inline-block;background:#0284c7;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">Choose a new password</a></p>
+      </div>`,
+      apiKey,
+      from,
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    message: "If that email has a password account, a reset link is on the way.",
+  });
+}

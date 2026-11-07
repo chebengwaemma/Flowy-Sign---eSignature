@@ -12,6 +12,7 @@ const createSchema = z.object({
   content: z.string().min(1),
   fileKind: z.enum(["text", "image", "pdf"]).optional(),
   fileDataUrl: z.string().optional(),
+  fileId: z.string().optional(),
   fileName: z.string().optional(),
   recipients: z
     .array(
@@ -44,7 +45,7 @@ const createSchema = z.object({
         y: z.number(),
         width: z.number().optional(),
         height: z.number().optional(),
-        page: z.number().int().min(1).max(50).optional(),
+        page: z.number().int().min(1).max(200).optional(),
       }),
     )
     .optional(),
@@ -71,11 +72,18 @@ export async function POST(req: Request) {
   if (fileKind === "text" && body.data.content.trim().length < 10) {
     return NextResponse.json({ error: "Document content too short" }, { status: 400 });
   }
-  if ((fileKind === "image" || fileKind === "pdf") && !body.data.fileDataUrl) {
+  if ((fileKind === "image" || fileKind === "pdf") && !body.data.fileDataUrl && !body.data.fileId) {
     return NextResponse.json({ error: "File data required" }, { status: 400 });
   }
-  if (body.data.fileDataUrl && body.data.fileDataUrl.length > 6_000_000) {
-    return NextResponse.json({ error: "File too large (max ~4MB)" }, { status: 400 });
+  if (body.data.fileId) {
+    const { readStoredFile } = await import("@/lib/file-bin");
+    const stored = await readStoredFile(body.data.fileId);
+    if (!stored || stored.ownerId !== user.id) {
+      return NextResponse.json({ error: "Uploaded file was not found. Try the upload again." }, { status: 400 });
+    }
+  }
+  if (body.data.fileDataUrl && body.data.fileDataUrl.length > 6_000_000 && !body.data.fileId) {
+    return NextResponse.json({ error: "File too large. Upload it again so it can be stored in parts." }, { status: 400 });
   }
 
   if (body.data.send) {
@@ -151,7 +159,8 @@ export async function POST(req: Request) {
     status: body.data.send ? "sent" : "draft",
     content: body.data.content,
     fileKind,
-    fileDataUrl: body.data.fileDataUrl,
+    fileDataUrl: body.data.fileId ? undefined : body.data.fileDataUrl,
+    fileId: body.data.fileId,
     fileName: body.data.fileName,
     fields,
     recipients,

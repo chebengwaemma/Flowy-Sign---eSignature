@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { applyPaidPlan } from "@/lib/billing";
+import { maybeSendPurchaseEmail } from "@/lib/purchase-email";
 import { getStripe } from "@/lib/stripe";
 import type { BillingInterval, PlanId } from "@/lib/types";
 
@@ -52,6 +53,12 @@ export async function POST(req: Request) {
 
     const customer = typeof session.customer === "string" ? session.customer : undefined;
     await applyPaidPlan(user.id, user.orgId, plan, interval, customer);
+    await maybeSendPurchaseEmail({
+      userId: user.id,
+      sessionId: session.id,
+      plan,
+      interval,
+    });
 
     return NextResponse.json({
       result: "success",

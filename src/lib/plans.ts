@@ -20,7 +20,7 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 5;
+export const PLAN_CATALOG_VERSION = 6;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -51,8 +51,8 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     name: "Pro · 1 device",
     category: "pro",
     maxDevices: 1,
-    monthly: 29,
-    yearly: 278,
+    monthly: 12,
+    yearly: 120,
     docs: -1,
     downloads: -1,
     faxes: -1,
@@ -74,7 +74,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     faxes: -1,
     seats: -1,
     features: [...UNLIMITED_FEATURES],
-    visible: true,
+    visible: false,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
@@ -90,7 +90,7 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     faxes: -1,
     seats: -1,
     features: [...UNLIMITED_FEATURES, "Priority support"],
-    visible: true,
+    visible: false,
     stripePriceMonthly: "",
     stripePriceYearly: "",
   },
@@ -99,8 +99,8 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     name: "Business · 5 devices",
     category: "business",
     maxDevices: 5,
-    monthly: 89,
-    yearly: 854,
+    monthly: 30,
+    yearly: 240,
     docs: -1,
     downloads: -1,
     faxes: -1,
@@ -188,28 +188,23 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[]): PlanDefinition[] 
         visible: false,
       });
     }
-    // Only keep prices from classic pro/business rows — never inherit Starter $ onto pro_5
-    const keepPrice = base.id === "pro" || base.id === "business";
+    const keepStripe = base.id === "pro" || base.id === "business_5";
     return withSyncedPlanFeatures({
       ...base,
       id: base.id,
       category: base.category,
       name: base.name,
       maxDevices: base.maxDevices,
-      monthly: keepPrice ? numOr(over.monthly, base.monthly) : base.monthly,
-      yearly: keepPrice ? numOr(over.yearly, base.yearly) : base.yearly,
+      monthly: base.monthly,
+      yearly: base.yearly,
       docs: -1,
       downloads: -1,
       faxes: -1,
       seats: -1,
       features: [...base.features],
-      stripePriceMonthly: keepPrice
-        ? String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? "")
-        : String(base.stripePriceMonthly ?? ""),
-      stripePriceYearly: keepPrice
-        ? String(over.stripePriceYearly ?? base.stripePriceYearly ?? "")
-        : String(base.stripePriceYearly ?? ""),
-      visible: true,
+      stripePriceMonthly: keepStripe ? String(over.stripePriceMonthly ?? "") : "",
+      stripePriceYearly: keepStripe ? String(over.stripePriceYearly ?? "") : "",
+      visible: base.visible,
     });
   });
 }

@@ -22,6 +22,7 @@ type Payload = {
     status: string;
     fileKind?: DocFileKind;
     fileDataUrl?: string;
+    fileId?: string;
     fileName?: string;
     fields: SignFieldView[];
     completedAt?: string;
@@ -125,6 +126,8 @@ export default function SignPage() {
             content={data.document.content}
             fileKind={data.document.fileKind}
             fileDataUrl={data.document.fileDataUrl}
+            fileId={data.document.fileId}
+            fileAccess={params.token}
             fields={data.document.fields.map((f) => ({
               ...f,
               type: f.type as "signature" | "initials" | "date" | "text",

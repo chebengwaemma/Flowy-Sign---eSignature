@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
   CircleHelp,
@@ -32,7 +32,9 @@ type SelectedDoc = {
   sizeLabel: string;
   content: string;
   fileKind: "text" | "image" | "pdf";
-  fileDataUrl?: string;
+  size: number;
+  previewUrl?: string;
+  localFile?: File;
   fileName?: string;
 };
 
@@ -85,6 +87,8 @@ Fees are due as invoiced.
 3. Signatures
 By signing below, each party agrees to these terms.`;
 
+const MAX_UPLOAD_BYTES = 32 * 1024 * 1024;
+
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -95,9 +99,46 @@ function formatBytes(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step));
+  }
+  return btoa(binary);
+}
+
+async function uploadLocalFile(file: File) {
+  const uploadId = uid() + uid();
+  const chunkSize = 2 * 1024 * 1024;
+  const total = Math.max(1, Math.ceil(file.size / chunkSize));
+  const mime =
+    file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
+  for (let index = 0; index < total; index++) {
+    const slice = file.slice(index * chunkSize, index * chunkSize + chunkSize);
+    const data = bytesToBase64(new Uint8Array(await slice.arrayBuffer()));
+    const res = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uploadId, index, total, fileName: file.name, mime, data }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "Upload failed");
+  }
+  const done = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadId, finalize: true, total, fileName: file.name, mime }),
+  });
+  const saved = await done.json().catch(() => ({}));
+  if (!done.ok || !saved.fileId) throw new Error(saved.error || "Upload failed");
+  return saved.fileId as string;
+}
+
 export function SendWizard() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(0);
   const [docs, setDocs] = useState<SelectedDoc[]>([]);
   const [signers, setSigners] = useState<Signer[]>([
@@ -120,39 +161,53 @@ export function SendWizard() {
     return true;
   }, [step, docs, signers, fields]);
 
+  const nextHint = useMemo(() => {
+    if (canNext) return "";
+    if (step === 0) return "Upload a document to continue.";
+    if (step === 1) return "Enter a name and email for every signer.";
+    if (step === 2) return "Place at least one signature field, then continue.";
+    return "";
+  }, [canNext, step]);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [step]);
+
   async function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
     const next: SelectedDoc[] = [];
     for (const file of Array.from(fileList)) {
       const baseName = file.name.replace(/\.[^.]+$/, "") || file.name;
       if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) {
-        if (file.size > 4 * 1024 * 1024) {
-          setError("Images must be under 4 MB");
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError("Images must be under 32 MB");
           continue;
         }
-        const fileDataUrl = await readFileAsDataUrl(file);
         next.push({
           id: uid(),
           name: baseName,
           sizeLabel: formatBytes(file.size),
+          size: file.size,
           content: `[Image document: ${file.name}]`,
           fileKind: "image",
-          fileDataUrl,
+          previewUrl: URL.createObjectURL(file),
+          localFile: file,
           fileName: file.name,
         });
       } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-        if (file.size > 4 * 1024 * 1024) {
-          setError("PDFs must be under 4 MB");
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setError("PDFs must be under 32 MB. Compress the file and try again.");
           continue;
         }
-        const fileDataUrl = await readFileAsDataUrl(file);
         next.push({
           id: uid(),
           name: baseName,
           sizeLabel: formatBytes(file.size),
-          content: `[PDF document: ${file.name}]\n\nOriginal PDF is stored intact. Place signature fields on the preview page.`,
+          size: file.size,
+          content: `[PDF document: ${file.name}]`,
           fileKind: "pdf",
-          fileDataUrl,
+          previewUrl: URL.createObjectURL(file),
+          localFile: file,
           fileName: file.name,
         });
       } else {
@@ -164,6 +219,7 @@ export function SendWizard() {
           id: uid(),
           name: baseName,
           sizeLabel: formatBytes(file.size),
+          size: file.size,
           content,
           fileKind: "text",
           fileName: file.name,
@@ -180,19 +236,11 @@ export function SendWizard() {
         id: uid(),
         name: "Service Agreement",
         sizeLabel: "24 KB",
+        size: 24_000,
         content: DEFAULT_CONTENT,
         fileKind: "text",
       },
     ]);
-  }
-
-  function readFileAsDataUrl(file: File) {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
   }
 
   function placeAt(page: number, xPct: number, yPct: number) {
@@ -319,6 +367,16 @@ export function SendWizard() {
     setError("");
     setUpgradeNeeded(false);
     const primary = docs[0];
+    let fileId: string | undefined;
+    if (primary?.localFile) {
+      try {
+        fileId = await uploadLocalFile(primary.localFile);
+      } catch (err) {
+        setLoading(false);
+        setError(err instanceof Error ? err.message : "Upload failed");
+        return;
+      }
+    }
     const signerIndex = (signerId: string) => signers.findIndex((s) => s.id === signerId);
     const res = await fetch("/api/documents", {
       method: "POST",
@@ -327,7 +385,7 @@ export function SendWizard() {
         title: primary?.name || "Signature request",
         content: docs.map((d) => d.content).join("\n\n---\n\n"),
         fileKind: primary?.fileKind || "text",
-        fileDataUrl: primary?.fileDataUrl,
+        fileId,
         fileName: primary?.fileName,
         send: true,
         recipients: signers.map((s) => ({
@@ -451,7 +509,7 @@ export function SendWizard() {
         </button>
       </header>
 
-      <main className="send-body">
+      <main className="send-body" ref={bodyRef}>
         {step === 0 && (
           <section className="send-panel rise">
             <h1>Select documents to be signed</h1>
@@ -675,18 +733,18 @@ export function SendWizard() {
                 ))}
               </div>
             </div>
-            <div className="doc-canvas doc-canvas-plain">
-              {docs[0]?.fileKind === "pdf" && docs[0].fileDataUrl ? (
+            <div className="doc-canvas doc-canvas-plain doc-scroll">
+              {docs[0]?.fileKind === "pdf" && docs[0].previewUrl ? (
                 <PdfPageStack
-                  dataUrl={docs[0].fileDataUrl}
+                  src={docs[0].previewUrl}
                   onPlace={placeAt}
                   renderOverlay={(page) => placedFields(page)}
                 />
               ) : (
                 <div className="doc-page" data-page={1} onClick={placeField}>
-                  {docs[0]?.fileKind === "image" && docs[0].fileDataUrl ? (
+                  {docs[0]?.fileKind === "image" && docs[0].previewUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={docs[0].fileDataUrl} alt="" className="doc-page-media" />
+                    <img src={docs[0].previewUrl} alt="" className="doc-page-media" />
                   ) : (
                     <pre className="doc-surface-text">{docs[0]?.content || DEFAULT_CONTENT}</pre>
                   )}
@@ -746,6 +804,7 @@ export function SendWizard() {
               Back
             </button>
           )}
+          {nextHint ? <p className="send-next-hint">{nextHint}</p> : null}
         </div>
         {step < 3 ? (
           <button

@@ -98,31 +98,62 @@ function PdfPageCanvas({
 /** Renders each PDF page at its real aspect ratio so marks sit on the page, not the viewer chrome. */
 export function PdfPageStack({
   dataUrl,
+  src,
   onPlace,
   renderOverlay,
 }: {
-  dataUrl: string;
+  dataUrl?: string;
+  /** blob: or https URL. Used instead of a data URL for large files. */
+  src?: string;
   onPlace?: (page: number, xPct: number, yPct: number) => void;
   renderOverlay: (page: number) => ReactNode;
 }) {
+  const source = src || dataUrl || "";
   const [pdf, setPdf] = useState<PdfDoc | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    let loaded: PdfDoc | null = null;
+    let closed = false;
+    let task: { destroy?: () => unknown; promise: Promise<unknown> } | null = null;
+
+    function close() {
+      if (closed) return;
+      closed = true;
+      const pending = task;
+      task = null;
+      try {
+        const done = pending?.destroy?.();
+        if (done && typeof (done as Promise<unknown>).catch === "function") {
+          void (done as Promise<unknown>).catch(() => {});
+        }
+      } catch {
+        /* viewer already closed */
+      }
+    }
+
     setPdf(null);
     setPages([]);
     setError("");
+    if (!source) return;
     void (async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-        const bytes = dataUrlToBytes(dataUrl);
-        if (!bytes) throw new Error("Could not read this PDF");
-        const doc = (await pdfjs.getDocument({ data: bytes }).promise) as unknown as PdfDoc;
-        loaded = doc;
+        task = (
+          source.startsWith("data:")
+            ? pdfjs.getDocument({ data: dataUrlToBytes(source) || undefined })
+            : pdfjs.getDocument({
+                url: source,
+                withCredentials: !source.startsWith("blob:"),
+              })
+        ) as { destroy?: () => unknown; promise: Promise<unknown> };
+        const doc = (await task.promise) as unknown as PdfDoc;
+        if (cancelled) {
+          close();
+          return;
+        }
         const next: PageInfo[] = [];
         for (let n = 1; n <= doc.numPages; n++) {
           const page = await doc.getPage(n);
@@ -130,7 +161,7 @@ export function PdfPageStack({
           next.push({ number: n, width: view.width, height: view.height });
         }
         if (cancelled) {
-          doc.destroy();
+          close();
           return;
         }
         setPdf(doc);
@@ -141,23 +172,26 @@ export function PdfPageStack({
     })();
     return () => {
       cancelled = true;
-      loaded?.destroy();
+      close();
     };
-  }, [dataUrl]);
+  }, [source]);
 
+  if (!source) return null;
   if (error) return <p className="p-4 text-sm text-muted">{error}</p>;
   if (!pdf || !pages.length) return <p className="p-4 text-sm text-muted">Opening document…</p>;
 
   return (
     <div className="doc-pages">
       {pages.map((page) => (
-        <PdfPageCanvas
-          key={page.number}
-          pdf={pdf}
-          page={page}
-          onPlace={onPlace}
-          overlay={renderOverlay(page.number)}
-        />
+        <div key={page.number} className="doc-page-wrap">
+          <p className="doc-page-label">Page {page.number}</p>
+          <PdfPageCanvas
+            pdf={pdf}
+            page={page}
+            onPlace={onPlace}
+            overlay={renderOverlay(page.number)}
+          />
+        </div>
       ))}
     </div>
   );

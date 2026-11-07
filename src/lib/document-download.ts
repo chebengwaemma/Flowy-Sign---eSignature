@@ -1,4 +1,5 @@
 import type { Document } from "./types";
+import { readStoredFile } from "./file-bin";
 import { buildSignedDocumentHtml } from "./signed-download";
 import { dataUrlBytes, stampSignatures } from "./stamp-signed-file";
 
@@ -13,11 +14,25 @@ export async function buildDocumentDownload(doc: Document): Promise<{
   mime: string;
   body: Buffer | string;
 }> {
-  if (doc.fileDataUrl) {
+  let mime = "";
+  let bytes: Uint8Array | null = null;
+  if (doc.fileId) {
+    const stored = await readStoredFile(doc.fileId);
+    if (stored) {
+      mime = stored.mime;
+      bytes = stored.bytes;
+    }
+  }
+  if (!bytes && doc.fileDataUrl) {
     const parsed = dataUrlBytes(doc.fileDataUrl);
     if (parsed) {
+      mime = parsed.mime;
+      bytes = parsed.bytes;
+    }
+  }
+  if (bytes && mime) {
       try {
-        const stamped = await stampSignatures(doc, parsed.mime, parsed.bytes);
+        const stamped = await stampSignatures(doc, mime, bytes);
         if (stamped) {
           return {
             filename: safeName(doc.title, stamped.ext.startsWith("-") ? stamped.ext : `-signed${stamped.ext}`),
@@ -32,14 +47,13 @@ export async function buildDocumentDownload(doc: Document): Promise<{
         doc.fileKind === "pdf"
           ? ".pdf"
           : doc.fileKind === "image"
-            ? mimeToExt(parsed.mime)
+            ? mimeToExt(mime)
             : "";
       return {
-        filename: safeName(doc.fileName || doc.title, ext || mimeToExt(parsed.mime)),
-        mime: parsed.mime,
-        body: Buffer.from(parsed.bytes),
+        filename: safeName(doc.fileName || doc.title, ext || mimeToExt(mime)),
+        mime,
+        body: Buffer.from(bytes),
       };
-    }
   }
 
   if (doc.status === "completed") {

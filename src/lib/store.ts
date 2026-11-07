@@ -198,6 +198,7 @@ function normalizeStore(raw: unknown): PlatformStore {
       content: d?.content || "",
       fileKind: d?.fileKind,
       fileDataUrl: d?.fileDataUrl,
+      fileId: d?.fileId,
       fileName: d?.fileName,
       fields: Array.isArray(d?.fields) ? d.fields : [],
       recipients: Array.isArray(d?.recipients) ? d.recipients : [],

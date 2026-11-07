@@ -40,7 +40,7 @@ export function AppHeader({
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         )}
-        <Logo href="/dashboard" compact label={brandName} />
+        <Logo href="/" compact label={brandName} />
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {showUpgrade && plan !== "business" && (

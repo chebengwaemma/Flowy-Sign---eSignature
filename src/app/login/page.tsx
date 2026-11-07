@@ -156,6 +156,11 @@ function LoginForm() {
                 required
               />
             </div>
+            <p className="text-right text-sm">
+              <Link href="/forgot-password" className="font-semibold text-accent-deep">
+                Forgot password?
+              </Link>
+            </p>
             {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
             <button className="btn btn-primary w-full" disabled={loading}>
               {loading ? "Signing in…" : "Log in"}

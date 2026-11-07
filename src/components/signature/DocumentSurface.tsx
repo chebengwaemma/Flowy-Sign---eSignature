@@ -4,6 +4,7 @@ import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerE
 import type { DocFileKind, SignatureField, SignatureMark } from "@/lib/types";
 import { FitSignatureText } from "@/components/signature/FitSignatureText";
 import { PdfPageStack } from "@/components/signature/PdfPageStack";
+import { loadStoredFileUrl } from "@/lib/load-stored-file";
 
 type FieldView = Pick<
   SignatureField,
@@ -21,6 +22,8 @@ export function DocumentSurface({
   content,
   fileKind = "text",
   fileDataUrl,
+  fileId,
+  fileAccess,
   fields,
   interactive = false,
   onPlace,
@@ -34,6 +37,9 @@ export function DocumentSurface({
   content: string;
   fileKind?: DocFileKind;
   fileDataUrl?: string;
+  fileId?: string;
+  /** Signer token, so a recipient can open a large file without an account */
+  fileAccess?: string;
   fields: FieldView[];
   interactive?: boolean;
   onPlace?: (xPct: number, yPct: number, page?: number) => void;
@@ -53,11 +59,34 @@ export function DocumentSurface({
   movableFieldTypes?: Array<FieldView["type"]>;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const [remoteUrl, setRemoteUrl] = useState("");
+  const [fileError, setFileError] = useState("");
   const [dragPos, setDragPos] = useState<
     Record<string, { x: number; y: number; width?: number; height?: number }>
   >({});
   const canMoveType = (type: FieldView["type"]) =>
     (movableFieldTypes || ["signature", "initials", "date", "text"]).includes(type);
+
+  useEffect(() => {
+    if (!fileId || fileDataUrl) return;
+    let cancelled = false;
+    let created = "";
+    setFileError("");
+    setRemoteUrl("");
+    loadStoredFileUrl(fileId, fileAccess)
+      .then((url) => {
+        created = url;
+        if (cancelled) URL.revokeObjectURL(url);
+        else setRemoteUrl(url);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setFileError(err.message || "Could not open the file");
+      });
+    return () => {
+      cancelled = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [fileId, fileAccess, fileDataUrl]);
 
   useEffect(() => {
     setDragPos((prev) => {
@@ -308,11 +337,13 @@ export function DocumentSurface({
         });
   }
 
+  const source = fileDataUrl || remoteUrl;
+
   const staticPage = (
     <div className="doc-page" data-page={1} onClick={interactive ? handleClick : undefined}>
-      {fileKind === "image" && fileDataUrl ? (
+      {fileKind === "image" && source ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={fileDataUrl} alt="Document" className="doc-page-media" />
+        <img src={source} alt="Document" className="doc-page-media" />
       ) : (
         <pre className="doc-surface-text">{content}</pre>
       )}
@@ -322,15 +353,19 @@ export function DocumentSurface({
 
   return (
     <div ref={surfaceRef} className={`doc-surface ${interactive ? "is-interactive" : ""}`}>
-      {fileKind === "pdf" && fileDataUrl ? (
+      {fileError ? <p className="p-4 text-sm text-muted">{fileError}</p> : null}
+      {fileKind === "pdf" && fileId && !source && !fileError ? (
+        <p className="p-4 text-sm text-muted">Opening document…</p>
+      ) : null}
+      {fileKind === "pdf" && source ? (
         <PdfPageStack
-          dataUrl={fileDataUrl}
+          src={source}
           onPlace={interactive && onPlace ? (page, x, y) => onPlace(x, y, page) : undefined}
           renderOverlay={marksFor}
         />
-      ) : (
+      ) : source || fileKind !== "pdf" ? (
         staticPage
-      )}
+      ) : null}
     </div>
   );
 }
