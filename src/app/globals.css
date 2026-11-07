@@ -1599,22 +1599,46 @@ textarea.field {
 }
 
 .fields-layout {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   min-height: 0;
 }
 
 .send-body:has(.fields-layout) {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  overflow: auto;
 }
 
-.send-body:has(.fields-layout) > .fields-layout {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
+.place-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.place-doc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.place-doc-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #0b3d38;
+}
+
+.place-doc-index {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #147a58;
+}
+
+.place-doc .doc-canvas.doc-canvas-plain.doc-scroll {
+  height: min(68dvh, 760px);
+  min-height: 280px;
+  overflow: hidden;
 }
 
 .field-tools,

@@ -48,6 +48,7 @@ type Signer = {
 
 type Field = {
   id: string;
+  docId: string;
   type: "signature" | "date" | "initials" | "text";
   signerId: string;
   x: number;
@@ -157,7 +158,8 @@ export function SendWizard() {
     if (step === 0) return docs.length > 0;
     if (step === 1)
       return signers.every((s) => s.name.trim() && s.email.includes("@")) && signers.length > 0;
-    if (step === 2) return fields.some((f) => f.type === "signature");
+    if (step === 2)
+      return docs.every((doc) => fields.some((f) => f.docId === doc.id && f.type === "signature"));
     return true;
   }, [step, docs, signers, fields]);
 
@@ -165,7 +167,7 @@ export function SendWizard() {
     if (canNext) return "";
     if (step === 0) return "Upload a document to continue.";
     if (step === 1) return "Enter a name and email for every signer.";
-    if (step === 2) return "Place at least one signature field, then continue.";
+    if (step === 2) return "Place at least one signature field on every document.";
     return "";
   }, [canNext, step]);
 
@@ -243,8 +245,8 @@ export function SendWizard() {
     ]);
   }
 
-  function placeAt(page: number, xPct: number, yPct: number) {
-    if (!signers[activeSigner]) return;
+  function placeAt(docId: string, page: number, xPct: number, yPct: number) {
+    if (!signers[activeSigner] || !docId) return;
     const size = DEFAULT_FIELD_SIZE[fieldTool];
     const x = xPct - size.width / 2;
     const y = yPct - size.height / 2;
@@ -252,6 +254,7 @@ export function SendWizard() {
       ...prev,
       {
         id: uid(),
+        docId,
         type: fieldTool,
         signerId: signers[activeSigner].id,
         page,
@@ -269,7 +272,7 @@ export function SendWizard() {
     if (!rect.width || !rect.height) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    placeAt(Number(e.currentTarget.dataset.page || 1), x, y);
+    placeAt(e.currentTarget.dataset.doc || "", Number(e.currentTarget.dataset.page || 1), x, y);
   }
 
   function startResize(
@@ -366,78 +369,68 @@ export function SendWizard() {
     setLoading(true);
     setError("");
     setUpgradeNeeded(false);
-    const primary = docs[0];
-    let fileId: string | undefined;
-    if (primary?.localFile) {
-      try {
-        fileId = await uploadLocalFile(primary.localFile);
-      } catch (err) {
+    const signerIndex = (signerId: string) => signers.findIndex((s) => s.id === signerId);
+    const made: string[] = [];
+    for (const doc of docs) {
+      let fileId: string | undefined;
+      if (doc.localFile) {
+        try {
+          fileId = await uploadLocalFile(doc.localFile);
+        } catch (err) {
+          setLoading(false);
+          setError(err instanceof Error ? err.message : "Upload failed");
+          return;
+        }
+      }
+      const docFields = fields.filter((f) => f.docId === doc.id);
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: doc.name || "Signature request",
+          content: doc.content,
+          fileKind: doc.fileKind,
+          fileId,
+          fileName: doc.fileName,
+          send: true,
+          recipients: signers.map((s) => ({
+            name: s.name.trim(),
+            email: s.email.trim(),
+            preferredSignatureStyle: s.signatureStyle,
+          })),
+          fields: docFields.map((f) => ({
+            type: f.type,
+            signerIndex: Math.max(0, signerIndex(f.signerId)),
+            x: f.x,
+            y: f.y,
+            width: f.width,
+            height: f.height,
+            page: f.page || 1,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
         setLoading(false);
-        setError(err instanceof Error ? err.message : "Upload failed");
+        const why = data?.error || "Could not send";
+        setUpgradeNeeded(data?.code === "PLAN_REQUIRED" || data?.code === "SIGNATURE_LIMIT");
+        setError(made.length ? `${made.length} sent. “${doc.name}” failed: ${why}` : why);
         return;
       }
+      if (data?.document?.id) made.push(data.document.id);
     }
-    const signerIndex = (signerId: string) => signers.findIndex((s) => s.id === signerId);
-    const res = await fetch("/api/documents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: primary?.name || "Signature request",
-        content: docs.map((d) => d.content).join("\n\n---\n\n"),
-        fileKind: primary?.fileKind || "text",
-        fileId,
-        fileName: primary?.fileName,
-        send: true,
-        recipients: signers.map((s) => ({
-          name: s.name.trim(),
-          email: s.email.trim(),
-          preferredSignatureStyle: s.signatureStyle,
-        })),
-        fields: fields.map((f) => ({
-          type: f.type,
-          signerIndex: Math.max(0, signerIndex(f.signerId)),
-          x: f.x,
-          y: f.y,
-          width: f.width,
-          height: f.height,
-          page: f.page || 1,
-        })),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
     setLoading(false);
-    if (!res.ok) {
-      if (data?.code === "PLAN_REQUIRED" || data?.code === "SIGNATURE_LIMIT") {
-        setError(data?.error || "Buy a plan to send signatures.");
-        setUpgradeNeeded(true);
-      } else {
-        setError(data?.error || "Could not send");
-        setUpgradeNeeded(false);
-      }
-      return;
-    }
-    const docId = data?.document?.id;
-    if (!docId) {
+    if (!made.length) {
       setError("Document created but response was incomplete.");
       return;
     }
-    if (data?.inviteEmailDryRun) {
-      setError("Document saved, but email is not configured yet. Invites were not delivered.");
-      return;
-    }
-    if (typeof data?.inviteEmailsSent === "number" && data.inviteEmailsSent < signers.length) {
-      setError(
-        `Document saved, but only ${data.inviteEmailsSent} of ${signers.length} invite emails were delivered. Check recipient addresses and try resend.`,
-      );
-      return;
-    }
-    router.push(`/documents/${docId}`);
+    router.push(made.length === 1 ? `/documents/${made[0]}` : "/dashboard");
     router.refresh();
   }
 
-  function placedFields(page: number) {
+  function placedFields(docId: string, page: number) {
     return fields
-      .filter((f) => (f.page || 1) === page)
+      .filter((f) => f.docId === docId && (f.page || 1) === page)
       .map((f) => {
         const signer = signers.find((s) => s.id === f.signerId);
         return (
@@ -594,7 +587,10 @@ export function SendWizard() {
                       <button
                         type="button"
                         className="icon-quiet"
-                        onClick={() => setDocs((prev) => prev.filter((d) => d.id !== doc.id))}
+                        onClick={() => {
+                          setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+                          setFields((prev) => prev.filter((f) => f.docId !== doc.id));
+                        }}
                         aria-label="Remove"
                       >
                         <Trash2 size={16} />
@@ -705,7 +701,7 @@ export function SendWizard() {
             <div>
               <h1>Place fields</h1>
               <p className="send-sub">
-                Every page of the upload shows as its own page, numbered 1/20 or however many pages are in the file. Scroll, or use Previous page and Next page. Click a page to place a field.
+                Each uploaded document gets its own Place fields block, in the same order. Five files show five blocks. Click a page to place a field.
               </p>
               <div className="field-tools">
                 {(["signature", "initials", "date", "text"] as const).map((t) => (
@@ -733,24 +729,34 @@ export function SendWizard() {
                 ))}
               </div>
             </div>
-            <div className="doc-canvas doc-canvas-plain doc-scroll">
-              {docs[0]?.fileKind === "pdf" && docs[0].previewUrl ? (
-                <PdfPageStack
-                  src={docs[0].previewUrl}
-                  onPlace={placeAt}
-                  renderOverlay={(page) => placedFields(page)}
-                />
-              ) : (
-                <div className="doc-page" data-page={1} onClick={placeField}>
-                  {docs[0]?.fileKind === "image" && docs[0].previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={docs[0].previewUrl} alt="" className="doc-page-media" />
-                  ) : (
-                    <pre className="doc-surface-text">{docs[0]?.content || DEFAULT_CONTENT}</pre>
-                  )}
-                  <div className="doc-page-marks">{placedFields(1)}</div>
-                </div>
-              )}
+            <div className="place-docs">
+              {docs.map((doc, index) => (
+                <section className="place-doc" key={doc.id}>
+                  <div className="place-doc-head">
+                    <span className="place-doc-index">{index + 1}/{docs.length}</span>
+                    <h2>{doc.name}</h2>
+                  </div>
+                  <div className="doc-canvas doc-canvas-plain doc-scroll">
+                    {doc.fileKind === "pdf" && doc.previewUrl ? (
+                      <PdfPageStack
+                        src={doc.previewUrl}
+                        onPlace={(page, x, y) => placeAt(doc.id, page, x, y)}
+                        renderOverlay={(page) => placedFields(doc.id, page)}
+                      />
+                    ) : (
+                      <div className="doc-page" data-doc={doc.id} data-page={1} onClick={placeField}>
+                        {doc.fileKind === "image" && doc.previewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={doc.previewUrl} alt="" className="doc-page-media" />
+                        ) : (
+                          <pre className="doc-surface-text">{doc.content || DEFAULT_CONTENT}</pre>
+                        )}
+                        <div className="doc-page-marks">{placedFields(doc.id, 1)}</div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              ))}
             </div>
           </section>
         )}
@@ -780,7 +786,13 @@ export function SendWizard() {
               </div>
               <div className="review-card">
                 <h3>Fields</h3>
-                <p>{fields.length} field(s) placed on document</p>
+                <ul>
+                  {docs.map((d) => (
+                    <li key={d.id}>
+                      {d.name}: {fields.filter((f) => f.docId === d.id).length} field(s)
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
             {error && (
