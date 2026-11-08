@@ -5,11 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
-import {
-  SignWorkspace,
-  type PlaceMode,
-  type SignFieldView,
-} from "@/components/signature/SignWorkspace";
+import { SignWorkspace, type SignFieldView } from "@/components/signature/SignWorkspace";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
@@ -44,25 +40,11 @@ export default function SignPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [fullDoc, setFullDoc] = useState<Document | null>(null);
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [canComplete, setCanComplete] = useState(false);
-  const [signMode, setSignMode] = useState<PlaceMode>("signature");
-  const placeApi = useRef<{
-    placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
-    moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
-    cutField: (fieldId: string) => Promise<void>;
-  } | null>(null);
-  const onModeChange = useCallback((mode: PlaceMode) => setSignMode(mode), []);
-  const onReady = useCallback(
-    (api: {
-      placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
-      moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
-      cutField: (fieldId: string) => Promise<void>;
-    }) => {
-      placeApi.current = api;
-    },
-    [],
-  );
+  const placeApi = useRef<{ fillField: (fieldId: string) => Promise<void> } | null>(null);
+  const onReady = useCallback((api: { fillField: (fieldId: string) => Promise<void> }) => {
+    placeApi.current = api;
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -114,13 +96,11 @@ export default function SignPage() {
           <p className="mt-2 text-muted">
             Signing as {data.recipient.name} ({data.recipient.email})
           </p>
-          <p className="mt-1 text-sm text-muted">
-            Your signature font is also used for the date. You can download with no date.
-          </p>
+          <p className="mt-1 text-sm text-muted">Tap Sign, or tap a box on the document.</p>
         </div>
       </ScrollMeetSplit>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+      <div className="sign-layout mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
         <ScrollMeetBlock side="left" distance={110} className="app-meet-block">
           <DocumentSurface
             content={data.document.content}
@@ -133,74 +113,17 @@ export default function SignPage() {
               type: f.type as "signature" | "initials" | "date" | "text",
             }))}
             highlightPending={!done}
-            selectedFieldId={selectedFieldId}
-            onFieldSelect={done ? undefined : setSelectedFieldId}
-            interactive={!done && signMode === "date"}
-            onPlace={
-              !done && signMode === "date"
-                ? (x, y, page) => {
-                    void placeApi.current?.placeDateAt(x, y, page);
-                  }
-                : undefined
-            }
-            onFieldMove={
-              done
-                ? undefined
-                : (fieldId, x, y, size) => {
-                    setData((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            document: {
-                              ...prev.document,
-                              fields: prev.document.fields.map((f) =>
-                                f.id === fieldId
-                                  ? { ...f, x, y, ...(size ? { width: size.width, height: size.height } : {}) }
-                                  : f,
-                              ),
-                            },
-                          }
-                        : prev,
-                    );
-                    void placeApi.current?.moveField(fieldId, x, y, size?.width, size?.height);
-                  }
-            }
-            movableFieldTypes={["signature", "initials", "date", "text"]}
-            onFieldCut={
+            onFieldSelect={
               done
                 ? undefined
                 : (fieldId) => {
-                    setData((prev) => {
-                      if (!prev) return prev;
-                      const fields = prev.document.fields;
-                      const target = fields.find((f) => f.id === fieldId);
-                      const otherSigs = fields.filter(
-                        (f) =>
-                          f.id !== fieldId &&
-                          (f.type === "signature" || f.type === "initials"),
-                      );
-                      const nextFields =
-                        target &&
-                        (target.type === "signature" || target.type === "initials") &&
-                        otherSigs.length === 0
-                          ? fields.map((f) =>
-                              f.id === fieldId
-                                ? { ...f, value: undefined, signature: undefined, skipped: false }
-                                : f,
-                            )
-                          : fields.filter((f) => f.id !== fieldId);
-                      return {
-                        ...prev,
-                        document: { ...prev.document, fields: nextFields },
-                      };
-                    });
-                    void placeApi.current?.cutField(fieldId);
+                    void placeApi.current?.fillField(fieldId);
                   }
             }
           />
         </ScrollMeetBlock>
 
-        <ScrollMeetBlock side="right" distance={120} className="app-meet-block">
+        <ScrollMeetBlock side="right" distance={120} className="app-meet-block sign-sticky">
           <div className="panel space-y-4 p-6">
             {done ? (
               <div>
@@ -228,9 +151,6 @@ export default function SignPage() {
                 preferredStyle={data.recipient.preferredSignatureStyle}
                 document={data.document}
                 initialCanComplete={canComplete}
-                selectedFieldId={selectedFieldId}
-                onSelectField={setSelectedFieldId}
-                onModeChange={onModeChange}
                 onReady={onReady}
                 onFieldsChange={(fields, meta) => {
                   setCanComplete(meta.canComplete);

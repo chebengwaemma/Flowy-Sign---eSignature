@@ -315,9 +315,10 @@ export function AdminPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    const saved = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setMessage("Could not save settings");
+      setMessage(saved.error || "Could not save settings");
       return;
     }
     setMessage("Saved. Open website tabs update on their own.");
@@ -1193,20 +1194,22 @@ export function AdminPanel({
                 Catalog is <strong>Pro</strong> and <strong>Business</strong>, each with a{" "}
                 <strong>1 device</strong> and <strong>5 devices</strong> tier. Use <strong>-1</strong> for
                 unlimited quotas.                 Name, price, device count, quotas, features, and visibility save onto the live site.
-                Press <strong>Save pricing page</strong> after edits. Hard-refresh Home, Pricing, and Billing.
+                Press <strong>Save pricing page</strong>. Home, Pricing, and Billing pick up the new prices.
               </p>
               {form.plans.map((plan, idx) => {
                 const patchPlan = (next: PlanDefinition, syncQuota = false) => {
-                  const plans = [...form.plans];
-                  const row = syncQuota ? withSyncedPlanFeatures(next) : next;
-                  plans[idx] = row;
-                  setForm((prev) => ({
-                    ...prev,
-                    plans,
-                    ...(row.id === "free"
-                      ? { sendFreeLimit: row.docs, generatorFreeDownloads: row.downloads }
-                      : null),
-                  }));
+                  setForm((prev) => {
+                    const plans = [...prev.plans];
+                    const row = syncQuota ? withSyncedPlanFeatures(next) : next;
+                    plans[idx] = row;
+                    return {
+                      ...prev,
+                      plans,
+                      ...(row.id === "free"
+                        ? { sendFreeLimit: row.docs, generatorFreeDownloads: row.downloads }
+                        : null),
+                    };
+                  });
                 };
                 return (
                 <div

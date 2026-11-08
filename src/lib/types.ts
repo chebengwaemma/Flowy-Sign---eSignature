@@ -70,6 +70,8 @@ export interface User {
   plan: PlanId;
   billingInterval: BillingInterval | null;
   stripeCustomerId?: string;
+  /** Stripe subscription that renews this plan. */
+  stripeSubscriptionId?: string;
   googleId?: string;
   authProvider?: "password" | "google";
   createdAt: string;

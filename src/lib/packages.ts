@@ -128,49 +128,25 @@ export function lockDeviceSigners(
   return { ok: true, signers };
 }
 
-/** Reject any recipient outside the account email (1 device) or the locked roster (5 devices). */
+/** Any real email can be invited. The cap is the site signer limit, not the account address. */
 export function assertSignerRecipients(
-  user: User,
+  _user: User,
   recipients: { email: string }[],
   settings?: OrgSettings | null,
 ): { ok: true; emails: string[] } | { ok: false; error: string } {
-  const limit = signerEmailLimit(user, settings);
+  const limit = Math.max(1, settings?.maxSigners || 10);
   const emails = recipients.map((r) => r.email.trim().toLowerCase());
+  if (!emails.length) return { ok: false, error: "Add at least one signer email." };
   if (emails.length > limit) {
-    return {
-      ok: false,
-      error: `This plan allows ${limit} signer email${limit === 1 ? "" : "s"}.`,
-    };
+    return { ok: false, error: `You can add up to ${limit} signers.` };
+  }
+  if (emails.some((email) => !email.includes("@") || email.includes(",") || email.includes(";"))) {
+    return { ok: false, error: "Enter one email address per signer." };
   }
   if (new Set(emails).size !== emails.length) {
     return { ok: false, error: "Each signer email must be different." };
   }
-  if (limit <= 1) {
-    const account = user.email.trim().toLowerCase();
-    if (emails.length !== 1 || emails[0] !== account) {
-      return { ok: false, error: "This plan can only use the account email." };
-    }
-    return { ok: true, emails: [account] };
-  }
-  const roster = cleanDeviceSigners(user.deviceSigners).slice(0, limit);
-  if (roster.length < limit) {
-    const account = user.email.trim().toLowerCase();
-    if (emails.length === 1 && emails[0] === account) return { ok: true, emails: [account] };
-    return { ok: false, error: "Only Signer 1, the account email, can be used." };
-  }
-  const allowed = new Map(roster.map((slot) => [slot.email, slot.email]));
-  const canonical: string[] = [];
-  for (const email of emails) {
-    const match = allowed.get(email);
-    if (!match) {
-      return {
-        ok: false,
-        error: "Only the locked device emails can be used. A new email cannot be added.",
-      };
-    }
-    canonical.push(match);
-  }
-  return { ok: true, emails: canonical };
+  return { ok: true, emails };
 }
 
 export function effectiveMaxSessions(user: User, settings?: OrgSettings | null): number | null {

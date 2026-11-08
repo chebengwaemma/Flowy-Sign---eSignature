@@ -272,6 +272,54 @@ export const TEAM_PAGES: DetailPage[] = [
     ],
   },
   {
+    slug: "insurance",
+    kicker: "Teams",
+    title: "eSignatures for Insurance",
+    lead: "Collect applications, disclosures, and policy acknowledgments without paper.",
+    sections: [
+      {
+        title: "Applications that finish",
+        body: "Send forms to customers and get a signature back from any phone.",
+      },
+      {
+        title: "Clear records",
+        body: "Keep the signed packet and the audit trail with the policy file.",
+      },
+    ],
+  },
+  {
+    slug: "government",
+    kicker: "Teams",
+    title: "eSignatures for Government",
+    lead: "Move permits, acknowledgments, and internal approvals without a print queue.",
+    sections: [
+      {
+        title: "Forms people can finish",
+        body: "Residents and staff open one link, review, and sign.",
+      },
+      {
+        title: "A record of who signed",
+        body: "Each completed form keeps who signed and when.",
+      },
+    ],
+  },
+  {
+    slug: "others",
+    kicker: "Teams",
+    title: "eSignatures for Other Teams",
+    lead: "Use the same simple send-and-sign flow for any agreement that does not fit one department.",
+    sections: [
+      {
+        title: "One way to send",
+        body: "Upload the file, add the people who need to sign, and send the link.",
+      },
+      {
+        title: "Write this page from admin",
+        body: "Replace this text from the admin panel whenever this team needs its own wording.",
+      },
+    ],
+  },
+  {
     slug: "ops",
     kicker: "Teams",
     title: "eSignatures for Operations",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin-auth";
 import { publishLiveSite } from "@/lib/live-site";
+import { PLAN_CATALOG_VERSION } from "@/lib/plans";
 import { mergeSettings } from "@/lib/settings";
 import { bumpSiteRevision, readStore, updateStore } from "@/lib/store";
 
@@ -104,14 +105,74 @@ export async function PATCH(req: Request) {
   const admin = await getAdminSession();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = schema.safeParse(await req.json());
+  const raw = await req.json().catch(() => null);
+  if (raw && typeof raw === "object") {
+    const record = raw as Record<string, unknown>;
+    if (record.supportEmail === "") delete record.supportEmail;
+    if (Array.isArray(record.plans)) {
+      record.plans = record.plans.map((plan) => {
+        const row = plan && typeof plan === "object" ? (plan as Record<string, unknown>) : {};
+        const money = (value: unknown) => {
+          const n = Number(String(value ?? "").replace(/[^0-9.]/g, ""));
+          return Number.isFinite(n) ? n : 0;
+        };
+        return {
+          ...row,
+          monthly: money(row.monthly),
+          yearly: money(row.yearly),
+          maxDevices: Math.min(50, Math.max(1, Math.round(Number(row.maxDevices) || 1))),
+          docs: Math.round(Number(row.docs) || 0),
+          downloads: Math.round(Number(row.downloads) || 0),
+          faxes: Math.round(Number(row.faxes) || 0),
+          seats: Math.round(Number(row.seats) || 0),
+          stripePriceMonthly: String(row.stripePriceMonthly ?? ""),
+          stripePriceYearly: String(row.stripePriceYearly ?? ""),
+          features: Array.isArray(row.features) ? row.features.map((item) => String(item)) : [],
+          visible: Boolean(row.visible),
+        };
+      });
+    }
+  }
+  const body = schema.safeParse(raw);
   if (!body.success) {
-    return NextResponse.json({ error: "Invalid settings" }, { status: 400 });
+    const issue = body.error.issues[0];
+    const where = issue?.path?.length ? issue.path.join(".") : "settings";
+    return NextResponse.json(
+      { error: issue ? `${where}: ${issue.message}` : "Invalid settings" },
+      { status: 400 },
+    );
   }
 
   let settings = null;
   await updateStore((store) => {
-    store.site = mergeSettings({ ...store.site, ...body.data });
+    store.site = mergeSettings({
+      ...store.site,
+      ...body.data,
+      planCatalogVersion: PLAN_CATALOG_VERSION,
+    });
+    if (body.data.plans?.length) {
+      const byId = new Map(body.data.plans.map((plan) => [plan.id, plan]));
+      store.site.plans = store.site.plans.map((plan) => {
+        const over = byId.get(plan.id);
+        if (!over) return plan;
+        return {
+          ...plan,
+          name: over.name,
+          monthly: over.monthly,
+          yearly: over.yearly,
+          maxDevices: over.maxDevices,
+          docs: over.docs,
+          downloads: over.downloads,
+          faxes: over.faxes,
+          seats: over.seats,
+          features: over.features,
+          visible: over.visible,
+          stripePriceMonthly: over.stripePriceMonthly,
+          stripePriceYearly: over.stripePriceYearly,
+        };
+      });
+      store.site.planCatalogVersion = PLAN_CATALOG_VERSION;
+    }
     // Push site settings to every org so main site updates everywhere
     store.organizations = store.organizations.map((org) => ({
       ...org,

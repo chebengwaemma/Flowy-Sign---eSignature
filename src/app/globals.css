@@ -2723,9 +2723,29 @@ body:has(.admin-nav-mobile) {
   border: 1px dashed rgba(31, 169, 122, 0.55);
   background: rgba(31, 169, 122, 0.08);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+}
+
+.sign-sticky {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+}
+
+@media (max-width: 900px) {
+  .sign-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .sign-sticky {
+    position: sticky;
+    bottom: 0;
+    top: auto;
+    z-index: 20;
+    background: #fff;
+  }
 }
 
 .doc-mark.is-skipped {

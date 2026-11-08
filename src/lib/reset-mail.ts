@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { getEmailConfig } from "./email";
+import { sendEmail } from "./email";
 import { updateStore } from "./store";
 import type { ResetMailJob, User } from "./types";
 
@@ -23,35 +23,20 @@ function backoffMs(attempts: number) {
 }
 
 async function sendViaResend(job: ResetMailJob, to: string): Promise<{ ok: boolean; error?: string }> {
-  const { apiKey, from } = getEmailConfig(null);
-  if (!apiKey) return { ok: false, error: "Resend is not configured" };
-
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": job.idempotencyKey,
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject: job.subject,
-        html: job.html,
-        text: job.text,
-        tags: [{ name: "category", value: "password-reset" }],
-      }),
+    const mailed = await sendEmail({
+      to,
+      subject: job.subject,
+      html: job.html,
+      text: job.text,
     });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.warn("[reset-mail] Resend refused", res.status, body.slice(0, 240));
-      return { ok: false, error: `Resend ${res.status}` };
+    if (!mailed.ok || mailed.dryRun) {
+      return { ok: false, error: mailed.error || "Email is not configured" };
     }
-    console.info("[reset-mail] Resend accepted", job.userId);
+    console.info("[reset-mail] accepted", job.userId);
     return { ok: true };
   } catch (err) {
-    console.warn("[reset-mail] Resend request failed", (err as Error).message);
+    console.warn("[reset-mail] request failed", (err as Error).message);
     return { ok: false, error: (err as Error).message };
   }
 }

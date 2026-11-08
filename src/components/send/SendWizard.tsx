@@ -60,10 +60,10 @@ type Field = {
 };
 
 const DEFAULT_FIELD_SIZE: Record<Field["type"], { width: number; height: number }> = {
-  signature: { width: 28, height: 10 },
-  initials: { width: 12, height: 8 },
-  date: { width: 20, height: 8 },
-  text: { width: 22, height: 7 },
+  signature: { width: 16, height: 5.5 },
+  initials: { width: 8, height: 4.2 },
+  date: { width: 12, height: 4.2 },
+  text: { width: 16, height: 4.2 },
 };
 
 const STEPS = [
@@ -147,11 +147,7 @@ function makeSigner(index: number, name: string, email: string): Signer {
 }
 
 export function SendWizard({
-  accountEmail,
-  accountName,
   signerLimit,
-  savedSigners: savedSignersProp,
-  signersLocked,
 }: {
   accountEmail: string;
   accountName: string;
@@ -164,14 +160,7 @@ export function SendWizard({
   const bodyRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(0);
   const [docs, setDocs] = useState<SelectedDoc[]>([]);
-  const savedSigners = savedSignersProp;
-  const emailsLocked = signerLimit <= 1 || signersLocked;
-  const [signers, setSigners] = useState<Signer[]>(() => {
-    if (signerLimit > 1 && signersLocked && savedSignersProp[0]) {
-      return [makeSigner(0, savedSignersProp[0].name, savedSignersProp[0].email)];
-    }
-    return [makeSigner(0, accountName, accountEmail)];
-  });
+  const [signers, setSigners] = useState<Signer[]>(() => [makeSigner(0, "", "")]);
   const [fields, setFields] = useState<Field[]>([]);
   const [activeSigner, setActiveSigner] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -183,7 +172,8 @@ export function SendWizard({
 
   const canNext = useMemo(() => {
     if (step === 0) return docs.length > 0;
-    if (step === 1) return (signers[0]?.name.trim().length || 0) > 0;
+    if (step === 1)
+      return signers.some((s) => s.name.trim().length > 0 && s.email.trim().includes("@"));
     if (step === 2)
       return docs.every((doc) => fields.some((f) => f.docId === doc.id && f.type === "signature"));
     return true;
@@ -192,7 +182,7 @@ export function SendWizard({
   const nextHint = useMemo(() => {
     if (canNext) return "";
     if (step === 0) return "Upload a document to continue.";
-    if (step === 1) return "Enter your name. Signer 1 uses the account email.";
+    if (step === 1) return "Add each signer’s name and email.";
     if (step === 2) return "Place at least one signature field on every document.";
     return "";
   }, [canNext, step]);
@@ -413,13 +403,19 @@ export function SendWizard({
     setLoading(true);
     setError("");
     setUpgradeNeeded(false);
-    const signer = signers[0];
-    const email = (signerLimit > 1 && emailsLocked ? signer?.email : accountEmail).trim();
-    const name = signer?.name.trim() || "";
-    const recipients =
-      signer && email && name
-        ? [{ id: signer.id, name, email, preferredSignatureStyle: signer.signatureStyle }]
-        : [];
+    const recipients = signers
+      .map((signer) => ({
+        id: signer.id,
+        name: signer.name.trim(),
+        email: signer.email.trim().toLowerCase(),
+        preferredSignatureStyle: signer.signatureStyle,
+      }))
+      .filter((signer) => signer.name && signer.email.includes("@"));
+    if (!recipients.length) {
+      setLoading(false);
+      setError("Add a name and email for each person who should sign.");
+      return;
+    }
     const signerIndex = (signerId: string) => recipients.findIndex((s) => s.id === signerId);
     const made: string[] = [];
     for (const doc of docs) {
@@ -665,20 +661,31 @@ export function SendWizard({
           <section className="send-panel rise">
             <h1>Add signers</h1>
             <p className="send-sub">
-              Only Signer 1 is used. The account email is locked and cannot be changed.
+              Type the name and email of each person who should sign. Add another person if more than one signature is needed.
             </p>
             {error ? <p className="send-error">{error}</p> : null}
 
             <div className="signer-list">
-              {signers.slice(0, 1).map((signer) => {
-                const choosing = signerLimit > 1 && emailsLocked && savedSigners.length > 0;
-                return (
+              {signers.map((signer, index) => (
                 <article key={signer.id} className="signer-card">
                   <header className="signer-card-head">
                     <div className="signer-card-title">
                       <span className="signer-swatch" style={{ background: signer.color }} />
-                      <span>Signer 1</span>
+                      <span>Signer {index + 1}</span>
                     </div>
+                    {signers.length > 1 ? (
+                      <button
+                        type="button"
+                        className="icon-quiet"
+                        aria-label={`Remove signer ${index + 1}`}
+                        onClick={() => {
+                          setSigners((prev) => prev.filter((s) => s.id !== signer.id));
+                          setFields((prev) => prev.filter((f) => f.signerId !== signer.id));
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    ) : null}
                   </header>
 
                   <div className="signer-fields">
@@ -689,71 +696,25 @@ export function SendWizard({
                         placeholder="Jane Cooper"
                         value={signer.name}
                         autoComplete="name"
-                        readOnly={choosing}
                         onChange={(e) => {
-                          if (choosing) return;
                           const name = e.target.value;
-                          setSigners((prev) =>
-                            prev.map((s) => (s.id === signer.id ? { ...s, name } : s)),
-                          );
+                          setSigners((prev) => prev.map((s) => (s.id === signer.id ? { ...s, name } : s)));
                         }}
                       />
                     </label>
                     <label className="signer-field">
                       <span className="label">Email</span>
-                      {signerLimit <= 1 ? (
-                        <input
-                          className="field"
-                          type="email"
-                          value={accountEmail}
-                          readOnly
-                          aria-readonly="true"
-                        />
-                      ) : choosing ? (
-                        <select
-                          className="field"
-                          value={signer.email}
-                          onChange={(e) => {
-                            const email = e.target.value;
-                            const match = savedSigners.find((slot) => slot.email === email);
-                            setSigners((prev) => {
-                              const current = prev.find((s) => s.id === signer.id);
-                              const other = prev.find((s) => s.id !== signer.id && s.email === email);
-                              const displaced = savedSigners.find((slot) => slot.email === current?.email);
-                              return prev.map((s) => {
-                                if (s.id === signer.id) return { ...s, email, name: match?.name || s.name };
-                                if (other && s.id === other.id && displaced) {
-                                  return { ...s, email: displaced.email, name: displaced.name };
-                                }
-                                return s;
-                              });
-                            });
-                          }}
-                        >
-                          {savedSigners.map((slot) => (
-                            <option key={slot.email} value={slot.email}>
-                              {slot.name} · {slot.email}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          className="field"
-                          type="email"
-                          placeholder="name@email.com"
-                          value={signer.email}
-                          autoComplete="off"
-                          onChange={(e) => {
-                            const email = e.target.value;
-                            setSigners((prev) => prev.map((s) => (s.id === signer.id ? { ...s, email } : s)));
-                          }}
-                        />
-                      )}
-                      {signerLimit <= 1 ? (
-                        <span className="signer-email-lock">Account email. Locked for this device.</span>
-                      ) : choosing ? (
-                        <span className="signer-email-lock">Locked email. Choose one of the saved emails.</span>
-                      ) : null}
+                      <input
+                        className="field"
+                        type="email"
+                        placeholder="name@email.com"
+                        value={signer.email}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          const email = e.target.value;
+                          setSigners((prev) => prev.map((s) => (s.id === signer.id ? { ...s, email } : s)));
+                        }}
+                      />
                     </label>
                   </div>
 
@@ -769,9 +730,17 @@ export function SendWizard({
                     />
                   </div>
                 </article>
-                );
-              })}
+              ))}
             </div>
+            {signers.length < Math.max(1, signerLimit) ? (
+              <button
+                type="button"
+                className="btn btn-ghost mt-4"
+                onClick={() => setSigners((prev) => [...prev, makeSigner(prev.length, "", "")])}
+              >
+                Add another signer
+              </button>
+            ) : null}
           </section>
         )}
 

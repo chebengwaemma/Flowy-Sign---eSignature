@@ -63,11 +63,6 @@ export const FEATURE_LINKS: NavLink[] = [
     title: "Integrations",
     desc: "Connect Drive, Slack, CRM, and email",
   },
-  {
-    href: "/developers",
-    title: "API & embed",
-    desc: "Build signing into your own product",
-  },
 ];
 
 export const TEAM_LINKS: NavLink[] = [
@@ -91,6 +86,21 @@ export const TEAM_LINKS: NavLink[] = [
     href: "/teams/real-estate",
     title: "Real estate",
     desc: "Close deals digitally on any device",
+  },
+  {
+    href: "/teams/insurance",
+    title: "Insurance",
+    desc: "Applications and policy acknowledgments",
+  },
+  {
+    href: "/teams/government",
+    title: "Government",
+    desc: "Permits and approvals without a print queue",
+  },
+  {
+    href: "/teams/others",
+    title: "Others",
+    desc: "Any other agreement that needs a signature",
   },
   {
     href: "/teams/ops",

@@ -118,8 +118,8 @@ export async function POST(req: Request) {
           page: f.page ?? 1,
           x: f.x,
           y: f.y,
-          width: f.width ?? (f.type === "signature" ? 28 : 18),
-          height: f.height ?? (f.type === "signature" ? 10 : 6),
+          width: f.width ?? (f.type === "signature" ? 16 : f.type === "initials" ? 8 : 12),
+          height: f.height ?? (f.type === "signature" ? 5.5 : 4.2),
           recipientId: recipient.id,
         } satisfies SignatureField;
       })
@@ -132,8 +132,8 @@ export async function POST(req: Request) {
         page: 1,
         x: 12,
         y: 68 + index * 10,
-        width: 28,
-        height: 10,
+        width: 16,
+        height: 5.5,
         recipientId: r.id,
       },
       {
@@ -142,8 +142,8 @@ export async function POST(req: Request) {
         page: 1,
         x: 48,
         y: 68 + index * 10,
-        width: 18,
-        height: 6,
+        width: 12,
+        height: 4.2,
         recipientId: r.id,
       },
     ]);

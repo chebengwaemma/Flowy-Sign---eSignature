@@ -217,9 +217,11 @@ export default async function HomePage() {
               <Link href={h.toolsPrimaryHref || "/features"} className="lp-btn">
                 {h.toolsPrimaryCta}
               </Link>
-              <Link href={h.toolsSecondaryHref || "/developers"} className="lp-text-link" style={{ marginTop: 0 }}>
-                {h.toolsSecondaryCta} <ArrowRight size={14} />
-              </Link>
+              {h.toolsSecondaryHref && !h.toolsSecondaryHref.includes("/developers") ? (
+                <Link href={h.toolsSecondaryHref} className="lp-text-link" style={{ marginTop: 0 }}>
+                  {h.toolsSecondaryCta} <ArrowRight size={14} />
+                </Link>
+              ) : null}
             </div>
           </div>
           <div className="lp-orbit" aria-hidden>

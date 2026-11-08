@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+
 import { ChevronDown } from "lucide-react";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { FaqItem } from "@/lib/marketing";
@@ -31,12 +31,6 @@ export function HelpFaq({ faqs }: { faqs: FaqItem[] }) {
             );
           })}
         </ScrollMeetSplit>
-        <p style={{ marginTop: 28, color: "#5f5f5f" }}>
-          Need docs for embedding?{" "}
-          <Link href="/developers" className="lp-text-link" style={{ marginTop: 0 }}>
-            Visit Developers
-          </Link>
-        </p>
       </div>
     </section>
   );

@@ -136,9 +136,6 @@ export function SiteHeader({
             >
               {nav.teams} <ChevronDown size={14} />
             </button>
-            <Link href="/developers" className="lp-nav-dev" onClick={closeAll}>
-              {nav.developers}
-            </Link>
             <button
               type="button"
               className={`lp-nav-btn${panel === "pricing" ? " on" : ""}`}
@@ -239,9 +236,6 @@ export function SiteHeader({
                   )}
                 </div>
               ))}
-              <Link href="/developers" className="lp-menu-acc-link lp-nav-dev" onClick={closeAll}>
-                {nav.developers}
-              </Link>
             </div>
             <div className="lp-menu-actions">
               <Link href="/contact" onClick={closeAll}>

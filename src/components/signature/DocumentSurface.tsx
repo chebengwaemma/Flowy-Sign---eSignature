@@ -136,8 +136,8 @@ export function DocumentSurface({
     if (!rect) return;
     const boxW = rect.width;
     const boxH = rect.height;
-    const width = field.width || 18;
-    const height = Math.max(field.height || 7, 5);
+    const width = field.width || 16;
+    const height = Math.max(field.height || 4.2, 3);
     const originX = field.x;
     const originY = field.y;
     const startX = e.clientX;
@@ -189,8 +189,8 @@ export function DocumentSurface({
     const origin = {
       x: field.x,
       y: field.y,
-      width: field.width || (field.type === "date" ? 20 : 28),
-      height: field.height || (field.type === "date" ? 8 : 10),
+      width: field.width || (field.type === "date" ? 12 : field.type === "initials" ? 8 : 16),
+      height: field.height || 4.2,
     };
     const startX = e.clientX;
     const startY = e.clientY;
@@ -206,8 +206,8 @@ export function DocumentSurface({
       if (corner.includes("w")) width = origin.width - dx;
       if (corner.includes("s")) height = origin.height + dy;
       if (corner.includes("n")) height = origin.height - dy;
-      width = Math.min(70, Math.max(8, width));
-      height = Math.min(40, Math.max(4, height));
+      width = Math.min(70, Math.max(5, width));
+      height = Math.min(40, Math.max(3, height));
       if (corner.includes("w")) x = origin.x + origin.width - width;
       if (corner.includes("n")) y = origin.y + origin.height - height;
       x = Math.min(100 - width, Math.max(0, x));
@@ -238,8 +238,8 @@ export function DocumentSurface({
           const pending = !field.skipped && !field.value && !field.signature;
           if (pending && !highlightPending && !interactive && !onFieldSelect) return null;
           const live = dragPos[field.id];
-          const w = live?.width ?? field.width ?? 28;
-          const h = Math.max(live?.height ?? field.height ?? 8, 4);
+          const w = live?.width ?? field.width ?? (field.type === "signature" ? 16 : field.type === "initials" ? 8 : 12);
+          const h = Math.max(live?.height ?? field.height ?? 4.2, 3);
           const markStyle: CSSProperties = {
             left: `${live?.x ?? field.x}%`,
             top: `${live?.y ?? field.y}%`,
@@ -313,7 +313,9 @@ export function DocumentSurface({
                 <img src={field.signature.imageDataUrl} alt="" className="doc-mark-img" />
               ) : field.type === "signature" || field.type === "initials" ? (
                 pending ? (
-                  <span className="doc-mark-plain">{field.type}</span>
+                  <span className="doc-mark-plain">
+                    {field.type === "signature" ? "Sign" : "Init"}
+                  </span>
                 ) : (
                   <FitSignatureText text={label} style={field.signature?.style} maxPx={96} minPx={10} />
                 )

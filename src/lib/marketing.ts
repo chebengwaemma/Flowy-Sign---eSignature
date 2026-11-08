@@ -300,6 +300,9 @@ export const defaultMarketing: MarketingSite = {
     { label: "Pricing", href: "/pricing" },
     { label: "Contact", href: "/contact" },
     { label: "Terms & Conditions", href: "/terms" },
+    { label: "Insurance", href: "/teams/insurance" },
+    { label: "Government", href: "/teams/government" },
+    { label: "Others", href: "/teams/others" },
   ],
   steps: [
     { title: "Bring your file", body: "Upload from your device or pull a draft you already trust." },
@@ -313,6 +316,9 @@ export const defaultMarketing: MarketingSite = {
     { id: "legal", title: "Legal", body: "Standardize NDAs and MSAs with templates your counsel can trust." },
     { id: "finance", title: "Finance", body: "Get vendor forms and approvals signed without spreadsheet chaos." },
     { id: "real-estate", title: "Real estate", body: "Move deals forward with contracts that sign, file, and track themselves." },
+    { id: "insurance", title: "Insurance", body: "Collect applications and policy acknowledgments without paper." },
+    { id: "government", title: "Government", body: "Move permits and approvals without a print queue." },
+    { id: "others", title: "Others", body: "Send any other agreement with the same simple signing link." },
     { id: "ops", title: "Operations", body: "Fax and eSign from one place so field teams stay unblocked." },
   ],
   faqs: [
@@ -445,6 +451,29 @@ function mergeList<T extends Record<string, unknown>>(defaults: T[], partial?: T
   return partial.map((item, i) => ({ ...(defaults[i] || {}), ...item }));
 }
 
+const INDUSTRY_FOOTER = [
+  { label: "Insurance", href: "/teams/insurance" },
+  { label: "Government", href: "/teams/government" },
+  { label: "Others", href: "/teams/others" },
+];
+
+function withIndustryLinks(links: { label: string; href: string }[]) {
+  const hrefs = new Set(links.map((link) => link.href));
+  return [...links, ...INDUSTRY_FOOTER.filter((link) => !hrefs.has(link.href))];
+}
+
+function mergeTeamCards(
+  defaults: MarketingSite["teamCards"],
+  partial?: MarketingSite["teamCards"] | null,
+) {
+  const merged = mergeList(defaults, partial);
+  const ids = new Set(merged.map((card) => card.id));
+  for (const card of defaults) {
+    if (card.id && !ids.has(card.id)) merged.push({ ...card });
+  }
+  return merged;
+}
+
 export function fillPlaceholders(
   text: string,
   vars: { brand?: string; address?: string; email?: string },
@@ -472,15 +501,16 @@ export function mergeMarketing(partial?: Partial<MarketingSite> | null): Marketi
     press: { ...defaultMarketing.press, ...(p.press || {}) },
     privacy: { ...defaultMarketing.privacy, ...(p.privacy || {}) },
     terms: { ...defaultMarketing.terms, ...(p.terms || {}) },
-    footerLinks:
+    footerLinks: withIndustryLinks(
       p.footerLinks && p.footerLinks.length > 0
         ? p.footerLinks.map((l) => ({
             label: l.label || "",
             href: l.href || "/",
           }))
         : defaultMarketing.footerLinks.map((l) => ({ ...l })),
+    ),
     steps: mergeList(defaultMarketing.steps, p.steps),
-    teamCards: mergeList(defaultMarketing.teamCards, p.teamCards),
+    teamCards: mergeTeamCards(defaultMarketing.teamCards, p.teamCards),
     faqs: p.faqs?.length ? p.faqs.map((f) => ({ q: f.q || "", a: f.a || "" })) : defaultMarketing.faqs.map((f) => ({ ...f })),
     developersBlocks: mergeList(defaultMarketing.developersBlocks, p.developersBlocks),
     aboutCards: p.aboutCards?.length

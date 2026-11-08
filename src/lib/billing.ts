@@ -8,6 +8,7 @@ export function applyPaidPlan(
   plan: PlanId,
   interval: BillingInterval,
   stripeCustomerId?: string,
+  stripeSubscriptionId?: string,
 ) {
   return updateStore((store) => {
     const user = store.users.find((u) => u.id === userId);
@@ -16,6 +17,7 @@ export function applyPaidPlan(
       user.plan = plan;
       user.billingInterval = interval;
       if (stripeCustomerId) user.stripeCustomerId = stripeCustomerId;
+      if (stripeSubscriptionId) user.stripeSubscriptionId = stripeSubscriptionId;
       applyPackageFields(user, plan, interval);
     }
     if (org) org.plan = plan;

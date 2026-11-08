@@ -13,7 +13,7 @@ export default async function FeaturesPage() {
         title={features.title}
         lead={features.lead}
         ctaLabel={features.cta}
-        secondaryHref="/developers"
+        secondaryHref="/contact"
         secondaryLabel={features.secondary}
       />
       <MarketingCards

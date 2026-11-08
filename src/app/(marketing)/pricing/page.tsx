@@ -69,7 +69,10 @@ export default async function PricingPage() {
               </p>
               <h2 style={{ color: "var(--lp-ink)", fontSize: 28 }}>{pp.apiTitle}</h2>
               <p className="extra">{pp.apiBody}</p>
-              <Link href={pp.apiLinkHref || "/contact"} className="lp-text-link">
+              <Link
+                href={!pp.apiLinkHref || pp.apiLinkHref.includes("/developers") ? "/contact" : pp.apiLinkHref}
+                className="lp-text-link"
+              >
                 {pp.apiLinkLabel || "Talk to us"}
               </Link>
             </article>
