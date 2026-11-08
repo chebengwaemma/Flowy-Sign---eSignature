@@ -1,9 +1,9 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin-auth";
+import { publishLiveSite } from "@/lib/live-site";
 import { mergeSettings } from "@/lib/settings";
-import { readStore, updateStore } from "@/lib/store";
+import { bumpSiteRevision, readStore, updateStore } from "@/lib/store";
 
 const schema = z.object({
   brandName: z.string().min(1).optional(),
@@ -54,8 +54,8 @@ const schema = z.object({
   navAdmin: z.string().optional(),
   signatureGeneratorEnabled: z.boolean().optional(),
   navSignatureGenerator: z.string().optional(),
-  generatorFreeDownloads: z.number().int().min(0).optional(),
-  sendFreeLimit: z.number().int().min(0).optional(),
+  generatorFreeDownloads: z.number().int().optional(),
+  sendFreeLimit: z.number().int().optional(),
   starterSignatureLimit: z.number().int().optional(),
   proSignatureLimit: z.number().int().optional(),
   businessSignatureLimit: z.number().int().optional(),
@@ -118,6 +118,7 @@ export async function PATCH(req: Request) {
       settings: mergeSettings({ ...org.settings, ...body.data }),
     }));
     settings = store.site;
+    bumpSiteRevision(store);
   });
 
   // When admin changes plan $ amounts, create/find matching Stripe Prices so Checkout ≠ stale $15
@@ -129,6 +130,7 @@ export async function PATCH(req: Request) {
         await updateStore((store) => {
           store.site = mergeSettings({ ...store.site, plans: synced.plans });
           settings = store.site;
+          bumpSiteRevision(store);
         });
       }
     } catch (err) {
@@ -139,30 +141,7 @@ export async function PATCH(req: Request) {
     }
   }
 
-  // Bust Next.js full-route + layout cache so marketing/app UI pick up CMS changes
-  for (const path of [
-    "/",
-    "/pricing",
-    "/billing",
-    "/about",
-    "/contact",
-    "/why",
-    "/features",
-    "/teams",
-    "/developers",
-    "/help",
-    "/press",
-    "/privacy",
-    "/terms",
-    "/dashboard",
-    "/documents",
-    "/signature-generator",
-    "/admin",
-  ]) {
-    revalidatePath(path);
-  }
-  revalidatePath("/", "layout");
-  revalidatePath("/admin", "layout");
+  publishLiveSite();
 
   return NextResponse.json({ settings, result: "success" });
 }

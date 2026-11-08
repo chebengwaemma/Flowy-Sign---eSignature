@@ -301,4 +301,6 @@ export interface PlatformStore {
   deviceSessions: DeviceSession[];
   notifications: UserNotification[];
   site: OrgSettings;
+  /** Bumps only when an admin save should show up on open website tabs. */
+  siteRevision: number;
 }

@@ -186,7 +186,18 @@ export function AdminPanel({
   }, [mobileMenu]);
 
   function set<K extends keyof OrgSettings>(key: K, value: OrgSettings[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "sendFreeLimit" && typeof value === "number") {
+        next.plans = prev.plans.map((plan) => (plan.id === "free" ? { ...plan, docs: value } : plan));
+      }
+      if (key === "generatorFreeDownloads" && typeof value === "number") {
+        next.plans = prev.plans.map((plan) =>
+          plan.id === "free" ? { ...plan, downloads: value } : plan,
+        );
+      }
+      return next;
+    });
   }
 
   function setHomeField<K extends keyof MarketingSite["home"]>(key: K, value: MarketingSite["home"][K]) {
@@ -309,7 +320,7 @@ export function AdminPanel({
       setMessage("Could not save settings");
       return;
     }
-    setMessage("Saved. Open Home / Pricing / Billing in a new tab (or hard-refresh) to see updates.");
+    setMessage("Saved. Open website tabs update on their own.");
     router.refresh();
   }
 
@@ -917,9 +928,9 @@ export function AdminPanel({
                 onChange={(v) => set("navSignatureGenerator", v)}
               />
               <Field
-                label="Free plan downloads / month"
+                label="Free plan downloads / month (-1 unlimited)"
                 value={String(form.generatorFreeDownloads)}
-                onChange={(v) => set("generatorFreeDownloads", Math.max(0, Number(v) || 0))}
+                onChange={(v) => set("generatorFreeDownloads", Number(v) || 0)}
               />
               <p className="text-sm text-muted">
                 Paid plan download limits follow Plans &amp; quotas (same as signature send limits).
@@ -1073,18 +1084,29 @@ export function AdminPanel({
               />
               <Field
                 label="API title"
-                value={form.marketing.home.planApiTitle}
-                onChange={(v) => setHomeField("planApiTitle", v)}
-              />
-              <Field
-                label="API price ($ / month)"
-                value={form.marketing.home.planApiPrice}
-                onChange={(v) => setHomeField("planApiPrice", v)}
+                value={form.marketing.pricingPage.apiTitle}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, apiTitle: v },
+                    },
+                  }))
+                }
               />
               <Area
                 label="API body"
-                value={form.marketing.home.planApiBody}
-                onChange={(v) => setHomeField("planApiBody", v)}
+                value={form.marketing.pricingPage.apiBody}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, apiBody: v },
+                    },
+                  }))
+                }
               />
               <Field
                 label="API link label"
@@ -1139,6 +1161,19 @@ export function AdminPanel({
                 }
               />
               <Field
+                label="Compare heading"
+                value={form.marketing.pricingPage.compareHeading}
+                onChange={(v) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    marketing: {
+                      ...prev.marketing,
+                      pricingPage: { ...prev.marketing.pricingPage, compareHeading: v },
+                    },
+                  }))
+                }
+              />
+              <Field
                 label="Compare card CTA"
                 value={form.marketing.pricingPage.compareCta}
                 onChange={(v) =>
@@ -1157,14 +1192,21 @@ export function AdminPanel({
               <p className="text-sm text-muted">
                 Catalog is <strong>Pro</strong> and <strong>Business</strong>, each with a{" "}
                 <strong>1 device</strong> and <strong>5 devices</strong> tier. Use <strong>-1</strong> for
-                unlimited quotas. Prices, names, Stripe IDs, and visibility are all admin-controlled. Press{" "}
-                <strong>Save pricing page</strong> after edits.
+                unlimited quotas.                 Name, price, device count, quotas, features, and visibility save onto the live site.
+                Press <strong>Save pricing page</strong> after edits. Hard-refresh Home, Pricing, and Billing.
               </p>
               {form.plans.map((plan, idx) => {
                 const patchPlan = (next: PlanDefinition, syncQuota = false) => {
                   const plans = [...form.plans];
-                  plans[idx] = syncQuota ? withSyncedPlanFeatures(next) : next;
-                  set("plans", plans);
+                  const row = syncQuota ? withSyncedPlanFeatures(next) : next;
+                  plans[idx] = row;
+                  setForm((prev) => ({
+                    ...prev,
+                    plans,
+                    ...(row.id === "free"
+                      ? { sendFreeLimit: row.docs, generatorFreeDownloads: row.downloads }
+                      : null),
+                  }));
                 };
                 return (
                 <div

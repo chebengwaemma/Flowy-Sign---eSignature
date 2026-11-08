@@ -11,7 +11,8 @@ export function packageFromPlan(
 } {
   const id = normalizePlanId(plan);
   if (id === "free") {
-    return { packageType: "none", maxConcurrentSessions: 1 };
+    const free = getPlanFromSettings(id, settings);
+    return { packageType: "none", maxConcurrentSessions: Math.max(1, free.maxDevices || 1) };
   }
   const def = getPlanFromSettings(id, settings);
   const max = Math.max(1, def.maxDevices || 1);
@@ -173,8 +174,5 @@ export function assertSignerRecipients(
 }
 
 export function effectiveMaxSessions(user: User, settings?: OrgSettings | null): number | null {
-  if (typeof user.maxConcurrentSessions === "number" || user.maxConcurrentSessions === null) {
-    return user.maxConcurrentSessions;
-  }
   return packageFromPlan(user.plan || "free", settings).maxConcurrentSessions;
 }

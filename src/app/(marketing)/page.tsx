@@ -12,9 +12,6 @@ import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
 
-/** Cache HTML briefly — Mongo admin copy still refreshes via getSiteSettings revalidate. */
-export const revalidate = 60;
-
 const ORBIT_MARKS = [
   { name: "Drive", fg: "#4285F4", mark: "G" },
   { name: "Slack", fg: "#611f69", mark: "S" },
@@ -51,6 +48,8 @@ export default async function HomePage() {
   const teamTitle = pro?.name || h.planTeamTitle || "Pro · 1 device";
   const musclePrice = business ? String(business.monthly) : h.planApiPrice;
   const muscleTitle = business?.name || h.planApiTitle || "Business · 5 devices";
+  const startsAt = m.pricingPage.startsAtLabel || "Starts at";
+  const monthSuffix = m.pricingPage.monthSuffix || "/month";
 
   const pillars = [
     { title: h.pillar1Title, body: h.pillar1Body, icon: <IconWorkflow /> },
@@ -245,6 +244,7 @@ export default async function HomePage() {
         </ScrollMeetSplit>
       </section>
 
+      {m.pricingPage.showHighlightRow !== false && (
       <section className="lp-plans" id="pricing">
         <div className="lp-wrap">
           <ScrollMeetBlock side="left" className="lp-meet-heading">
@@ -252,11 +252,11 @@ export default async function HomePage() {
           </ScrollMeetBlock>
           <ScrollMeetSplit className="lp-plans-inner lp-meet-grid" itemClassName="lp-meet-item" distance={180} stagger={0.16}>
             <article className="lp-plan-card">
-              <p className="eyebrow">Pro · monthly or yearly</p>
+              <p className="eyebrow">{m.pricingPage.essentialsEyebrow}</p>
               <h3>{teamTitle}</h3>
               <p className="price">
-                Starts at <strong>${teamPrice}</strong>
-                <span>/month</span>
+                {startsAt} <strong>${teamPrice}</strong>
+                <span>{monthSuffix}</span>
               </p>
               <p className="desc">
                 {h.planTeamBody ||
@@ -267,23 +267,24 @@ export default async function HomePage() {
               </Link>
             </article>
             <article className="lp-plan-card alt">
-              <p className="eyebrow">Business · monthly or yearly</p>
+              <p className="eyebrow">{m.pricingPage.standardEyebrow}</p>
               <h3>{muscleTitle}</h3>
               <p className="price">
-                Starts at <strong>${musclePrice}</strong>
-                <span>/month</span>
+                {startsAt} <strong>${musclePrice}</strong>
+                <span>{monthSuffix}</span>
               </p>
               <p className="desc">
                 {h.planApiBody ||
                   "Unlimited everything for teams — pick 1 device or up to 5 concurrent devices."}
               </p>
               <Link href="/pricing" className="lp-btn-muted">
-                See all plans
+                {m.pricingPage.standardCta || "See all plans"}
               </Link>
             </article>
           </ScrollMeetSplit>
         </div>
       </section>
+      )}
 
       <section className="lp-stories">
         <div className="lp-wrap">

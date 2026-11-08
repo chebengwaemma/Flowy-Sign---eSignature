@@ -17,7 +17,7 @@ async function loadSiteSettingsLive(): Promise<OrgSettings> {
   }
 }
 
-/** Short data cache — keeps public pages fast; admin edits show within ~1 min. */
+/** Data cache. Admin save drops this tag so the next live refresh is current. */
 const getCachedSiteSettings = unstable_cache(
   async () => loadSiteSettingsLive(),
   ["flowy-site-settings-v2"],

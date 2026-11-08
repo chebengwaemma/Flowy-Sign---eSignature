@@ -20,7 +20,8 @@ export const PAID_PLAN_IDS = ["pro", "pro_5", "business", "business_5"] as const
 export type PaidPlanId = (typeof PAID_PLAN_IDS)[number];
 
 /** Bump when paid catalog layout changes (drops Starter, device tiers, etc.) */
-export const PLAN_CATALOG_VERSION = 5;
+/** 7 = admin plan edits are the live site. 5 still shows the code catalog until an admin save. */
+export const PLAN_CATALOG_VERSION = 7;
 
 export const DEFAULT_PLANS: PlanDefinition[] = [
   {
@@ -119,6 +120,19 @@ function numOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function intOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : fallback;
+}
+
+function textOr(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function featureLines(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return [...fallback];
+  return value.map((line) => String(line).trim()).filter(Boolean);
+}
+
 /** Map legacy plan ids (starter / old pro / business) onto the new catalog. */
 export function normalizePlanId(id: string | null | undefined): PlanId {
   switch (id) {
@@ -152,7 +166,8 @@ export function isLegacyPlanCatalog(
 ): boolean {
   // Catalog 6 briefly replaced the package prices. Put the previous prices back.
   if (version === 6) return true;
-  if (typeof version === "number" && version >= PLAN_CATALOG_VERSION) return false;
+  // 5 kept the current cards. 7+ is the same shape with admin edits stored.
+  if (typeof version === "number" && version >= 5 && version !== 6) return false;
   const rows = (partial || []).filter((p) => p?.id);
   if (!rows.length) return true;
   const ids = new Set(rows.map((p) => String(p!.id)));
@@ -226,6 +241,7 @@ export function mergePlans(
     return mergeLegacyPlans(rows, version);
   }
 
+  const stick = typeof version === "number" && version >= PLAN_CATALOG_VERSION;
   const byId = new Map(
     rows.map((p) => {
       const id = normalizePlanId(String(p!.id));
@@ -237,41 +253,45 @@ export function mergePlans(
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });
     const paid = base.id !== "free";
     if (!paid) {
-      return withSyncedPlanFeatures({
+      return {
         ...base,
-        name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
-        monthly: 0,
-        yearly: 0,
-        docs: 0,
-        downloads: 0,
-        faxes: 0,
-        seats: 1,
-        maxDevices: 1,
-        features: [...base.features],
-        visible: false,
+        id: base.id,
+        category: base.category,
+        name: stick ? textOr(over.name, base.name) : base.name,
+        monthly: stick ? Math.max(0, numOr(over.monthly, 0)) : 0,
+        yearly: stick ? Math.max(0, numOr(over.yearly, 0)) : 0,
+        docs: stick ? intOr(over.docs, base.docs) : base.docs,
+        downloads: stick ? intOr(over.downloads, base.downloads) : base.downloads,
+        faxes: stick ? intOr(over.faxes, base.faxes) : base.faxes,
+        seats: stick ? Math.max(1, intOr(over.seats, base.seats)) : base.seats,
+        maxDevices: stick
+          ? Math.min(50, Math.max(1, intOr(over.maxDevices, base.maxDevices)))
+          : base.maxDevices,
+        features: stick ? featureLines(over.features, base.features) : [...base.features],
+        visible: stick && typeof over.visible === "boolean" ? over.visible : base.visible,
         stripePriceMonthly: "",
         stripePriceYearly: "",
-      });
+      };
     }
-    return withSyncedPlanFeatures({
+    return {
       ...base,
       id: base.id,
       category: base.category,
-      name: base.name,
-      maxDevices: base.maxDevices,
-      // Public prices come from this catalog so localhost and live match.
-      monthly: base.monthly,
-      yearly: base.yearly,
-      // Paid catalog is always unlimited quotas (device tier is the only cap)
-      docs: -1,
-      downloads: -1,
-      faxes: -1,
-      seats: -1,
-      features: Array.isArray(over.features) ? over.features.map(String) : [...base.features],
+      name: stick ? textOr(over.name, base.name) : base.name,
+      maxDevices: stick
+        ? Math.min(50, Math.max(1, intOr(over.maxDevices, base.maxDevices)))
+        : base.maxDevices,
+      monthly: stick ? Math.max(0, numOr(over.monthly, base.monthly)) : base.monthly,
+      yearly: stick ? Math.max(0, numOr(over.yearly, base.yearly)) : base.yearly,
+      docs: stick ? intOr(over.docs, base.docs) : base.docs,
+      downloads: stick ? intOr(over.downloads, base.downloads) : base.downloads,
+      faxes: stick ? intOr(over.faxes, base.faxes) : base.faxes,
+      seats: stick ? intOr(over.seats, base.seats) : base.seats,
+      features: stick ? featureLines(over.features, base.features) : [...base.features],
       stripePriceMonthly: String(over.stripePriceMonthly ?? base.stripePriceMonthly ?? ""),
       stripePriceYearly: String(over.stripePriceYearly ?? base.stripePriceYearly ?? ""),
-      visible: base.visible,
-    });
+      visible: stick && typeof over.visible === "boolean" ? over.visible : base.visible,
+    };
   });
 }
 

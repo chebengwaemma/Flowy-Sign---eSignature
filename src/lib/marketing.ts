@@ -117,9 +117,12 @@ export type MarketingSite = {
     standardEyebrow: string;
     standardCta: string;
     apiKicker: string;
+    apiTitle: string;
+    apiBody: string;
     apiLinkLabel: string;
     apiLinkHref: string;
     compareTitle: string;
+    compareHeading: string;
     compareCta: string;
     startsAtLabel: string;
     monthSuffix: string;
@@ -220,13 +223,17 @@ export const defaultMarketing: MarketingSite = {
     secondary: "Contact sales",
   },
   pricingPage: {
-    essentialsEyebrow: "Essentials",
-    standardEyebrow: "Standard",
-    standardCta: "Get started",
+    essentialsEyebrow: "Pro · monthly or yearly",
+    standardEyebrow: "Business · monthly or yearly",
+    standardCta: "See all plans",
     apiKicker: "API plans",
+    apiTitle: "Need help choosing?",
+    apiBody:
+      "Every paid plan includes unlimited signatures, downloads, faxes, and seats. Pick Pro or Business, then 1 device or up to 5 devices — monthly or yearly.",
     apiLinkLabel: "Explore developers →",
     apiLinkHref: "/developers",
     compareTitle: "Compare plans",
+    compareHeading: "Pick Pro or Business, then your device tier",
     compareCta: "Get started",
     startsAtLabel: "Starts at",
     monthSuffix: "/month",
@@ -428,6 +435,11 @@ function mergeDetailPages(defaults: DetailPage[], partial?: DetailPage[] | null)
   return merged;
 }
 
+function keepOrDesign(value: string | undefined, legacy: string, design: string) {
+  if (!value || value === legacy) return design;
+  return value;
+}
+
 function mergeList<T extends Record<string, unknown>>(defaults: T[], partial?: T[] | null): T[] {
   if (!partial?.length) return defaults.map((d) => ({ ...d }));
   return partial.map((item, i) => ({ ...(defaults[i] || {}), ...item }));
@@ -487,6 +499,25 @@ export function mergeMarketing(partial?: Partial<MarketingSite> | null): Marketi
     pricingPage: {
       ...defaultMarketing.pricingPage,
       ...(p.pricingPage || {}),
+      essentialsEyebrow: keepOrDesign(
+        p.pricingPage?.essentialsEyebrow,
+        "Essentials",
+        defaultMarketing.pricingPage.essentialsEyebrow,
+      ),
+      standardEyebrow: keepOrDesign(
+        p.pricingPage?.standardEyebrow,
+        "Standard",
+        defaultMarketing.pricingPage.standardEyebrow,
+      ),
+      standardCta: keepOrDesign(
+        p.pricingPage?.standardCta,
+        "Get started",
+        defaultMarketing.pricingPage.standardCta,
+      ),
+      compareHeading:
+        p.pricingPage?.compareHeading || defaultMarketing.pricingPage.compareHeading,
+      apiTitle: p.pricingPage?.apiTitle || defaultMarketing.pricingPage.apiTitle,
+      apiBody: p.pricingPage?.apiBody || defaultMarketing.pricingPage.apiBody,
     },
   };
 }

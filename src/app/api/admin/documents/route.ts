@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin-auth";
-import { readStore, updateStore } from "@/lib/store";
+import { publishLiveSite } from "@/lib/live-site";
+import { bumpSiteRevision, readStore, updateStore } from "@/lib/store";
 
 export async function GET() {
   const admin = await getAdminSession();
@@ -29,6 +30,7 @@ export async function PATCH(req: Request) {
     if (body.data.delete) {
       store.documents = store.documents.filter((d) => d.id !== body.data.documentId);
       result = { deleted: true };
+      bumpSiteRevision(store);
       return;
     }
     const doc = store.documents.find((d) => d.id === body.data.documentId);
@@ -37,8 +39,10 @@ export async function PATCH(req: Request) {
     if (body.data.title) doc.title = body.data.title;
     doc.updatedAt = new Date().toISOString();
     result = doc;
+    bumpSiteRevision(store);
   });
 
   if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  publishLiveSite();
   return NextResponse.json({ document: result });
 }

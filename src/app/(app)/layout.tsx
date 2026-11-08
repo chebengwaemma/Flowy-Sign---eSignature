@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { readStore } from "@/lib/store";
 import { AppChrome } from "@/components/AppChrome";
 import { Chatbot } from "@/components/Chatbot";
+import { LiveSiteSync } from "@/components/LiveSiteSync";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (user.mustChangePassword) redirect("/account/password");
 
   let store: Awaited<ReturnType<typeof readStore>> | null = null;
+  let revision = 0;
   try {
     store = await readStore();
+    revision = store.siteRevision || 0;
   } catch {
     store = null;
   }
@@ -81,6 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         name={settings.chatbotName || "Assist"}
         greeting={settings.chatbotGreeting || "How can I help?"}
       />
+      <LiveSiteSync revision={revision} />
     </div>
   );
 }

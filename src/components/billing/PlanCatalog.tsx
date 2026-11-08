@@ -23,6 +23,22 @@ function shortName(plan: CatalogPlan) {
   return plan.name;
 }
 
+function deviceLead(items: CatalogPlan[]) {
+  const caps = [...new Set(items.map((plan) => plan.maxDevices))].sort((a, b) => a - b);
+  if (caps.length === 2 && caps[0] === 1) {
+    return `Everything unlimited after purchase — pick 1 device or up to ${caps[1]}.`;
+  }
+  if (caps.length === 1) {
+    return caps[0] <= 1
+      ? "Everything unlimited after purchase — 1 device."
+      : `Everything unlimited after purchase — up to ${caps[0]} devices.`;
+  }
+  if (caps.length === 0) return "Everything unlimited after purchase.";
+  const last = caps[caps.length - 1];
+  const rest = caps.slice(0, -1).map((n) => (n <= 1 ? "1 device" : `${n} devices`));
+  return `Everything unlimited after purchase — pick ${rest.join(", ")} or up to ${last} devices.`;
+}
+
 function yearlySavePct(monthly: number, yearly: number) {
   if (monthly <= 0 || yearly <= 0) return 0;
   const full = monthly * 12;
@@ -118,9 +134,7 @@ export function PlanCatalog({
             <header className="pkg-group-head">
               <p className="pkg-group-kicker">{group.label}</p>
               <h2 className="pkg-group-title">{group.label} packages</h2>
-              <p className="pkg-group-lead">
-                Everything unlimited after purchase — pick 1 device or up to 5.
-              </p>
+              <p className="pkg-group-lead">{deviceLead(group.items)}</p>
             </header>
           </ScrollMeetBlock>
 

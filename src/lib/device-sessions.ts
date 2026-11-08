@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { effectiveMaxSessions } from "./packages";
-import { updateStore, findUserById } from "./store";
+import { mergeSettings } from "./settings";
+import { updateStore, findUserById, readStore } from "./store";
 import type { DeviceSession, User } from "./types";
 
 export type ActiveSessionView = {
@@ -134,7 +135,13 @@ export type SessionGateResult =
     };
 
 export async function checkSessionCapacity(user: User): Promise<SessionGateResult> {
-  const max = effectiveMaxSessions(user);
+  let settings = null;
+  try {
+    settings = mergeSettings((await readStore()).site);
+  } catch {
+    settings = null;
+  }
+  const max = effectiveMaxSessions(user, settings);
   if (max == null) return { allowed: true };
   const active = await listActiveSessions(user.id);
   if (active.length < max) return { allowed: true };

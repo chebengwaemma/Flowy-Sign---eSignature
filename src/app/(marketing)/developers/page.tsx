@@ -5,8 +5,6 @@ import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
 
-export const revalidate = 60;
-
 export default async function DevelopersPage() {
   const [{ developers: d, home, developersBlocks }, site] = await Promise.all([
     getMarketing(),

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useLivePublicSite } from "@/components/LiveSiteSync";
 import { Logo } from "@/components/Logo";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { SessionLimitModal } from "@/components/SessionLimitModal";
@@ -28,22 +29,9 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(searchParams.get("error") || "");
   const [loading, setLoading] = useState(false);
-  const [showGoogle, setShowGoogle] = useState(true);
-  const [signupEnabled, setSignupEnabled] = useState(true);
-  const [brandName, setBrandName] = useState("Flowy Sign - eSignature");
+  const { showGoogle, signupEnabled, brandName } = useLivePublicSite();
   const [limit, setLimit] = useState<LimitState | null>(null);
   const [endingId, setEndingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/public/site")
-      .then((r) => r.json())
-      .then((d) => {
-        setShowGoogle(d.showGoogleLogin !== false);
-        setSignupEnabled(d.signupEnabled !== false);
-        if (d.brandName) setBrandName(d.brandName);
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (searchParams.get("session_limit") !== "1") return;

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLivePublicSite } from "@/components/LiveSiteSync";
 import { Logo } from "@/components/Logo";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
@@ -15,22 +16,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [signupEnabled, setSignupEnabled] = useState(true);
-  const [showGoogle, setShowGoogle] = useState(true);
-  const [brandName, setBrandName] = useState("Flowy Sign - eSignature");
-
-  useEffect(() => {
-    fetch("/api/public/site")
-      .then((r) => r.json())
-      .then((d) => {
-        setSignupEnabled(d.signupEnabled !== false);
-        setShowGoogle(d.showGoogleLogin !== false);
-        if (d.brandName) setBrandName(d.brandName);
-        setReady(true);
-      })
-      .catch(() => setReady(true));
-  }, []);
+  const { ready, signupEnabled, showGoogle, brandName } = useLivePublicSite();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

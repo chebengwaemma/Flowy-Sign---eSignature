@@ -1,18 +1,19 @@
 import type { CSSProperties } from "react";
+import { connection } from "next/server";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Chatbot } from "@/components/Chatbot";
 import { buildPricingLinks } from "@/components/marketing/nav-data";
+import { LiveSiteSync } from "@/components/LiveSiteSync";
 import { getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
+import { readSiteRevision } from "@/lib/store";
 import { elegantFontClassName } from "@/components/signature/elegant-font";
 import "./landing.css";
 
-/** Public marketing shell — ISR so cold Mongo hangs don't block every visitor. */
-export const revalidate = 60;
-
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSiteSettings();
+  await connection();
+  const [settings, revision] = await Promise.all([getSiteSettings(), readSiteRevision()]);
   const m = settings.marketing;
   const brand = settings.brandName || settings.companyLegalName || "Flowy Sign - eSignature";
   const address = settings.companyAddress || m.footerTagline || "Austell GA, USA";
@@ -49,6 +50,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
         name={settings.chatbotName}
         greeting={settings.chatbotGreeting}
       />
+      <LiveSiteSync revision={revision} />
     </div>
   );
 }

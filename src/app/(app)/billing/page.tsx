@@ -1,7 +1,7 @@
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
-import { getPaidPlans, getPlanFromSettings, getPlans, planDisplayFeatures } from "@/lib/plans";
+import { getPaidPlans, getPlanFromSettings, getPlans } from "@/lib/plans";
 import { purchasedInterval } from "@/lib/packages";
 import { getStripePaymentsStatus } from "@/lib/stripe";
 import { BillingCards } from "./BillingCards";
@@ -104,7 +104,7 @@ export default async function BillingPage({
           maxDevices: p.maxDevices,
           monthly: p.monthly,
           yearly: p.yearly,
-          features: planDisplayFeatures(p),
+          features: p.features,
         }))}
       />
     </div>

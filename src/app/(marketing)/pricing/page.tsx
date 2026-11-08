@@ -5,7 +5,7 @@ import { PlanCatalog } from "@/components/billing/PlanCatalog";
 import { getSessionUser } from "@/lib/auth";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { purchasedInterval } from "@/lib/packages";
-import { getPaidPlans, planDisplayFeatures } from "@/lib/plans";
+import { getPaidPlans } from "@/lib/plans";
 
 export default async function PricingPage() {
   const [{ pricing: p, pricingPage: pp }, site, user] = await Promise.all([
@@ -20,7 +20,7 @@ export default async function PricingPage() {
     maxDevices: plan.maxDevices,
     monthly: plan.monthly,
     yearly: plan.yearly,
-    features: planDisplayFeatures(plan),
+    features: plan.features,
   }));
 
   return (
@@ -41,11 +41,12 @@ export default async function PricingPage() {
         </ScrollMeetSplit>
       </section>
 
+      {pp.showCompare !== false && (
       <section className="lp-sub-body" id="plans">
         <div className="lp-wrap">
           <ScrollMeetBlock side="left" className="lp-meet-heading">
             <p className="lp-dev-kicker">{pp.compareTitle || "Compare packages"}</p>
-            <h2 className="lp-h2">Pick Pro or Business, then your device tier</h2>
+            <h2 className="lp-h2">{pp.compareHeading}</h2>
           </ScrollMeetBlock>
           <PlanCatalog
             mode={user && user.plan !== "free" ? "billing" : "marketing"}
@@ -57,6 +58,7 @@ export default async function PricingPage() {
           />
         </div>
       </section>
+      )}
 
       {pp.showApiBlock && (
         <section className="lp-sub-body cream" id="api">
@@ -65,11 +67,8 @@ export default async function PricingPage() {
               <p className="lp-dev-kicker" style={{ color: "var(--lp-blue)" }}>
                 {pp.apiKicker}
               </p>
-              <h2 style={{ color: "var(--lp-ink)", fontSize: 28 }}>Need help choosing?</h2>
-              <p className="extra">
-                Every paid plan includes unlimited signatures, downloads, faxes, and seats. Pick Pro or
-                Business, then 1 device or up to 5 devices — monthly or yearly.
-              </p>
+              <h2 style={{ color: "var(--lp-ink)", fontSize: 28 }}>{pp.apiTitle}</h2>
+              <p className="extra">{pp.apiBody}</p>
               <Link href={pp.apiLinkHref || "/contact"} className="lp-text-link">
                 {pp.apiLinkLabel || "Talk to us"}
               </Link>

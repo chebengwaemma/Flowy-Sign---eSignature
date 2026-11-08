@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin-auth";
 import { publicUser } from "@/lib/auth";
-import { readStore, updateStore } from "@/lib/store";
+import { publishLiveSite } from "@/lib/live-site";
+import { bumpSiteRevision, readStore, updateStore } from "@/lib/store";
 
 export async function GET() {
   const admin = await getAdminSession();
@@ -33,9 +34,11 @@ export async function PATCH(req: Request) {
     if (body.data.plan) target.plan = body.data.plan;
     if (body.data.name) target.name = body.data.name;
     updated = publicUser(target);
+    bumpSiteRevision(store);
   });
 
   if (!updated) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  publishLiveSite();
   return NextResponse.json({ user: updated });
 }
 
@@ -61,8 +64,10 @@ export async function DELETE(req: Request) {
       if (removed) {
         store.deviceSessions = (store.deviceSessions || []).filter((s) => s.userId !== userId);
         store.notifications = (store.notifications || []).filter((n) => n.userId !== userId);
+        bumpSiteRevision(store);
       }
     });
+    if (removed) publishLiveSite();
     return NextResponse.json({ ok: true, removed });
   } catch (err) {
     console.warn("[admin/users DELETE]", (err as Error).message);

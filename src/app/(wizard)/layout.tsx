@@ -1,7 +1,9 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { getSessionUser, SessionStoreUnavailable } from "@/lib/auth";
+import { LiveSiteSync } from "@/components/LiveSiteSync";
 import { signatureFontsClassName } from "@/components/signature/signature-fonts";
+import { readSiteRevision } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -24,5 +26,11 @@ export default async function WizardLayout({ children }: { children: React.React
   }
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
-  return <div className={`send-shell ${signatureFontsClassName}`}>{children}</div>;
+  const revision = await readSiteRevision().catch(() => 0);
+  return (
+    <div className={`send-shell ${signatureFontsClassName}`}>
+      {children}
+      <LiveSiteSync revision={revision} />
+    </div>
+  );
 }

@@ -14,7 +14,7 @@ import type {
   User,
 } from "./types";
 import { defaultSettings, mergeSettings } from "./settings";
-import { connectDB, isMongoRequired, markMongoUnreachable } from "./db";
+import { connectDB, isMongoRequired, isMongoSkipped, markMongoUnreachable } from "./db";
 import { Platform } from "./models/Platform";
 
 /** On Vercel the app FS is read-only — use /tmp for file fallback. */
@@ -154,6 +154,7 @@ function seed(): PlatformStore {
     deviceSessions: [],
     notifications: [],
     site: { ...defaultSettings },
+    siteRevision: 0,
   };
 }
 
@@ -222,6 +223,7 @@ function normalizeStore(raw: unknown): PlatformStore {
       ? base.notifications.filter((n) => n?.id && n?.userId)
       : [],
     site: mergeSettings(base.site),
+    siteRevision: typeof base.siteRevision === "number" && base.siteRevision > 0 ? base.siteRevision : 0,
   };
 
   // Keep org settings filled, but platform site CMS remains source of truth for branding/plans
@@ -578,6 +580,33 @@ export async function readStore(options?: ReadStoreOptions): Promise<PlatformSto
       generation: storeGeneration,
     }),
   );
+}
+
+/** Admin saves increment this so open website tabs can refresh themselves. */
+export function bumpSiteRevision(store: PlatformStore) {
+  store.siteRevision = (store.siteRevision || 0) + 1;
+}
+
+/** Revision only — does not load documents or file bytes. */
+export async function readSiteRevision(): Promise<number> {
+  if (!isMongoSkipped()) {
+    try {
+      await connectDB();
+      const doc = await Platform.findOne({ key: "main" })
+        .select("data.siteRevision")
+        .maxTimeMS(4_000)
+        .lean<{ data?: { siteRevision?: number } }>();
+      if (typeof doc?.data?.siteRevision === "number") return doc.data.siteRevision;
+    } catch {
+      /* fall through to the cached store */
+    }
+  }
+  try {
+    const store = await readStore();
+    return store.siteRevision || 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function writeStore(store: PlatformStore): Promise<void> {
