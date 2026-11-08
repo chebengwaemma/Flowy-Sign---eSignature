@@ -24,7 +24,9 @@ export async function POST(req: Request) {
   const state = { ok: false };
 
   await updateStore((store) => {
-    const user = store.users.find((u) => (u.email || "").toLowerCase() === email);
+    const user = store.users.find(
+      (u) => (u.email || "").trim().toLowerCase() === email && u.id && u.resetOtpHash,
+    );
     if (!user?.resetOtpHash || !user.resetOtpExpires) return;
     if (Date.parse(user.resetOtpExpires) < Date.now() || (user.resetOtpAttempts || 0) >= 5) {
       user.resetOtpHash = undefined;

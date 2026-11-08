@@ -155,6 +155,7 @@ function seed(): PlatformStore {
     notifications: [],
     site: { ...defaultSettings },
     siteRevision: 0,
+    mailQueue: [],
   };
 }
 
@@ -224,6 +225,19 @@ function normalizeStore(raw: unknown): PlatformStore {
       : [],
     site: mergeSettings(base.site),
     siteRevision: typeof base.siteRevision === "number" && base.siteRevision > 0 ? base.siteRevision : 0,
+    mailQueue: Array.isArray(base.mailQueue)
+      ? base.mailQueue
+          .filter(
+            (job) =>
+              job?.kind === "password-reset" &&
+              job.id &&
+              job.userId &&
+              job.to &&
+              job.otpHash &&
+              job.idempotencyKey,
+          )
+          .slice(0, 40)
+      : [],
   };
 
   // Keep org settings filled, but platform site CMS remains source of truth for branding/plans
@@ -657,7 +671,7 @@ export async function updateStore(
 
 export async function findUserByEmail(email: string) {
   const store = await readStore();
-  const needle = (email || "").toLowerCase();
+  const needle = (email || "").trim().toLowerCase();
   if (!needle) return undefined;
   return store.users.find((u) => (u.email || "").toLowerCase() === needle);
 }

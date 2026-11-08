@@ -292,6 +292,24 @@ export interface UserNotification {
   readAt?: string;
 }
 
+/** Password-reset mail waiting on Resend. The body is deleted after accept or final failure. */
+export interface ResetMailJob {
+  id: string;
+  kind: "password-reset";
+  userId: string;
+  /** Registered address copied from that user row. Never a different mailbox. */
+  to: string;
+  otpHash: string;
+  subject: string;
+  text: string;
+  html: string;
+  idempotencyKey: string;
+  attempts: number;
+  nextAttemptAt: string;
+  lockedUntil?: string;
+  lastError?: string;
+}
+
 export interface PlatformStore {
   users: User[];
   organizations: Organization[];
@@ -303,4 +321,5 @@ export interface PlatformStore {
   site: OrgSettings;
   /** Bumps only when an admin save should show up on open website tabs. */
   siteRevision: number;
+  mailQueue?: ResetMailJob[];
 }

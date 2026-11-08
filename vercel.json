@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/reset-mail",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
