@@ -62,7 +62,7 @@ type Field = {
 const DEFAULT_FIELD_SIZE: Record<Field["type"], { width: number; height: number }> = {
   signature: { width: 16, height: 5.5 },
   initials: { width: 8, height: 4.2 },
-  date: { width: 12, height: 4.2 },
+  date: { width: 16, height: 6 },
   text: { width: 16, height: 4.2 },
 };
 
@@ -504,7 +504,7 @@ export function SendWizard({
             }}
             title="Drag to move. Drag a corner to make the signature or date smaller or bigger. Double-click to remove."
           >
-            <span className="placed-field-label">{f.type}</span>
+            <span className="placed-field-label">{f.type === "date" ? "Date" : f.type === "initials" ? "Init" : f.type === "signature" ? "Sign" : "Text"}</span>
             {(["nw", "ne", "sw", "se"] as const).map((corner) => (
               <span
                 key={corner}

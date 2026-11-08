@@ -181,7 +181,7 @@ export function SignWorkspace({
       <div>
         <h2 className="font-semibold text-lg">Sign this document</h2>
         <p className="mt-1 text-sm text-muted">
-          Adopt your signature, then tap Sign or tap the box on the page. Dates fill with today.
+          Tap Sign, then Add date. Or tap the page where the date should go. The date is today.
         </p>
       </div>
       <SignaturePad defaultName={recipientName} value={mark} onChange={setMark} />
@@ -199,16 +199,14 @@ export function SignWorkspace({
         <button
           type="button"
           className="btn btn-ghost"
-          disabled={busy || !nextDate}
+          disabled={busy}
           onClick={() => {
-            if (nextDate) {
-              void sync({
-                action: "apply",
-                mode: "date",
-                fieldId: nextDate.id,
-                signatureMark: { mode: "typed", style: mark?.style || preferredStyle },
-              });
-            }
+            void sync({
+              action: "apply",
+              mode: "date",
+              fieldId: nextDate?.id,
+              signatureMark: { mode: "typed", style: mark?.style || preferredStyle },
+            });
           }}
         >
           Add date

@@ -41,10 +41,19 @@ export default function SignPage() {
   const [done, setDone] = useState(false);
   const [fullDoc, setFullDoc] = useState<Document | null>(null);
   const [canComplete, setCanComplete] = useState(false);
-  const placeApi = useRef<{ fillField: (fieldId: string) => Promise<void> } | null>(null);
-  const onReady = useCallback((api: { fillField: (fieldId: string) => Promise<void> }) => {
-    placeApi.current = api;
-  }, []);
+  const placeApi = useRef<{
+    fillField: (fieldId: string) => Promise<void>;
+    placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
+  } | null>(null);
+  const onReady = useCallback(
+    (api: {
+      fillField: (fieldId: string) => Promise<void>;
+      placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
+    }) => {
+      placeApi.current = api;
+    },
+    [],
+  );
 
   useEffect(() => {
     async function load() {
@@ -96,7 +105,7 @@ export default function SignPage() {
           <p className="mt-2 text-muted">
             Signing as {data.recipient.name} ({data.recipient.email})
           </p>
-          <p className="mt-1 text-sm text-muted">Tap Sign, or tap a box on the document.</p>
+          <p className="mt-1 text-sm text-muted">Tap Sign. Tap Add date, or tap the page where the date should go.</p>
         </div>
       </ScrollMeetSplit>
 
@@ -113,6 +122,14 @@ export default function SignPage() {
               type: f.type as "signature" | "initials" | "date" | "text",
             }))}
             highlightPending={!done}
+            interactive={!done}
+            onPlace={
+              done
+                ? undefined
+                : (x, y, page) => {
+                    void placeApi.current?.placeDateAt(x, y, page);
+                  }
+            }
             onFieldSelect={
               done
                 ? undefined
