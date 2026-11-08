@@ -249,10 +249,8 @@ export default async function HomePage() {
       {m.pricingPage.showHighlightRow !== false && (
       <section className="lp-plans" id="pricing">
         <div className="lp-wrap">
-          <ScrollMeetBlock side="left" className="lp-meet-heading">
-            <h2 className="lp-plans-head">{h.plansTitle}</h2>
-          </ScrollMeetBlock>
-          <ScrollMeetSplit className="lp-plans-inner lp-meet-grid" itemClassName="lp-meet-item" distance={180} stagger={0.16}>
+          <h2 className="lp-plans-head">{h.plansTitle}</h2>
+          <div className="lp-plans-inner">
             <article className="lp-plan-card">
               <p className="eyebrow">{m.pricingPage.essentialsEyebrow}</p>
               <h3>{teamTitle}</h3>
@@ -283,7 +281,7 @@ export default async function HomePage() {
                 {m.pricingPage.standardCta || "See all plans"}
               </Link>
             </article>
-          </ScrollMeetSplit>
+          </div>
         </div>
       </section>
       )}

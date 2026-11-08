@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
-import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
 import { getSessionUser } from "@/lib/auth";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
@@ -26,7 +24,7 @@ export default async function PricingPage() {
   return (
     <main className="lp-page lp-sub">
       <section className="lp-sub-hero">
-        <ScrollMeetSplit className="lp-wrap lp-meet-stack" itemClassName="lp-meet-item" distance={90} stagger={0.1}>
+        <div className="lp-wrap lp-pricing-static">
           <p className="lp-dev-kicker">{p.kicker}</p>
           <h1>{p.title}</h1>
           <p className="lead">{p.lead}</p>
@@ -38,16 +36,16 @@ export default async function PricingPage() {
               {p.secondary}
             </Link>
           </div>
-        </ScrollMeetSplit>
+        </div>
       </section>
 
       {pp.showCompare !== false && (
       <section className="lp-sub-body" id="plans">
         <div className="lp-wrap">
-          <ScrollMeetBlock side="left" className="lp-meet-heading">
+          <div className="lp-pricing-static">
             <p className="lp-dev-kicker">{pp.compareTitle || "Compare packages"}</p>
             <h2 className="lp-h2">{pp.compareHeading}</h2>
-          </ScrollMeetBlock>
+          </div>
           <PlanCatalog
             mode={user && user.plan !== "free" ? "billing" : "marketing"}
             plans={paid}
@@ -62,7 +60,7 @@ export default async function PricingPage() {
 
       {pp.showApiBlock && (
         <section className="lp-sub-body cream" id="api">
-          <ScrollMeetBlock side="right" className="lp-wrap">
+          <div className="lp-wrap">
             <article className="lp-sub-card" style={{ gridColumn: "1 / -1" }}>
               <p className="lp-dev-kicker" style={{ color: "var(--lp-blue)" }}>
                 {pp.apiKicker}
@@ -76,7 +74,7 @@ export default async function PricingPage() {
                 {pp.apiLinkLabel || "Talk to us"}
               </Link>
             </article>
-          </ScrollMeetBlock>
+          </div>
         </section>
       )}
     </main>
