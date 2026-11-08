@@ -6,8 +6,6 @@ import { Logo } from "@/components/Logo";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
 import { SignWorkspace, type SignFieldView } from "@/components/signature/SignWorkspace";
-import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
-import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
 
 type Payload = {
@@ -97,20 +95,18 @@ export default function SignPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-6 py-10 app-meet-page">
-      <ScrollMeetSplit className="app-meet-stack" itemClassName="app-meet-item" distance={90} stagger={0.1}>
-        <Logo />
-        <div>
-          <h1 className="display mt-8 text-4xl">{data.document.title}</h1>
-          <p className="mt-2 text-muted">
-            Signing as {data.recipient.name} ({data.recipient.email})
-          </p>
-          <p className="mt-1 text-sm text-muted">Tap Sign. Tap Add date, or tap the page where the date should go.</p>
-        </div>
-      </ScrollMeetSplit>
+    <div className="sign-page mx-auto min-h-screen max-w-5xl px-6 py-10">
+      <Logo />
+      <div className="sign-page-head">
+        <h1 className="sign-page-title">{data.document.title}</h1>
+        <p className="sign-page-meta">
+          Signing as {data.recipient.name} ({data.recipient.email})
+        </p>
+        <p className="sign-page-hint">Tap Sign. Tap Add date, or tap the page where the date should go.</p>
+      </div>
 
-      <div className="sign-layout mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
-        <ScrollMeetBlock side="left" distance={110} className="app-meet-block">
+      <div className="sign-layout">
+        <div className="sign-doc">
           <DocumentSurface
             content={data.document.content}
             fileKind={data.document.fileKind}
@@ -138,10 +134,10 @@ export default function SignPage() {
                   }
             }
           />
-        </ScrollMeetBlock>
+        </div>
 
-        <ScrollMeetBlock side="right" distance={120} className="app-meet-block sign-sticky">
-          <div className="panel space-y-4 p-6">
+        <div className="sign-sticky">
+          <div className="panel sign-panel space-y-4 p-6">
             {done ? (
               <div>
                 <p className="tone-ok">Signed</p>
@@ -200,7 +196,7 @@ export default function SignPage() {
               />
             )}
           </div>
-        </ScrollMeetBlock>
+        </div>
       </div>
     </div>
   );

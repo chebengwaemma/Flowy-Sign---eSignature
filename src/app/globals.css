@@ -2729,23 +2729,110 @@ body:has(.admin-nav-mobile) {
   letter-spacing: 0.02em;
 }
 
+.sign-page {
+  width: 100%;
+  max-width: 64rem;
+}
+
+.sign-page-head {
+  margin-top: 1.5rem;
+  min-width: 0;
+}
+
+.sign-page-title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.35rem, 4.2vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.sign-page-meta,
+.sign-page-hint {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.sign-page-hint {
+  font-size: 0.9rem;
+}
+
+.sign-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+  min-width: 0;
+}
+
+.sign-doc,
+.sign-sticky,
+.sign-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sign-doc {
+  position: relative;
+  z-index: 1;
+}
+
+.sign-doc .doc-surface,
+.sign-doc .doc-page,
+.sign-doc .doc-page-media,
+.sign-doc img,
+.sign-doc canvas {
+  max-width: 100%;
+}
+
 .sign-sticky {
   position: sticky;
   top: 12px;
   align-self: start;
+  z-index: 2;
 }
 
 @media (max-width: 900px) {
+  .sign-page {
+    padding-left: max(16px, env(safe-area-inset-left)) !important;
+    padding-right: max(16px, env(safe-area-inset-right)) !important;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
   .sign-layout {
     display: flex;
     flex-direction: column;
+    gap: 1.25rem;
   }
+
+  /* Keep the photo in normal flow. A sticky form was covering it. */
   .sign-sticky {
-    position: sticky;
-    bottom: 0;
+    position: static;
     top: auto;
-    z-index: 20;
-    background: #fff;
+    bottom: auto;
+    z-index: auto;
+    background: transparent;
+  }
+
+  .sign-doc .doc-surface,
+  .sign-doc .doc-page-list,
+  .sign-doc .doc-page-stage {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .sign-doc .doc-page-media,
+  .sign-doc img {
+    height: auto;
+    object-fit: contain;
   }
 }
 
