@@ -2720,6 +2720,12 @@ body:has(.admin-nav-mobile) {
   background: transparent;
 }
 
+.doc-mark.is-movable,
+.doc-mark.is-selected {
+  overflow: visible;
+  z-index: 5;
+}
+
 .doc-mark.is-pending {
   border: 1px dashed rgba(31, 169, 122, 0.55);
   background: rgba(31, 169, 122, 0.08);
@@ -2864,56 +2870,92 @@ body:has(.admin-nav-mobile) {
   pointer-events: auto;
   position: absolute;
   z-index: 6;
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 2px solid #fff;
-  border-radius: 3px;
+  border-radius: 6px;
   background: #0b3d38;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
   touch-action: none;
 }
 
 .doc-mark-handle.handle-nw {
-  left: -7px;
-  top: -7px;
+  left: -11px;
+  top: -11px;
   cursor: nwse-resize;
 }
 
 .doc-mark-handle.handle-ne {
-  right: -7px;
-  top: -7px;
+  right: -11px;
+  top: -11px;
   cursor: nesw-resize;
 }
 
 .doc-mark-handle.handle-sw {
-  left: -7px;
-  bottom: -7px;
+  left: -11px;
+  bottom: -11px;
   cursor: nesw-resize;
 }
 
 .doc-mark-handle.handle-se {
-  right: -7px;
-  bottom: -7px;
+  right: -11px;
+  bottom: -11px;
   cursor: nwse-resize;
 }
 
 .doc-mark-x {
   pointer-events: auto;
   position: absolute;
-  top: -9px;
-  right: -9px;
-  z-index: 6;
-  width: 18px;
-  height: 18px;
+  top: -12px;
+  right: -12px;
+  z-index: 7;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 999px;
   background: #b42318;
   color: #fff;
-  font-size: 14px;
-  line-height: 18px;
+  font-size: 16px;
+  line-height: 26px;
   cursor: pointer;
   padding: 0;
+}
+
+@media (pointer: coarse) {
+  .doc-mark-handle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .doc-mark-handle.handle-nw {
+    left: -16px;
+    top: -16px;
+  }
+
+  .doc-mark-handle.handle-ne {
+    right: -16px;
+    top: -16px;
+  }
+
+  .doc-mark-handle.handle-sw {
+    left: -16px;
+    bottom: -16px;
+  }
+
+  .doc-mark-handle.handle-se {
+    right: -16px;
+    bottom: -16px;
+  }
+
+  .doc-mark-x {
+    width: 32px;
+    height: 32px;
+    top: -16px;
+    right: -16px;
+    font-size: 20px;
+    line-height: 32px;
+  }
 }
 
 .doc-mark.is-movable .doc-mark-x,

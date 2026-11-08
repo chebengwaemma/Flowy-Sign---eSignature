@@ -181,7 +181,7 @@ export function SignWorkspace({
       <div>
         <h2 className="font-semibold text-lg">Sign this document</h2>
         <p className="mt-1 text-sm text-muted">
-          Tap Sign, then Add date. Or tap the page where the date should go. The date is today.
+          Tap Sign, then Add date, or tap the page. Before Finish, drag a mark to move it, tap it to resize, or tap × to remove it.
         </p>
       </div>
       <SignaturePad defaultName={recipientName} value={mark} onChange={setMark} />

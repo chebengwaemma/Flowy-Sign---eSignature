@@ -39,14 +39,19 @@ export default function SignPage() {
   const [done, setDone] = useState(false);
   const [fullDoc, setFullDoc] = useState<Document | null>(null);
   const [canComplete, setCanComplete] = useState(false);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const placeApi = useRef<{
     fillField: (fieldId: string) => Promise<void>;
     placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
+    moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
+    cutField: (fieldId: string) => Promise<void>;
   } | null>(null);
   const onReady = useCallback(
     (api: {
       fillField: (fieldId: string) => Promise<void>;
       placeDateAt: (x: number, y: number, page?: number) => Promise<void>;
+      moveField: (fieldId: string, x: number, y: number, width?: number, height?: number) => Promise<void>;
+      cutField: (fieldId: string) => Promise<void>;
     }) => {
       placeApi.current = api;
     },
@@ -102,7 +107,10 @@ export default function SignPage() {
         <p className="sign-page-meta">
           Signing as {data.recipient.name} ({data.recipient.email})
         </p>
-        <p className="sign-page-hint">Tap Sign. Tap Add date, or tap the page where the date should go.</p>
+        <p className="sign-page-hint">
+          Tap Sign, then Add date, or tap the page for the date. Before Finish, drag a signature or date to move it.
+          Tap it to resize, or tap × to remove it.
+        </p>
       </div>
 
       <div className="sign-layout">
@@ -126,11 +134,33 @@ export default function SignPage() {
                     void placeApi.current?.placeDateAt(x, y, page);
                   }
             }
+            selectedFieldId={done ? null : selectedFieldId}
+            onFieldMove={
+              done
+                ? undefined
+                : (fieldId, x, y, size) => {
+                    setSelectedFieldId(fieldId);
+                    void placeApi.current?.moveField(fieldId, x, y, size?.width, size?.height);
+                  }
+            }
+            onFieldCut={
+              done
+                ? undefined
+                : (fieldId) => {
+                    setSelectedFieldId((current) => (current === fieldId ? null : current));
+                    void placeApi.current?.cutField(fieldId);
+                  }
+            }
             onFieldSelect={
               done
                 ? undefined
                 : (fieldId) => {
-                    void placeApi.current?.fillField(fieldId);
+                    setSelectedFieldId(fieldId);
+                    const field = data.document.fields.find((item) => item.id === fieldId);
+                    if (!field || field.skipped || field.value || field.signature) return;
+                    if (field.type === "signature" || field.type === "initials" || field.type === "date") {
+                      void placeApi.current?.fillField(fieldId);
+                    }
                   }
             }
           />
@@ -167,6 +197,13 @@ export default function SignPage() {
                 onReady={onReady}
                 onFieldsChange={(fields, meta) => {
                   setCanComplete(meta.canComplete);
+                  setSelectedFieldId((current) => {
+                    const prevIds = new Set(data.document.fields.map((item) => item.id));
+                    const added = fields.find((item) => !prevIds.has(item.id));
+                    if (added) return added.id;
+                    if (current && fields.some((item) => item.id === current)) return current;
+                    return null;
+                  });
                   setData((prev) =>
                     prev
                       ? {

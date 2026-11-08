@@ -136,10 +136,11 @@ export function DocumentSurface({
     if (!rect) return;
     const boxW = rect.width;
     const boxH = rect.height;
-    const width = field.width || 16;
-    const height = Math.max(field.height || 4.2, 3);
-    const originX = field.x;
-    const originY = field.y;
+    const live = dragPos[field.id];
+    const width = live?.width ?? field.width ?? 16;
+    const height = Math.max(live?.height ?? field.height ?? 4.2, 3);
+    const originX = live?.x ?? field.x;
+    const originY = live?.y ?? field.y;
     const startX = e.clientX;
     const startY = e.clientY;
     let lastX = originX;
@@ -147,20 +148,28 @@ export function DocumentSurface({
     let moved = false;
 
     const target = e.currentTarget;
-    target.setPointerCapture?.(e.pointerId);
-
-    function onMove(ev: PointerEvent) {
-      const dx = ((ev.clientX - startX) / boxW) * 100;
-      const dy = ((ev.clientY - startY) / boxH) * 100;
-      if (Math.abs(dx) + Math.abs(dy) > 0.4) moved = true;
-      lastX = Math.min(100 - width, Math.max(0, originX + dx));
-      lastY = Math.min(100 - height, Math.max(0, originY + dy));
-      setDragPos((prev) => ({ ...prev, [field.id]: { x: lastX, y: lastY } }));
+    try {
+      target.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* ignore */
     }
 
-    function onUp() {
+    function onMove(ev: PointerEvent) {
+      if (ev.pointerId !== e.pointerId) return;
+      ev.preventDefault();
+      const dx = ((ev.clientX - startX) / boxW) * 100;
+      const dy = ((ev.clientY - startY) / boxH) * 100;
+      if (Math.abs(dx) + Math.abs(dy) > 0.6) moved = true;
+      lastX = Math.min(100 - width, Math.max(0, originX + dx));
+      lastY = Math.min(100 - height, Math.max(0, originY + dy));
+      setDragPos((prev) => ({ ...prev, [field.id]: { x: lastX, y: lastY, width, height } }));
+    }
+
+    function onUp(ev: PointerEvent) {
+      if (ev.pointerId !== e.pointerId) return;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       try {
         target.releasePointerCapture?.(e.pointerId);
       } catch {
@@ -170,8 +179,9 @@ export function DocumentSurface({
       else onFieldSelect?.(field.id);
     }
 
-    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }
 
   function startResize(
@@ -186,19 +196,26 @@ export function DocumentSurface({
     if (!rect) return;
     const boxW = rect.width;
     const boxH = rect.height;
+    const live = dragPos[field.id];
     const origin = {
-      x: field.x,
-      y: field.y,
-      width: field.width || (field.type === "date" ? 12 : field.type === "initials" ? 8 : 16),
-      height: field.height || 4.2,
+      x: live?.x ?? field.x,
+      y: live?.y ?? field.y,
+      width: live?.width ?? field.width ?? (field.type === "date" ? 12 : field.type === "initials" ? 8 : 16),
+      height: live?.height ?? field.height ?? 4.2,
     };
     const startX = e.clientX;
     const startY = e.clientY;
     let last = { ...origin };
     const handle = e.currentTarget;
-    handle.setPointerCapture?.(e.pointerId);
+    try {
+      handle.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* ignore */
+    }
 
     function onMove(ev: PointerEvent) {
+      if (ev.pointerId !== e.pointerId) return;
+      ev.preventDefault();
       const dx = ((ev.clientX - startX) / boxW) * 100;
       const dy = ((ev.clientY - startY) / boxH) * 100;
       let { x, y, width, height } = origin;
@@ -216,9 +233,11 @@ export function DocumentSurface({
       setDragPos((prev) => ({ ...prev, [field.id]: last }));
     }
 
-    function onUp() {
+    function onUp(ev: PointerEvent) {
+      if (ev.pointerId !== e.pointerId) return;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       try {
         handle.releasePointerCapture?.(e.pointerId);
       } catch {
@@ -227,8 +246,9 @@ export function DocumentSurface({
       onFieldMove?.(field.id, last.x, last.y, { width: last.width, height: last.height });
     }
 
-    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }
 
   function marksFor(page: number) {
@@ -275,14 +295,14 @@ export function DocumentSurface({
               }
               role={onFieldSelect || movable ? "button" : undefined}
               tabIndex={onFieldSelect || movable ? 0 : undefined}
-              title={movable ? "Drag to move. Drag a corner to make it smaller or bigger." : undefined}
+              title={movable ? "Drag to move. Tap to resize or remove." : undefined}
             >
-              {onFieldCut && !field.skipped ? (
+              {onFieldCut && selected && !field.skipped ? (
                 <button
                   type="button"
                   className="doc-mark-x"
                   aria-label={`Remove ${field.type}`}
-                  title="Cut"
+                  title="Remove"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.preventDefault();
@@ -293,7 +313,7 @@ export function DocumentSurface({
                   ×
                 </button>
               ) : null}
-              {movable
+              {movable && selected
                 ? (["nw", "ne", "sw", "se"] as const).map((corner) => (
                     <button
                       key={corner}
