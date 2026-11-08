@@ -83,6 +83,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; d
       console.warn("[email] Resend failed", res.status, body.slice(0, 400));
       return { ok: false, error: `Email provider error (${res.status})` };
     }
+    console.info("[email] accepted", res.status);
     return { ok: true };
   } catch (err) {
     console.warn("[email] send failed", (err as Error).message);
