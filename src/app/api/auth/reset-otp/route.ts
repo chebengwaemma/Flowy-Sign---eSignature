@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const email = body.data.email.trim().toLowerCase();
   const code = body.data.code;
-  let result: "ok" | "invalid" = "invalid";
+  const state = { ok: false };
 
   await updateStore((store) => {
     const user = store.users.find((u) => (u.email || "").toLowerCase() === email);
@@ -47,10 +47,10 @@ export async function POST(req: Request) {
     user.resetOtpAttempts = 0;
     user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
-    result = "ok";
+    state.ok = true;
   });
 
-  if (result !== "ok") {
+  if (!state.ok) {
     return NextResponse.json({ error: INVALID }, { status: 400 });
   }
   return NextResponse.json({ ok: true });
