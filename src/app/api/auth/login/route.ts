@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            user?.authProvider === "google"
+            user?.authProvider === "google" && !user.password
               ? "This account uses Google login. Click Continue with Google."
               : "Invalid email or password",
         },

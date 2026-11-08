@@ -23,5 +23,6 @@ export default async function WizardLayout({ children }: { children: React.React
     throw err;
   }
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/account/password");
   return <div className={`send-shell ${signatureFontsClassName}`}>{children}</div>;
 }

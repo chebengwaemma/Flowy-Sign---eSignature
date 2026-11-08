@@ -23,8 +23,12 @@ export async function POST(req: Request) {
     if (!user?.resetTokenExpires) return;
     if (Date.parse(user.resetTokenExpires) < Date.now()) return;
     user.password = body.data.password;
+    user.mustChangePassword = false;
     user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
+    user.resetOtpHash = undefined;
+    user.resetOtpExpires = undefined;
+    user.resetOtpAttempts = 0;
     updated = true;
   });
 

@@ -86,6 +86,12 @@ export interface User {
   packageExpiresAt?: string | null;
   resetTokenHash?: string;
   resetTokenExpires?: string;
+  /** sha256 of the 6-digit reset code emailed with the link */
+  resetOtpHash?: string;
+  resetOtpExpires?: string;
+  resetOtpAttempts?: number;
+  /** Admin-issued password must be replaced on the next sign-in */
+  mustChangePassword?: boolean;
   /** Stripe Checkout session already emailed, so confirm + webhook do not double-send */
   lastBillingEmailSessionId?: string;
   /**

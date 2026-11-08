@@ -30,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     throw err;
   }
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/account/password");
 
   let store: Awaited<ReturnType<typeof readStore>> | null = null;
   try {

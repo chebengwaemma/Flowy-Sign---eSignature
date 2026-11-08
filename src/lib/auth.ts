@@ -215,6 +215,14 @@ export async function requireUser() {
 }
 
 export function publicUser(user: User) {
-  const { password: _password, ...safe } = user;
+  const {
+    password: _password,
+    resetTokenHash: _resetTokenHash,
+    resetTokenExpires: _resetTokenExpires,
+    resetOtpHash: _resetOtpHash,
+    resetOtpExpires: _resetOtpExpires,
+    resetOtpAttempts: _resetOtpAttempts,
+    ...safe
+  } = user;
   return safe;
 }

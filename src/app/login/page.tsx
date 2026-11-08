@@ -87,6 +87,11 @@ function LoginForm() {
       setError(data?.error || "Login failed");
       return;
     }
+    if (data?.user?.mustChangePassword) {
+      router.push("/account/password");
+      router.refresh();
+      return;
+    }
     const next = searchParams.get("next");
     const safeNext =
       next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
@@ -113,7 +118,7 @@ function LoginForm() {
       return;
     }
     setLimit(null);
-    router.push("/dashboard");
+    router.push(data?.user?.mustChangePassword ? "/account/password" : "/dashboard");
     router.refresh();
   }
 

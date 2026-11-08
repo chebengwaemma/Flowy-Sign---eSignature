@@ -73,7 +73,7 @@ const CONTROL_MAP: {
   {
     group: "Users & documents",
     items: [
-      { id: "U", title: "Users control", controls: "Change any user plan / role" },
+      { id: "U", title: "Users control", controls: "Plan, role, one-time temporary password" },
       { id: "Z", title: "Documents control", controls: "Admin document list / status" },
     ],
   },
@@ -161,6 +161,8 @@ export function AdminPanel({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [localUsers, setLocalUsers] = useState(users);
+  const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null);
+  const [tempError, setTempError] = useState("");
   const [localDocs, setLocalDocs] = useState(documents);
 
   const activeTitle = ALL_SECTIONS.find((s) => s.id === section)?.title || "Settings";
@@ -322,6 +324,21 @@ export function AdminPanel({
       setLocalUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data.user } : u)));
       router.refresh();
     }
+  }
+
+  async function issueTempPassword(userId: string) {
+    setTempError("");
+    const res = await fetch("/api/admin/users/temp-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.temporaryPassword) {
+      setTempError(data.error || "Could not create a temporary password");
+      return;
+    }
+    setTempPassword({ email: data.email, password: data.temporaryPassword });
   }
 
   async function removeUser(userId: string) {
@@ -1334,6 +1351,16 @@ export function AdminPanel({
             preview={SECTION_META.U.preview}
           />
           <Section title="Users control">
+            {tempPassword && (
+              <div className="panel mb-4 space-y-2 p-4 md:col-span-2">
+                <p className="text-sm font-semibold">One-time temporary password</p>
+                <p className="text-sm text-muted">
+                  Shown once for {tempPassword.email}. They sign in with it, then must choose a new password.
+                </p>
+                <input className="field font-mono" readOnly value={tempPassword.password} aria-label="Temporary password" />
+              </div>
+            )}
+            {tempError && <p className="text-sm text-[var(--bad)] md:col-span-2">{tempError}</p>}
             <div className="overflow-x-auto md:col-span-2">
               <table className="w-full text-left text-sm">
                 <thead className="text-[var(--muted)]">
@@ -1375,6 +1402,13 @@ export function AdminPanel({
                         </select>
                       </td>
                       <td className="py-3">
+                        <button
+                          type="button"
+                          className="mr-3 text-sm font-semibold text-accent-deep"
+                          onClick={() => issueTempPassword(u.id)}
+                        >
+                          Temporary password
+                        </button>
                         <button type="button" className="text-sm font-semibold text-[var(--bad)]" onClick={() => removeUser(u.id)}>
                           Remove
                         </button>
