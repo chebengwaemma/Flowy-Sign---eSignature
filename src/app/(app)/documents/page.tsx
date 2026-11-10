@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getOrgDocuments } from "@/lib/store";
-import { formatDate, statusTone } from "@/lib/utils";
+import { LocalDate } from "@/components/LocalDate";
+import { statusTone } from "@/lib/utils";
 
 export default async function DocumentsPage({
   searchParams,
@@ -54,7 +55,7 @@ export default async function DocumentsPage({
                     </Link>
                   </td>
                   <td className="px-5 py-4 text-muted">{(doc.recipients || []).length}</td>
-                  <td className="px-5 py-4 text-muted">{formatDate(doc.updatedAt)}</td>
+                  <td className="px-5 py-4 text-muted"><LocalDate iso={doc.updatedAt} /></td>
                   <td className="px-5 py-4">
                     <span className={statusTone(doc.status)}>{doc.status}</span>
                   </td>

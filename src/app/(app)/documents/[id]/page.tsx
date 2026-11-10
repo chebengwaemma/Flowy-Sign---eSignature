@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { readStore } from "@/lib/store";
-import { formatDate, statusTone } from "@/lib/utils";
+import { LocalDate } from "@/components/LocalDate";
+import { statusTone } from "@/lib/utils";
 import { DocumentSurface } from "@/components/signature/DocumentSurface";
 import { DownloadSignedButton } from "@/components/signature/DownloadSignedButton";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
@@ -41,7 +42,7 @@ export default async function DocumentDetailPage({
             <h1 className="display mt-2 text-4xl">{doc.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <span className={statusTone(doc.status)}>{doc.status}</span>
-              <span className="text-sm text-muted">Updated {formatDate(doc.updatedAt)}</span>
+              <span className="text-sm text-muted">Updated <LocalDate iso={doc.updatedAt} /></span>
               {doc.fileKind && doc.fileKind !== "text" && (
                 <span className="text-sm text-muted">· {doc.fileKind.toUpperCase()} original preserved</span>
               )}

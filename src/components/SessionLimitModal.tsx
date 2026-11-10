@@ -1,6 +1,6 @@
 "use client";
 
-import { formatSigningStamp } from "@/lib/signing-time";
+import { LocalDate } from "@/components/LocalDate";
 
 type ActiveSession = {
   session_id: string;
@@ -49,7 +49,7 @@ export function SessionLimitModal({
             <li key={s.session_id}>
               <div>
                 <strong>{s.device_label}</strong>
-                <span>Last active {formatWhen(s.last_seen_at)}</span>
+                <span>Last active <LocalDate iso={s.last_seen_at} /></span>
               </div>
               <button
                 type="button"
@@ -70,10 +70,3 @@ export function SessionLimitModal({
   );
 }
 
-function formatWhen(iso: string) {
-  try {
-    return formatSigningStamp(new Date(iso));
-  } catch {
-    return iso;
-  }
-}

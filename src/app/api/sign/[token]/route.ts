@@ -13,6 +13,7 @@ import {
   todayLabel,
 } from "@/lib/sign-field-ops";
 import { readStore, updateStore } from "@/lib/store";
+import { isIanaTimeZone } from "@/lib/signing-time";
 import { normalizeSignatureStyle } from "@/lib/signature-styles";
 import type { Document, SignatureField, SignatureMark } from "@/lib/types";
 
@@ -130,12 +131,14 @@ const patchSchema = z.discriminatedUnion("action", [
     x: z.number().min(0).max(100).optional(),
     y: z.number().min(0).max(100).optional(),
     page: z.number().int().min(1).max(50).optional(),
+    timeZone: z.string().max(64).optional(),
   }),
   z.object({
     action: z.literal("edit"),
     fieldId: z.string().min(1),
     value: z.string().optional(),
     signatureMark: markSchema.optional(),
+    timeZone: z.string().max(64).optional(),
   }),
   z.object({
     action: z.literal("delete"),
@@ -159,6 +162,7 @@ const patchSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("complete"),
+    timeZone: z.string().max(64).optional(),
   }),
 ]);
 
@@ -267,6 +271,9 @@ export async function PATCH(
       result = { ok: false, error: "Invalid link" };
       return;
     }
+    const submittedZone = "timeZone" in body.data ? body.data.timeZone : undefined;
+    if (isIanaTimeZone(submittedZone)) recipient.timeZone = submittedZone;
+    const localStamp = () => todayLabel(recipient.timeZone);
     if (recipient.status === "signed") {
       result = {
         ok: true,
@@ -311,11 +318,11 @@ export async function PATCH(
               height: 6,
               recipientId: recipient.id,
             };
-            applyDateToField(companion, todayLabel(), mark.style);
+            applyDateToField(companion, localStamp(), mark.style);
             doc.fields.push(companion);
           } else {
             for (const field of dates) {
-              if (!field.skipped) applyDateToField(field, field.value || todayLabel(), mark.style);
+              if (!field.skipped) applyDateToField(field, field.value || localStamp(), mark.style);
             }
           }
         }
@@ -347,7 +354,7 @@ export async function PATCH(
         }
         applyDateToField(
           target,
-          op.value || todayLabel(),
+          op.value || localStamp(),
           dateStyleFor(doc, recipient.id, op.signatureMark?.style, recipient.preferredSignatureStyle),
         );
       }
@@ -371,7 +378,7 @@ export async function PATCH(
       } else {
         applyDateToField(
           field,
-          op.value || field.value || todayLabel(),
+          op.value || field.value || localStamp(),
           dateStyleFor(
             doc,
             recipient.id,
@@ -453,6 +460,7 @@ export async function PATCH(
       if (allSigned) {
         doc.status = "completed";
         doc.completedAt = now;
+        doc.completedTimeZone = recipient.timeZone;
       }
       doc.updatedAt = now;
       result = {
@@ -501,6 +509,7 @@ const signSchema = z.object({
   signature: z.string().min(1),
   initials: z.string().optional(),
   signatureMark: markSchema.optional(),
+  timeZone: z.string().max(64).optional(),
 });
 
 /** Legacy one-shot adopt & sign — still supported; also stamps dates. */
@@ -540,6 +549,7 @@ export async function POST(
 
     const recipient = doc.recipients.find((r) => r.token === token);
     if (!recipient) return;
+    if (isIanaTimeZone(body.data.timeZone)) recipient.timeZone = body.data.timeZone;
 
     const now = new Date().toISOString();
     const display =
@@ -551,8 +561,8 @@ export async function POST(
       if (field.recipientId !== recipient.id) continue;
       if (isSignatureLike(field)) {
         applySignatureToField(field, mark, display, body.data.initials);
-      } else if (field.type === "date" && field.value?.trim() && !field.skipped) {
-        applyDateToField(field, field.value, mark.style);
+      } else if (field.type === "date" && !field.skipped) {
+        applyDateToField(field, field.value?.trim() || todayLabel(recipient.timeZone), mark.style);
       } else if (field.type === "text") {
         field.value = field.value || display;
         field.signedAt = now;
@@ -571,6 +581,7 @@ export async function POST(
     if (allSigned) {
       doc.status = "completed";
       doc.completedAt = now;
+      doc.completedTimeZone = recipient.timeZone;
     }
     doc.updatedAt = now;
     result = { ok: true, completed: allSigned, document: sanitizeDoc({ ...doc }) };

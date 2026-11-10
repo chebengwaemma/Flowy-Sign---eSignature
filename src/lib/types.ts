@@ -223,6 +223,8 @@ export interface Recipient {
   status: "pending" | "viewed" | "signed";
   token: string;
   signedAt?: string;
+  /** IANA zone from the signer's device when they signed */
+  timeZone?: string;
   /** Suggested typed signature style from the send wizard */
   preferredSignatureStyle?: SignatureStyle;
 }
@@ -246,6 +248,8 @@ export interface Document {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  /** Time zone of the signer who completed the document */
+  completedTimeZone?: string;
   /** Opaque token for email download links (payment-gated) */
   downloadToken?: string;
   readyEmailSentAt?: string;

@@ -2,7 +2,8 @@ import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { getSessionUser } from "@/lib/auth";
 import { getOrgInvites, getOrgMembers } from "@/lib/store";
 import { InviteForm } from "./InviteForm";
-import { formatDate, statusTone } from "@/lib/utils";
+import { LocalDate } from "@/components/LocalDate";
+import { statusTone } from "@/lib/utils";
 
 export default async function TeamPage() {
   const user = await getSessionUser();
@@ -46,7 +47,7 @@ export default async function TeamPage() {
                       {m.role}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-muted">{formatDate(m.createdAt)}</td>
+                  <td className="px-5 py-4 text-muted"><LocalDate iso={m.createdAt} /></td>
                 </tr>
               ))}
             </tbody>

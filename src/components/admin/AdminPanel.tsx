@@ -13,7 +13,8 @@ import type { MarketingSite, PageHero } from "@/lib/marketing";
 import { withSyncedPlanFeatures } from "@/lib/plans";
 import { mergeSettings } from "@/lib/settings";
 import type { DocStatus, OrgSettings, PlanDefinition, PlanId, Role } from "@/lib/types";
-import { formatDate, statusTone } from "@/lib/utils";
+import { LocalDate } from "@/components/LocalDate";
+import { statusTone } from "@/lib/utils";
 
 type AdminUser = {
   id: string;
@@ -1504,7 +1505,7 @@ export function AdminPanel({
                         </select>
                         <span className={`ml-2 ${statusTone(d.status)}`}>{d.status}</span>
                       </td>
-                      <td className="py-3 text-[var(--muted)]">{formatDate(d.updatedAt)}</td>
+                      <td className="py-3 text-[var(--muted)]"><LocalDate iso={d.updatedAt} /></td>
                       <td className="py-3">
                         <button
                           type="button"

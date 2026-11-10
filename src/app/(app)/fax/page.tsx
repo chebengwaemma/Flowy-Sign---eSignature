@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
-import { formatDate, statusTone } from "@/lib/utils";
+import { LocalDate } from "@/components/LocalDate";
+import { statusTone } from "@/lib/utils";
 
 type Fax = {
   id: string;
@@ -137,7 +138,7 @@ export default function FaxPage() {
                   <td className="px-5 py-4 text-muted">
                     {fax.direction === "outbound" ? fax.toNumber : fax.fromNumber}
                   </td>
-                  <td className="px-5 py-4 text-muted">{formatDate(fax.createdAt)}</td>
+                  <td className="px-5 py-4 text-muted"><LocalDate iso={fax.createdAt} /></td>
                   <td className="px-5 py-4">
                     <span className={statusTone(fax.status)}>{fax.status}</span>
                   </td>

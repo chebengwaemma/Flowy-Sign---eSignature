@@ -1,9 +1,10 @@
 import { normalizeSignatureStyle } from "./signature-styles";
-import { formatSigningDate } from "./signing-time";
+import { signerStamp } from "./signing-time";
 import type { Document, SignatureField, SignatureMark, SignatureStyle } from "./types";
 
-export function todayLabel(locale = "en-US") {
-  return formatSigningDate(new Date(), locale);
+/** Date and time written on the document, in the signer's own timezone. */
+export function todayLabel(timeZone?: string | null, locale = "en-US") {
+  return signerStamp(timeZone, new Date(), locale);
 }
 
 export function recipientFields(doc: Document, recipientId: string) {
