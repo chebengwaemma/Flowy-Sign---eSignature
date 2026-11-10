@@ -48,9 +48,9 @@ export function formatInTimeZone(
   return withTime ? date.toLocaleString(locale, options) : date.toLocaleDateString(locale, options);
 }
 
-/** Date and clock time in the signer's own country, frozen onto the document. */
+/** Calendar date frozen onto the document: month, day, and year in the signer's zone. No clock time. */
 export function signerStamp(timeZone?: string | null, date = new Date(), locale = "en-US") {
-  return formatInTimeZone(date, timeZone, true, locale);
+  return formatInTimeZone(date, timeZone, false, locale);
 }
 
 export function formatLocalStamp(iso?: string | null) {
