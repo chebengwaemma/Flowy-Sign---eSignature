@@ -138,7 +138,7 @@ export const defaultMarketing: MarketingSite = {
     heroLead:
       "Flowy Sign - eSignature, based in Austell GA, USA, helps you request signatures, track who still needs to sign, and finish paperwork without the usual chase.",
     heroCta: "Open a free workspace",
-    heroSecondary: "See Pricing",
+    heroSecondary: "Message Us",
     starsLabel: "Trusted by busy teams",
     integKicker: "Integrations",
     integTitle: "Plug Flowy Sign into your stack",
@@ -300,9 +300,6 @@ export const defaultMarketing: MarketingSite = {
     { label: "Pricing", href: "/pricing" },
     { label: "Contact", href: "/contact" },
     { label: "Terms & Conditions", href: "/terms" },
-    { label: "Insurance", href: "/teams/insurance" },
-    { label: "Government", href: "/teams/government" },
-    { label: "Others", href: "/teams/others" },
   ],
   steps: [
     { title: "Bring your file", body: "Upload from your device or pull a draft you already trust." },
@@ -451,15 +448,10 @@ function mergeList<T extends Record<string, unknown>>(defaults: T[], partial?: T
   return partial.map((item, i) => ({ ...(defaults[i] || {}), ...item }));
 }
 
-const INDUSTRY_FOOTER = [
-  { label: "Insurance", href: "/teams/insurance" },
-  { label: "Government", href: "/teams/government" },
-  { label: "Others", href: "/teams/others" },
-];
+const REMOVED_FOOTER = new Set(["/teams/insurance", "/teams/government", "/teams/others"]);
 
 function withIndustryLinks(links: { label: string; href: string }[]) {
-  const hrefs = new Set(links.map((link) => link.href));
-  return [...links, ...INDUSTRY_FOOTER.filter((link) => !hrefs.has(link.href))];
+  return links.filter((link) => !REMOVED_FOOTER.has(link.href));
 }
 
 function mergeTeamCards(

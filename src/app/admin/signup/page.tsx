@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-export default function AdminSignupDisabledPage() {
-  redirect("/admin/login");
+export default function RetiredAdminSignupPage() {
+  notFound();
 }

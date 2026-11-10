@@ -30,5 +30,6 @@ export function makeTemporaryPassword() {
   const bytes = randomBytes(10);
   let body = "";
   for (const byte of bytes) body += alphabet[byte % alphabet.length];
+  if (!/[0-9]/.test(body)) body = `${body.slice(0, 9)}7`;
   return `Tmp-${body}`;
 }

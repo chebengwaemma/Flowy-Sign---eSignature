@@ -25,7 +25,7 @@ export default async function ContactPage() {
         kicker={contact.kicker}
         title={contact.title}
         lead={contact.lead}
-        ctaHref={`mailto:${settings.supportEmail}`}
+        ctaHref="#message"
         ctaLabel={contact.cta}
         secondaryHref="/help"
         secondaryLabel={contact.secondary}

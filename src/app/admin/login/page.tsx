@@ -1,14 +1,5 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { getAdminSession } from "@/lib/admin-auth";
-import { AdminLoginForm } from "./AdminLoginForm";
+import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function AdminLoginPage() {
-  await connection();
-  const admin = await getAdminSession();
-  if (admin) redirect("/admin");
-
-  return <AdminLoginForm />;
+export default function RetiredAdminLoginPage() {
+  notFound();
 }

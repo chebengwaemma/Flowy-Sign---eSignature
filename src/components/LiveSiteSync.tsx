@@ -20,7 +20,7 @@ export function LiveSiteSync({ revision }: { revision: number }) {
   }, [revision]);
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return;
+    if (pathname.startsWith("/admin") || pathname.startsWith("/sign")) return;
     let stopped = false;
 
     async function tick() {

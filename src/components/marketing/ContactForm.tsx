@@ -42,7 +42,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="lp-contact-form panel mx-auto mt-10 max-w-xl space-y-4 p-6">
+    <form id="message" onSubmit={onSubmit} className="lp-contact-form panel mx-auto mt-10 max-w-xl space-y-4 p-6">
       <div>
         <label className="label" htmlFor="contact-name">
           Name

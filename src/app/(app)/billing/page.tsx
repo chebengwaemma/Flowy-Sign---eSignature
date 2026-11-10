@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/get-marketing";
 import { getPaidPlans, getPlanFromSettings, getPlans } from "@/lib/plans";
 import { purchasedInterval } from "@/lib/packages";
+import { formatSigningDate } from "@/lib/signing-time";
 import { getStripePaymentsStatus } from "@/lib/stripe";
 import { BillingCards } from "./BillingCards";
 import { BillingResult } from "./BillingResult";
@@ -55,7 +56,7 @@ export default async function BillingPage({
             ? ` · ${interval === "yearly" ? "Yearly" : "Monthly"} · ${user.activeDevicesCount ?? 0}/${maxDevices} devices active`
             : ""}
           {user.packageActivatedAt
-            ? ` · activated ${new Date(user.packageActivatedAt).toLocaleDateString()}`
+            ? ` · activated ${formatSigningDate(new Date(user.packageActivatedAt))}`
             : ""}
         </p>
       </ScrollMeetBlock>

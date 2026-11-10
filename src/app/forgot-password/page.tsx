@@ -110,11 +110,14 @@ export default function ForgotPasswordPage() {
             className="field"
             type="password"
             autoComplete="new-password"
-            minLength={6}
+            minLength={10}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            At least 10 characters, with upper and lower case, a number, and a symbol.
+          </p>
         </div>
         {codeError && <p className="text-sm text-[var(--bad)]">{codeError}</p>}
         <button className="btn btn-primary w-full" disabled={saving || code.length !== 6}>

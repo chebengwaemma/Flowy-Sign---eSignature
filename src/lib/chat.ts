@@ -37,12 +37,12 @@ const KB: Array<{ keys: string[]; answer: string }> = [
   {
     keys: ["admin", "brand", "color"],
     answer:
-      "Workspace admins open Admin to edit brand name, colors, landing copy, and toggles like chatbot or fax. Platform super-admins use /admin for site-wide settings.",
+      "Workspace admins open Admin to edit brand name, colors, landing copy, and toggles like chatbot or fax.",
   },
   {
     keys: ["password", "login", "account"],
     answer:
-      "Sign in at Login, or create a workspace from Sign up. Demo accounts: admin@flowysign.com / admin123 and user@flowysign.com / user123.",
+      "Sign in at Login, or create a workspace from Sign up. A new password needs 10 characters, with upper and lower case, a number, and a symbol.",
   },
   {
     keys: ["pdf", "image", "upload", "screenshot"],

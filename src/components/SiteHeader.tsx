@@ -6,13 +6,12 @@ import { ChevronDown, Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 import {
   FEATURE_LINKS,
-  PRICING_LINKS,
   TEAM_LINKS,
   WHY_LINKS,
   type NavLink,
 } from "./marketing/nav-data";
 
-type Panel = "why" | "features" | "teams" | "pricing" | null;
+type Panel = "why" | "features" | "teams" | null;
 
 function MegaPanel({
   title,
@@ -41,7 +40,6 @@ function MegaPanel({
 export function SiteHeader({
   nav,
   brandLabel = "Flowy Sign - eSignature",
-  pricingLinks = PRICING_LINKS,
 }: {
   nav: {
     why: string;
@@ -54,7 +52,6 @@ export function SiteHeader({
     getStarted: string;
   };
   brandLabel?: string;
-  pricingLinks?: NavLink[];
 }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -136,14 +133,9 @@ export function SiteHeader({
             >
               {nav.teams} <ChevronDown size={14} />
             </button>
-            <button
-              type="button"
-              className={`lp-nav-btn${panel === "pricing" ? " on" : ""}`}
-              aria-expanded={panel === "pricing"}
-              onClick={() => togglePanel("pricing")}
-            >
-              {nav.pricing} <ChevronDown size={14} />
-            </button>
+            <Link href="/pricing" className="lp-nav-btn" onClick={closeAll}>
+              {nav.pricing}
+            </Link>
           </nav>
         </div>
         <div className="lp-header-actions">
@@ -193,14 +185,6 @@ export function SiteHeader({
           </div>
         </div>
       )}
-      {panel === "pricing" && (
-        <div className="lp-mega">
-          <div className="lp-mega-inner">
-            <MegaPanel title="Plans" links={pricingLinks} onNavigate={closeAll} />
-          </div>
-        </div>
-      )}
-
       {open && (
         <>
           <button type="button" className="lp-menu-backdrop" aria-label="Close menu" onClick={closeAll} />
@@ -211,7 +195,6 @@ export function SiteHeader({
                   ["why", nav.why, WHY_LINKS],
                   ["features", nav.features, FEATURE_LINKS],
                   ["teams", nav.teams, TEAM_LINKS],
-                  ["pricing", nav.pricing, pricingLinks],
                 ] as const
               ).map(([id, label, links]) => (
                 <div key={id} className="lp-menu-acc-item">
@@ -237,6 +220,16 @@ export function SiteHeader({
                 </div>
               ))}
             </div>
+            <Link
+              href="/pricing"
+              className="lp-menu-acc-btn"
+              onClick={(event) => {
+                event.preventDefault();
+                window.location.assign("/pricing");
+              }}
+            >
+              {nav.pricing}
+            </Link>
             <div className="lp-menu-actions">
               <Link href="/contact" onClick={closeAll}>
                 {nav.support}

@@ -1,5 +1,6 @@
 import type { Document, SignatureField } from "./types";
 import { SIGNATURE_STYLES } from "./signature-styles";
+import { formatSigningStamp } from "./signing-time";
 
 function escapeHtml(s: string) {
   return s
@@ -81,7 +82,7 @@ export function buildSignedDocumentHtml(doc: Document) {
     <div class="meta">
       <h1>${escapeHtml(doc.title)}</h1>
       <p><span class="badge">Completed &amp; signed</span>
-        ${doc.completedAt ? ` · ${escapeHtml(new Date(doc.completedAt).toLocaleString())}` : ""}
+        ${doc.completedAt ? ` · ${escapeHtml(formatSigningStamp(new Date(doc.completedAt)))}` : ""}
       </p>
       <p style="color:#5a736e;font-size:13px;">
         Original document preserved. Signatures are overlays only.

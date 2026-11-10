@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSigningStamp } from "@/lib/signing-time";
+
 type ActiveSession = {
   session_id: string;
   device_label: string;
@@ -70,7 +72,7 @@ export function SessionLimitModal({
 
 function formatWhen(iso: string) {
   try {
-    return new Date(iso).toLocaleString();
+    return formatSigningStamp(new Date(iso));
   } catch {
     return iso;
   }

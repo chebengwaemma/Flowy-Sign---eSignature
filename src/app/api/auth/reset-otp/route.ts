@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { passwordIssue } from "@/lib/password-policy";
 import { secretsMatch } from "@/lib/password-reset";
 import { updateStore } from "@/lib/store";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   email: z.string().email(),
   code: z.string().regex(/^\d{6}$/),
-  password: z.string().min(6),
+  password: z.string().min(1),
 });
 
 const INVALID = "That code is invalid or expired. Request a new one.";
@@ -16,7 +17,11 @@ const INVALID = "That code is invalid or expired. Request a new one.";
 export async function POST(req: Request) {
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) {
-    return NextResponse.json({ error: "Enter the 6-digit code and a password of at least 6 characters." }, { status: 400 });
+    return NextResponse.json({ error: "Enter the 6-digit code from your email." }, { status: 400 });
+  }
+  const weakPassword = passwordIssue(body.data.password);
+  if (weakPassword) {
+    return NextResponse.json({ error: weakPassword }, { status: 400 });
   }
 
   const email = body.data.email.trim().toLowerCase();

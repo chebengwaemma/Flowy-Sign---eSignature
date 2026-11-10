@@ -184,7 +184,7 @@ export const SECTION_META: Record<
   U: {
     title: "Users control",
     controls: "Change any user role and plan, or issue a one-time temporary password.",
-    preview: "/admin",
+    preview: "/admin/mankwi-bafut",
   },
   Z: {
     title: "Documents control",

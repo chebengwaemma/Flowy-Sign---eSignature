@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { formatSigningDate } from "./signing-time";
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -8,11 +9,7 @@ export function formatDate(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatSigningDate(d);
 }
 
 export function statusTone(status: string) {

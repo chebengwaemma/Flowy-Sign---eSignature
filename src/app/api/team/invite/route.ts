@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { getPlanFromSettings } from "@/lib/plans";
 import { mergeSettings } from "@/lib/settings";
+import { makeTemporaryPassword } from "@/lib/password-reset";
 import { sendTeamInviteEmail } from "@/lib/signing-email";
 import { readStore, updateStore } from "@/lib/store";
 import type { TeamInvite, User } from "@/lib/types";
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
     }
   }
 
+  const temporaryPassword = makeTemporaryPassword();
   const now = new Date().toISOString();
   const invite: TeamInvite = {
     id: nanoid(10),
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
     id: nanoid(10),
     email: invite.email,
     name: body.data.name || invite.email.split("@")[0],
-    password: "welcome123",
+    password: temporaryPassword,
     role: invite.role,
     orgId: user.orgId,
     plan: user.plan,
@@ -86,7 +88,6 @@ export async function POST(req: Request) {
     s.users.push(newUser);
   });
 
-  const temporaryPassword = "welcome123";
   const mail = await sendTeamInviteEmail({
     to: newUser.email,
     name: newUser.name,

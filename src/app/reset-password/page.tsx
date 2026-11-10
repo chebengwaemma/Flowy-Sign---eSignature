@@ -44,11 +44,14 @@ function ResetForm() {
             id="password"
             className="field"
             type="password"
-            minLength={6}
+            minLength={10}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            At least 10 characters, with upper and lower case, a number, and a symbol.
+          </p>
         </div>
         {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
         {!token && <p className="text-sm text-[var(--bad)]">This reset link is missing its token.</p>}

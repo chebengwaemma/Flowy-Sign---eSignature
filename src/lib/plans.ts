@@ -31,13 +31,13 @@ export const DEFAULT_PLANS: PlanDefinition[] = [
     maxDevices: 1,
     monthly: 0,
     yearly: 0,
-    // No paid features until checkout — all usage quotas stay 0
-    docs: 0,
+    // Free trial can send one signature request. Downloads and fax stay closed.
+    docs: 1,
     downloads: 0,
     faxes: 0,
     seats: 1,
     features: [
-      "No signature requests until you buy a plan",
+      "Send 1 document for signature",
       "No signature downloads until you buy a plan",
       "No faxes until you buy a plan",
       "Browse templates",
@@ -195,7 +195,7 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[], version?: number |
         name: typeof over.name === "string" && over.name.trim() ? over.name : base.name,
         monthly: 0,
         yearly: 0,
-        docs: 0,
+        docs: 1,
         downloads: 0,
         faxes: 0,
         seats: 1,
@@ -232,6 +232,11 @@ function mergeLegacyPlans(partial: Partial<PlanDefinition>[], version?: number |
   });
 }
 
+function atLeastOneSend(limit: number) {
+  if (limit < 0) return limit;
+  return Math.max(1, limit);
+}
+
 export function mergePlans(
   partial?: Partial<PlanDefinition>[] | null,
   version?: number | null,
@@ -253,14 +258,14 @@ export function mergePlans(
     if (!over) return withSyncedPlanFeatures({ ...base, features: [...base.features] });
     const paid = base.id !== "free";
     if (!paid) {
-      return {
+      return withSyncedPlanFeatures({
         ...base,
         id: base.id,
         category: base.category,
         name: stick ? textOr(over.name, base.name) : base.name,
         monthly: stick ? Math.max(0, numOr(over.monthly, 0)) : 0,
         yearly: stick ? Math.max(0, numOr(over.yearly, 0)) : 0,
-        docs: stick ? intOr(over.docs, base.docs) : base.docs,
+        docs: atLeastOneSend(stick ? intOr(over.docs, base.docs) : base.docs),
         downloads: stick ? intOr(over.downloads, base.downloads) : base.downloads,
         faxes: stick ? intOr(over.faxes, base.faxes) : base.faxes,
         seats: stick ? Math.max(1, intOr(over.seats, base.seats)) : base.seats,
@@ -271,7 +276,7 @@ export function mergePlans(
         visible: stick && typeof over.visible === "boolean" ? over.visible : base.visible,
         stripePriceMonthly: "",
         stripePriceYearly: "",
-      };
+      });
     }
     return {
       ...base,
@@ -357,8 +362,11 @@ export function isQuotaFeatureLine(line: string) {
 /** Build the quota bullets that should always match docs/downloads/faxes/seats */
 export function quotaFeatureLines(plan: PlanDefinition): string[] {
   if (plan.id === "free") {
+    const sends = plan.docs < 0 ? -1 : Math.max(1, plan.docs);
     return [
-      "No signature requests (buy a plan)",
+      sends < 0
+        ? "Unlimited signature requests"
+        : `Send ${sends} document${sends === 1 ? "" : "s"} for signature`,
       "No signature downloads (buy a plan)",
       "No faxes (buy a plan)",
       "1 seat — invite teammates after upgrade",

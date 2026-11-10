@@ -63,11 +63,14 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
             className="field"
             type="password"
             autoComplete="new-password"
-            minLength={6}
+            minLength={10}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
           />
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            At least 10 characters, with upper and lower case, a number, and a symbol.
+          </p>
         </div>
         {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
         <button className="btn btn-primary w-full" disabled={loading}>

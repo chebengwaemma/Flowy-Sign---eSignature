@@ -3,10 +3,8 @@ import { connection } from "next/server";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Chatbot } from "@/components/Chatbot";
-import { buildPricingLinks } from "@/components/marketing/nav-data";
 import { LiveSiteSync } from "@/components/LiveSiteSync";
 import { getSiteSettings } from "@/lib/get-marketing";
-import { getPlans } from "@/lib/plans";
 import { readSiteRevision } from "@/lib/store";
 import { elegantFontClassName } from "@/components/signature/elegant-font";
 import "./landing.css";
@@ -17,7 +15,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const m = settings.marketing;
   const brand = settings.brandName || settings.companyLegalName || "Flowy Sign - eSignature";
   const address = settings.companyAddress || m.footerTagline || "Austell GA, USA";
-  const pricingLinks = buildPricingLinks(getPlans(settings), m.home?.planApiPrice);
 
   const accent = settings.accentColor || "#0284c7";
   const theme = {
@@ -41,7 +38,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
           getStarted: m.navGetStarted,
         }}
         brandLabel={settings.logoText || brand}
-        pricingLinks={pricingLinks}
       />
       <div className="lp-shell-main">{children}</div>
       <SiteFooter brandName={brand} address={address} links={m.footerLinks} />

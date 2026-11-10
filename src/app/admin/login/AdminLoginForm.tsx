@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
+import { ADMIN_PANEL_PATH } from "@/lib/admin-path";
 
 export function AdminLoginForm() {
   const [email, setEmail] = useState("");
@@ -30,7 +31,7 @@ export function AdminLoginForm() {
         return;
       }
       // Full navigation so the session cookie is always sent on the next request
-      window.location.assign("/admin");
+      window.location.assign(ADMIN_PANEL_PATH);
     } catch {
       setError("Network error — try again.");
       setLoading(false);

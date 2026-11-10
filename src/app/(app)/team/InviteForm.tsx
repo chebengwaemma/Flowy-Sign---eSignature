@@ -29,8 +29,12 @@ export function InviteForm() {
       return;
     }
     const credEmail = data?.credentials?.email || email;
-    const tempPass = data?.credentials?.temporaryPassword || "welcome123";
-    setMessage(`Added ${credEmail}. Temporary password: ${tempPass}`);
+    const tempPass = data?.credentials?.temporaryPassword;
+    setMessage(
+      tempPass
+        ? `Added ${credEmail}. Temporary password: ${tempPass}`
+        : `Added ${credEmail}. The temporary password was emailed to them.`,
+    );
     setEmail("");
     setName("");
     router.refresh();

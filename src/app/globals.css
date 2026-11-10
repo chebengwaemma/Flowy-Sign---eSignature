@@ -2727,12 +2727,37 @@ body:has(.admin-nav-mobile) {
 }
 
 .doc-mark.is-pending {
-  border: 1px dashed rgba(31, 169, 122, 0.55);
-  background: rgba(31, 169, 122, 0.08);
-  color: var(--muted);
-  font-size: 10px;
+  overflow: visible;
+  min-width: 4.75rem;
+  min-height: 2rem;
+  border-width: 2px;
+  border-style: solid;
+  font-size: 13px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.doc-mark-signature.is-pending {
+  color: #9a3412;
+  background: #ffedd5;
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35);
+}
+
+.doc-mark-initials.is-pending {
+  color: #075985;
+  background: #e0f2fe;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.4);
+}
+
+.doc-mark-date.is-pending {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.35);
 }
 
 .sign-page {
@@ -2858,7 +2883,7 @@ body:has(.admin-nav-mobile) {
 
 .doc-mark.is-movable {
   cursor: move;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
 }
 
@@ -3708,13 +3733,32 @@ body:has(.admin-nav-mobile) {
   margin: 0;
 }
 
-.pkg-billing-btn.is-active {
-  background: var(--ink);
+.pkg-billing-btn[data-interval="monthly"] {
+  color: #1e3a8a;
+  background: #dbeafe;
+  border: 2px solid #2563eb;
+}
+
+.pkg-billing-btn[data-interval="yearly"] {
+  color: #9a3412;
+  background: #ffedd5;
+  border: 2px solid #ea580c;
+}
+
+.pkg-billing-btn.is-active[data-interval="monthly"] {
+  background: #1d4ed8;
   color: #fff;
+  border-color: #1e3a8a;
+}
+
+.pkg-billing-btn.is-active[data-interval="yearly"] {
+  background: #c2410c;
+  color: #fff;
+  border-color: #7c2d12;
 }
 
 .pkg-billing-btn.is-active em {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
 

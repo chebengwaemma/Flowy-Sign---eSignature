@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { publicUser, tryCreateSession } from "@/lib/auth";
+import { passwordIssue } from "@/lib/password-policy";
 import { deviceLabelFromRequest } from "@/lib/device-sessions";
 import { mergeSettings } from "@/lib/settings";
 import { createUser, findUserByEmail, readStore } from "@/lib/store";
@@ -8,7 +9,7 @@ import { createUser, findUserByEmail, readStore } from "@/lib/store";
 const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(1),
 });
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,10 @@ export async function POST(req: Request) {
         { error: "Check your name, email, and password" },
         { status: 400 },
       );
+    }
+    const weakPassword = passwordIssue(body.data.password);
+    if (weakPassword) {
+      return NextResponse.json({ error: weakPassword }, { status: 400 });
     }
 
     const existing = await findUserByEmail(body.data.email);

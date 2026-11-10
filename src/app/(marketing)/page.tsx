@@ -6,33 +6,10 @@ import {
   IconTeams,
   IconWorkflow,
 } from "@/components/landing/FeatureIcons";
-import { IntegrationsMarquee } from "@/components/landing/IntegrationsMarquee";
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
 import { getPlans } from "@/lib/plans";
-
-const ORBIT_MARKS = [
-  { name: "Drive", fg: "#4285F4", mark: "G" },
-  { name: "Slack", fg: "#611f69", mark: "S" },
-  { name: "Salesforce", fg: "#00A1E0", mark: "☁" },
-  { name: "HubSpot", fg: "#FF7A59", mark: "H" },
-  { name: "OneDrive", fg: "#0078D4", mark: "☁" },
-  { name: "Outlook", fg: "#0072C6", mark: "O" },
-];
-
-function withEsignUnderline(text: string) {
-  const parts = text.split(/(eSignatures)/i);
-  return parts.map((part, i) =>
-    /^eSignatures$/i.test(part) ? (
-      <span key={i} className="lp-integ-em">
-        {part}
-      </span>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
-}
 
 export default async function HomePage() {
   // getMarketing → getSiteSettings; React cache() dedupes within the request.
@@ -86,8 +63,8 @@ export default async function HomePage() {
               <Link href="/signup" className="lp-btn lp-btn-lg">
                 {h.heroCta}
               </Link>
-              <Link href="/contact" className="lp-btn-outline">
-                {h.heroSecondary}
+              <Link href="/contact#message" className="lp-btn-outline">
+                Message Us
               </Link>
             </div>
           </div>
@@ -136,18 +113,6 @@ export default async function HomePage() {
           </div>
         </ScrollMeetSplit>
         <div className="lp-wave-break" aria-hidden />
-      </section>
-
-      <section className="lp-integ" id="integrations" aria-labelledby="integ-title">
-        <ScrollMeetSplit className="lp-integ-inner lp-meet-stack" itemClassName="lp-meet-item" distance={90} stagger={0.08}>
-          <p className="lp-integ-kicker">{h.integKicker}</p>
-          <h2 id="integ-title">{h.integTitle}</h2>
-          <p className="lp-integ-sub">{withEsignUnderline(h.integSub)}</p>
-          <Link href="/features" className="lp-integ-link">
-            {h.integLink} <ArrowRight size={16} strokeWidth={2.25} />
-          </Link>
-        </ScrollMeetSplit>
-        <IntegrationsMarquee />
       </section>
 
       <section className="lp-features" id="features">
@@ -233,15 +198,6 @@ export default async function HomePage() {
                 <strong>Ready to sign</strong>
               </div>
             </div>
-            {ORBIT_MARKS.map((item, i) => (
-              <span
-                key={item.name}
-                className={`lp-orbit-node n${i}`}
-                style={{ color: item.fg, borderColor: `${item.fg}33` }}
-              >
-                {item.mark}
-              </span>
-            ))}
           </div>
         </ScrollMeetSplit>
       </section>
@@ -310,8 +266,8 @@ export default async function HomePage() {
             <Link href="/signup" className="lp-btn lp-btn-lg">
               {h.heroCta}
             </Link>
-            <Link href="/contact" className="lp-btn-outline">
-              {h.heroSecondary}
+            <Link href="/contact#message" className="lp-btn-outline">
+              Message Us
             </Link>
           </div>
         </ScrollMeetSplit>

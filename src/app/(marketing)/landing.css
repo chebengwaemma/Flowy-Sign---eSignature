@@ -223,6 +223,7 @@ body:has(.lp-shell) {
   padding: 8px 10px;
   border-radius: 10px;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 

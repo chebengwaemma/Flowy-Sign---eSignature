@@ -129,7 +129,6 @@ export function DocumentSurface({
   function startFieldDrag(e: ReactPointerEvent<HTMLDivElement>, field: FieldView) {
     if (!onFieldMove || !canMoveType(field.type)) return;
     if ((e.target as HTMLElement).closest(".doc-mark-handle, .doc-mark-x")) return;
-    e.preventDefault();
     e.stopPropagation();
 
     const rect = boxRect(e.currentTarget);
@@ -141,25 +140,37 @@ export function DocumentSurface({
     const height = Math.max(live?.height ?? field.height ?? 4.2, 3);
     const originX = live?.x ?? field.x;
     const originY = live?.y ?? field.y;
-    const startX = e.clientX;
-    const startY = e.clientY;
+    let startX = e.clientX;
+    let startY = e.clientY;
     let lastX = originX;
     let lastY = originY;
-    let moved = false;
+    let dragging = false;
 
     const target = e.currentTarget;
-    try {
-      target.setPointerCapture?.(e.pointerId);
-    } catch {
-      /* ignore */
-    }
 
     function onMove(ev: PointerEvent) {
       if (ev.pointerId !== e.pointerId) return;
+      const pdx = ev.clientX - startX;
+      const pdy = ev.clientY - startY;
+      if (!dragging) {
+        const distance = Math.hypot(pdx, pdy);
+        // A keyboard or scroll jump should not fling a small initials box.
+        if (distance > 72) {
+          startX = ev.clientX;
+          startY = ev.clientY;
+          return;
+        }
+        if (distance < 18) return;
+        dragging = true;
+        try {
+          target.setPointerCapture?.(ev.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
       ev.preventDefault();
       const dx = ((ev.clientX - startX) / boxW) * 100;
       const dy = ((ev.clientY - startY) / boxH) * 100;
-      if (Math.abs(dx) + Math.abs(dy) > 0.6) moved = true;
       lastX = Math.min(100 - width, Math.max(0, originX + dx));
       lastY = Math.min(100 - height, Math.max(0, originY + dy));
       setDragPos((prev) => ({ ...prev, [field.id]: { x: lastX, y: lastY, width, height } }));
@@ -175,7 +186,7 @@ export function DocumentSurface({
       } catch {
         /* ignore */
       }
-      if (moved) onFieldMove?.(field.id, lastX, lastY);
+      if (dragging) onFieldMove?.(field.id, lastX, lastY);
       else onFieldSelect?.(field.id);
     }
 
@@ -334,18 +345,22 @@ export function DocumentSurface({
               ) : field.type === "signature" || field.type === "initials" ? (
                 pending ? (
                   <span className="doc-mark-plain">
-                    {field.type === "signature" ? "Sign" : "Init"}
+                    {field.type === "signature" ? "Sign" : "Initials"}
                   </span>
                 ) : (
                   <FitSignatureText text={label} style={field.signature?.style} maxPx={96} minPx={10} />
                 )
               ) : field.type === "date" ? (
-                <FitSignatureText
-                  text={field.value || "Date"}
-                  style={field.signature?.style}
-                  maxPx={80}
-                  minPx={10}
-                />
+                pending ? (
+                  <span className="doc-mark-plain">Date</span>
+                ) : (
+                  <FitSignatureText
+                    text={field.value || "Date"}
+                    style={field.signature?.style}
+                    maxPx={80}
+                    minPx={10}
+                  />
+                )
               ) : (
                 <FitSignatureText
                   text={field.value || field.type}

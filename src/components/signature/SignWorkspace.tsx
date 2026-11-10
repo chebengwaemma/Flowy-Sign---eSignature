@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SignaturePad } from "@/components/signature/SignaturePad";
+import { formatSigningDate } from "@/lib/signing-time";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
 
 export type SignFieldView = {
@@ -18,6 +19,35 @@ export type SignFieldView = {
 };
 
 type PlaceMode = "signature" | "signature_and_date" | "date";
+
+function previewSignFields(
+  fields: SignFieldView[],
+  body: Record<string, unknown>,
+  recipientName: string,
+): SignFieldView[] | null {
+  const fieldId = typeof body.fieldId === "string" ? body.fieldId : "";
+  if (!fieldId || (body.action !== "move" && body.action !== "apply")) return null;
+  return fields.map((field) => {
+    if (field.id !== fieldId) return field;
+    if (body.action === "move") {
+      return {
+        ...field,
+        x: Number(body.x),
+        y: Number(body.y),
+        width: typeof body.width === "number" ? body.width : field.width,
+        height: typeof body.height === "number" ? body.height : field.height,
+      };
+    }
+    if (body.mode === "date") return { ...field, value: formatSigningDate() };
+    const mark = body.signatureMark as SignatureMark | undefined;
+    const text = (mark?.text || recipientName || "").trim();
+    return {
+      ...field,
+      value: field.type === "initials" ? text.slice(0, 2).toUpperCase() || "IN" : text || "Signed",
+      signature: mark || field.signature,
+    };
+  });
+}
 
 type Props = {
   token: string;
@@ -90,6 +120,9 @@ export function SignWorkspace({
   async function sync(body: Record<string, unknown>) {
     setBusy(true);
     setError("");
+    const previous = document.fields;
+    const preview = previewSignFields(previous, body, recipientName);
+    if (preview) onFieldsChange(preview, { canComplete });
     try {
       const res = await fetch(`/api/sign/${encodeURIComponent(token)}`, {
         method: "PATCH",
@@ -98,6 +131,7 @@ export function SignWorkspace({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (preview) onFieldsChange(previous, { canComplete });
         setError(json?.error || "Could not sync with database");
         return null;
       }
@@ -115,6 +149,7 @@ export function SignWorkspace({
       }
       return json;
     } catch {
+      if (preview) onFieldsChange(previous, { canComplete });
       setError("Network error — changes were not saved");
       return null;
     } finally {

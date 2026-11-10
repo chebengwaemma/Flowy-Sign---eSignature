@@ -1,12 +1,9 @@
 import { normalizeSignatureStyle } from "./signature-styles";
+import { formatSigningDate } from "./signing-time";
 import type { Document, SignatureField, SignatureMark, SignatureStyle } from "./types";
 
 export function todayLabel(locale = "en-US") {
-  return new Date().toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatSigningDate(new Date(), locale);
 }
 
 export function recipientFields(doc: Document, recipientId: string) {

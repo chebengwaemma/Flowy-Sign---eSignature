@@ -118,6 +118,7 @@ export function PlanCatalog({
               key={item}
               type="button"
               className={`pkg-billing-btn${interval === item ? " is-active" : ""}`}
+              data-interval={item}
               onClick={() => setInterval(item)}
               aria-pressed={interval === item}
             >
