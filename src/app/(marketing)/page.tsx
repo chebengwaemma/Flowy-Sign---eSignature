@@ -9,7 +9,7 @@ import {
 import { ScrollMeetBlock } from "@/components/landing/ScrollMeetBlock";
 import { ScrollMeetSplit } from "@/components/landing/ScrollMeetSplit";
 import { getMarketing, getSiteSettings } from "@/lib/get-marketing";
-import { getPlans } from "@/lib/plans";
+import { getPaidPlans } from "@/lib/plans";
 
 export default async function HomePage() {
   // getMarketing → getSiteSettings; React cache() dedupes within the request.
@@ -18,13 +18,7 @@ export default async function HomePage() {
   const h = m.home;
   const STEPS = m.steps;
   const TEAMS = m.teamCards;
-  const plans = getPlans(site);
-  const pro = plans.find((p) => p.id === "pro");
-  const business = plans.find((p) => p.id === "business_5") || plans.find((p) => p.id === "business");
-  const teamPrice = pro ? String(pro.monthly) : h.planTeamPrice;
-  const teamTitle = pro?.name || h.planTeamTitle || "Pro · 1 device";
-  const musclePrice = business ? String(business.monthly) : h.planApiPrice;
-  const muscleTitle = business?.name || h.planApiTitle || "Business · 5 devices";
+  const paidPlans = getPaidPlans(site);
   const startsAt = m.pricingPage.startsAtLabel || "Starts at";
   const monthSuffix = m.pricingPage.monthSuffix || "/month";
 
@@ -202,41 +196,27 @@ export default async function HomePage() {
         </ScrollMeetSplit>
       </section>
 
-      {m.pricingPage.showHighlightRow !== false && (
+      {m.pricingPage.showHighlightRow !== false && paidPlans.length > 0 && (
       <section className="lp-plans" id="pricing">
         <div className="lp-wrap">
           <h2 className="lp-plans-head">{h.plansTitle}</h2>
           <div className="lp-plans-inner">
-            <article className="lp-plan-card">
-              <p className="eyebrow">{m.pricingPage.essentialsEyebrow}</p>
-              <h3>{teamTitle}</h3>
-              <p className="price">
-                {startsAt} <strong>${teamPrice}</strong>
-                <span>{monthSuffix}</span>
-              </p>
-              <p className="desc">
-                {h.planTeamBody ||
-                  "Unlimited signatures on a single device. Upgrade to Pro · 5 devices anytime."}
-              </p>
-              <Link href="/pricing" className="lp-btn">
-                {h.heroCta}
-              </Link>
-            </article>
-            <article className="lp-plan-card alt">
-              <p className="eyebrow">{m.pricingPage.standardEyebrow}</p>
-              <h3>{muscleTitle}</h3>
-              <p className="price">
-                {startsAt} <strong>${musclePrice}</strong>
-                <span>{monthSuffix}</span>
-              </p>
-              <p className="desc">
-                {h.planApiBody ||
-                  "Unlimited everything for teams — pick 1 device or up to 5 concurrent devices."}
-              </p>
-              <Link href="/pricing" className="lp-btn-muted">
-                {m.pricingPage.standardCta || "See all plans"}
-              </Link>
-            </article>
+            {paidPlans.map((plan) => (
+              <article key={plan.id} className="lp-plan-card">
+                <p className="eyebrow">
+                  {plan.maxDevices <= 1 ? "1 device" : `${plan.maxDevices} devices`}
+                </p>
+                <h3>{plan.name}</h3>
+                <p className="price">
+                  {startsAt} <strong>${plan.monthly}</strong>
+                  <span>{monthSuffix}</span>
+                </p>
+                <p className="desc">${plan.yearly} /year</p>
+                <Link href="/pricing" className="lp-btn">
+                  {m.pricingPage.standardCta || "See all plans"}
+                </Link>
+              </article>
+            ))}
           </div>
         </div>
       </section>

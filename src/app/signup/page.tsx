@@ -58,6 +58,13 @@ export default function SignupPage() {
         <Logo label={brandName} />
         <div>
           <h1 className="display mt-8 text-4xl">Create your workspace</h1>
+          <p className="mt-3 text-sm text-muted">
+            By creating an account with Flowy Sign, you agree to the{" "}
+            <Link href="/terms" className="font-semibold text-accent-deep">
+              Terms & Conditions
+            </Link>{" "}
+            of the platform.
+          </p>
           <p className="mt-2 text-muted">Start with {brandName} in minutes.</p>
         </div>
       </ScrollMeetSplit>

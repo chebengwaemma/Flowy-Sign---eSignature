@@ -9,13 +9,17 @@ export default async function AboutPage() {
     if (c.title === "Where we work") return { ...c, body: settings.companyAddress || c.body };
     return c;
   });
+  const subsidiary =
+    "Flowy Sign is a subsidiary of Hopeland Group, LLC registered in the Great State of Georgia, USA.";
+  const baseLead = about.lead || settings.aboutText || "";
+  const lead = baseLead.includes("Hopeland Group") ? baseLead : `${baseLead} ${subsidiary}`.trim();
 
   return (
     <main className="lp-page lp-sub">
       <MarketingHero
         kicker={about.kicker}
         title={about.title || settings.companyLegalName}
-        lead={about.lead || settings.aboutText}
+        lead={lead}
         ctaLabel={about.cta}
         secondaryHref="/press"
         secondaryLabel={about.secondary}

@@ -13,7 +13,7 @@ export const defaultSettings: OrgSettings = {
   companyLegalName: "Flowy Sign - eSignature",
   companyAddress: "Austell GA, USA",
   aboutText:
-    "Flowy Sign - eSignature helps teams send, sign, and manage documents with a calm, modern workspace. Based in Austell, GA, USA.",
+    "Flowy Sign - eSignature helps teams send, sign, and manage documents with a calm, modern workspace. Based in Austell, GA, USA. Flowy Sign is a subsidiary of Hopeland Group, LLC registered in the Great State of Georgia, USA.",
   primaryColor: "#062925",
   accentColor: "#1FA97A",
   signalColor: "#FF6B35",

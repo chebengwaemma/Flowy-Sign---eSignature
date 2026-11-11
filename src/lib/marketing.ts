@@ -252,7 +252,7 @@ export const defaultMarketing: MarketingSite = {
     kicker: "About Us",
     title: "A signature studio with Georgia roots",
     lead:
-      "About Us is simple: Flowy Sign - eSignature was shaped in Austell GA, USA to replace messy email attachments with a clean send-and-sign path you can trust.",
+      "About Us is simple: Flowy Sign - eSignature was shaped in Austell GA, USA to replace messy email attachments with a clean send-and-sign path you can trust. Flowy Sign is a subsidiary of Hopeland Group, LLC registered in the Great State of Georgia, USA.",
     cta: "Create free account",
     secondary: "View Pricing",
   },
@@ -408,7 +408,7 @@ export const defaultMarketing: MarketingSite = {
   privacyBody:
     "{{brand}} collects the account details you submit (name, email, company), the files you upload to send for signature or fax, and the operational signals we need to keep the service stable.\n\nWe use that information to run eSignature and fax features, answer support requests, harden reliability, and share workspace notices. We do not sell personal data.\n\nFiles and accounts are protected with encryption in transit and at rest. Only systems and people required to operate Flowy Sign can access them.\n\nPrivacy questions? Email {{email}}. We operate from {{address}}.",
   termsBody:
-    "Welcome to {{brand}}. These Terms & Conditions govern your use of our eSignature and related services operated from {{address}}.\n\nYou confirm that documents you upload are yours to share, that you will protect your credentials, and that you will use the product only for lawful signing and related work. Do not invade another customer’s workspace or push harmful material through the platform.\n\nMarks captured in {{brand}} are intended to show clear party intent. Legal effect can differ by place and industry—get advice from your own counsel when the stakes are regulated.\n\nFees and limits appear on Pricing. Product or account help goes through Contact at {{email}}. Company context is on About Us. You will always find Terms & Conditions in the site footer.",
+    "Welcome to {{brand}}. These Terms & Conditions govern your use of our eSignature and related services operated from {{address}}.\n\nYou confirm that documents you upload are yours to share, that you will protect your credentials, and that you will use the product only for lawful signing and related work. Do not invade another customer’s workspace or push harmful material through the platform.\n\nMarks captured in {{brand}} are intended to show clear party intent. Legal effect can differ by place and industry—get advice from your own counsel when the stakes are regulated.\n\nFees and limits appear on Pricing. Product or account help goes through Contact at {{email}}. Company context is on About Us. You will always find Terms & Conditions in the site footer.\n\nYour account will automatically renew at the end of the billing cycle. Note that once payments have been made, there are no refunds.",
   featurePages: FEATURE_PAGES,
   teamPages: TEAM_PAGES,
 };

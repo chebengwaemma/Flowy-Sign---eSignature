@@ -14,6 +14,9 @@ export default async function TermsPage() {
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
+  const renewal =
+    "Your account will automatically renew at the end of the billing cycle. Note that once payments have been made, there are no refunds.";
+  if (!paragraphs.some((p) => p.includes("there are no refunds"))) paragraphs.push(renewal);
 
   return (
     <main className="lp-page lp-sub">
