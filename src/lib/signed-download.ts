@@ -1,6 +1,6 @@
 import type { Document, SignatureField } from "./types";
 import { SIGNATURE_STYLES } from "./signature-styles";
-import { formatInTimeZone } from "./signing-time";
+import { SIGNING_TIME_ZONE, formatInTimeZone } from "./signing-time";
 
 function escapeHtml(s: string) {
   return s
@@ -82,7 +82,7 @@ export function buildSignedDocumentHtml(doc: Document) {
     <div class="meta">
       <h1>${escapeHtml(doc.title)}</h1>
       <p><span class="badge">Completed &amp; signed</span>
-        ${doc.completedAt ? ` · ${escapeHtml(formatInTimeZone(new Date(doc.completedAt), doc.completedTimeZone || "UTC", false))}` : ""}
+        ${doc.completedAt ? ` · ${escapeHtml(formatInTimeZone(new Date(doc.completedAt), SIGNING_TIME_ZONE, true))}` : ""}
       </p>
       <p style="color:#5a736e;font-size:13px;">
         Original document preserved. Signatures are overlays only.

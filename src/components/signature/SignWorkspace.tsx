@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SignaturePad } from "@/components/signature/SignaturePad";
-import { deviceTimeZone, signerStamp } from "@/lib/signing-time";
+import { SIGNING_TIME_ZONE, signerStamp } from "@/lib/signing-time";
 import type { DocFileKind, Document, SignatureMark } from "@/lib/types";
 
 export type SignFieldView = {
@@ -38,7 +38,7 @@ function previewSignFields(
         height: typeof body.height === "number" ? body.height : field.height,
       };
     }
-    if (body.mode === "date") return { ...field, value: signerStamp(deviceTimeZone()) };
+    if (body.mode === "date") return { ...field, value: signerStamp() };
     const mark = body.signatureMark as SignatureMark | undefined;
     const text = (mark?.text || recipientName || "").trim();
     return {
@@ -127,7 +127,7 @@ export function SignWorkspace({
       const res = await fetch(`/api/sign/${encodeURIComponent(token)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, timeZone: deviceTimeZone() }),
+        body: JSON.stringify({ ...body, timeZone: SIGNING_TIME_ZONE }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {

@@ -13,7 +13,7 @@ import {
   todayLabel,
 } from "@/lib/sign-field-ops";
 import { readStore, updateStore } from "@/lib/store";
-import { isIanaTimeZone } from "@/lib/signing-time";
+import { SIGNING_TIME_ZONE } from "@/lib/signing-time";
 import { normalizeSignatureStyle } from "@/lib/signature-styles";
 import type { Document, SignatureField, SignatureMark } from "@/lib/types";
 
@@ -271,9 +271,8 @@ export async function PATCH(
       result = { ok: false, error: "Invalid link" };
       return;
     }
-    const submittedZone = "timeZone" in body.data ? body.data.timeZone : undefined;
-    if (isIanaTimeZone(submittedZone)) recipient.timeZone = submittedZone;
-    const localStamp = () => todayLabel(recipient.timeZone);
+    recipient.timeZone = SIGNING_TIME_ZONE;
+    const localStamp = () => todayLabel(SIGNING_TIME_ZONE);
     if (recipient.status === "signed") {
       result = {
         ok: true,
@@ -460,7 +459,7 @@ export async function PATCH(
       if (allSigned) {
         doc.status = "completed";
         doc.completedAt = now;
-        doc.completedTimeZone = recipient.timeZone;
+        doc.completedTimeZone = SIGNING_TIME_ZONE;
       }
       doc.updatedAt = now;
       result = {
@@ -549,7 +548,7 @@ export async function POST(
 
     const recipient = doc.recipients.find((r) => r.token === token);
     if (!recipient) return;
-    if (isIanaTimeZone(body.data.timeZone)) recipient.timeZone = body.data.timeZone;
+    recipient.timeZone = SIGNING_TIME_ZONE;
 
     const now = new Date().toISOString();
     const display =
@@ -562,7 +561,7 @@ export async function POST(
       if (isSignatureLike(field)) {
         applySignatureToField(field, mark, display, body.data.initials);
       } else if (field.type === "date" && !field.skipped) {
-        applyDateToField(field, field.value?.trim() || todayLabel(recipient.timeZone), mark.style);
+        applyDateToField(field, field.value?.trim() || todayLabel(SIGNING_TIME_ZONE), mark.style);
       } else if (field.type === "text") {
         field.value = field.value || display;
         field.signedAt = now;
@@ -581,7 +580,7 @@ export async function POST(
     if (allSigned) {
       doc.status = "completed";
       doc.completedAt = now;
-      doc.completedTimeZone = recipient.timeZone;
+      doc.completedTimeZone = SIGNING_TIME_ZONE;
     }
     doc.updatedAt = now;
     result = { ok: true, completed: allSigned, document: sanitizeDoc({ ...doc }) };

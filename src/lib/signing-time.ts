@@ -1,7 +1,10 @@
 /**
- * Display times follow the viewer's device. A date written onto a document
- * uses the signer's IANA zone, sent by their browser at the moment they sign.
+ * Lists follow the viewer's device. A date written onto a signed document
+ * is always US Eastern (EST/EDT), not the signer's local zone.
  */
+
+/** US Eastern, including daylight saving. */
+export const SIGNING_TIME_ZONE = "America/New_York";
 
 const dateOptions: Intl.DateTimeFormatOptions = {
   year: "numeric",
@@ -48,9 +51,9 @@ export function formatInTimeZone(
   return withTime ? date.toLocaleString(locale, options) : date.toLocaleDateString(locale, options);
 }
 
-/** Calendar date frozen onto the document: month, day, and year in the signer's zone. No clock time. */
-export function signerStamp(timeZone?: string | null, date = new Date(), locale = "en-US") {
-  return formatInTimeZone(date, timeZone, false, locale);
+/** Date and clock time frozen onto the document, always in US Eastern. */
+export function signerStamp(_timeZone?: string | null, date = new Date(), locale = "en-US") {
+  return formatInTimeZone(date, SIGNING_TIME_ZONE, true, locale);
 }
 
 export function formatLocalStamp(iso?: string | null) {

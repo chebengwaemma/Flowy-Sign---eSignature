@@ -2,7 +2,7 @@ import { normalizeSignatureStyle } from "./signature-styles";
 import { signerStamp } from "./signing-time";
 import type { Document, SignatureField, SignatureMark, SignatureStyle } from "./types";
 
-/** Month, day, and year written on the document, in the signer's own timezone. */
+/** Eastern date and time written on the document. */
 export function todayLabel(timeZone?: string | null, locale = "en-US") {
   return signerStamp(timeZone, new Date(), locale);
 }
