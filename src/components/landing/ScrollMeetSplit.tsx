@@ -3,12 +3,10 @@
 import {
   Children,
   isValidElement,
-  useLayoutEffect,
+  useEffect,
   useRef,
   type ReactNode,
 } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { meetTravel } from "./meet-travel";
 
 type ScrollMeetSplitProps = {
@@ -33,7 +31,7 @@ export function ScrollMeetSplit({
 }: ScrollMeetSplitProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
 
@@ -48,52 +46,65 @@ export function ScrollMeetSplit({
       return;
     }
 
-    gsap.registerPlugin(ScrollTrigger);
-
-    let ctx: gsap.Context | null = null;
-
-    const play = () => {
-      ctx?.revert();
-      const travel = meetTravel(distance);
-
-      ctx = gsap.context(() => {
-        items().forEach((el, i) => {
-          const fromTop = i % 2 === 0;
-          el.style.filter = "none";
-          el.style.opacity = "1";
-          gsap.fromTo(
-            el,
-            { y: fromTop ? -travel : travel },
-            {
-              y: 0,
-              ease: "none",
-              scrollTrigger: {
-                trigger: el,
-                start: `top ${Math.max(78, 90 - i * stagger * 30)}%`,
-                end: "top 45%",
-                scrub,
-                invalidateOnRefresh: true,
-              },
-            },
-          );
-        });
-        ScrollTrigger.refresh();
-      }, root);
-    };
-
-    play();
+    let cancelled = false;
+    let ctx: { revert: () => void } | null = null;
     let resizeTimer = 0;
-    const onResize = () => {
-      window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(play, 180);
-    };
-    window.addEventListener("resize", onResize);
-    const t = window.setTimeout(() => ScrollTrigger.refresh(), 300);
+    let refreshTimer = 0;
+    let onResize: (() => void) | null = null;
+
+    void (async () => {
+      const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+      if (cancelled || !rootRef.current) return;
+      gsap.registerPlugin(ScrollTrigger);
+
+      const play = () => {
+        const node = rootRef.current;
+        if (!node) return;
+        ctx?.revert();
+        const travel = meetTravel(distance);
+
+        ctx = gsap.context(() => {
+          items().forEach((el, i) => {
+            const fromTop = i % 2 === 0;
+            el.style.filter = "none";
+            el.style.opacity = "1";
+            gsap.fromTo(
+              el,
+              { y: fromTop ? -travel : travel },
+              {
+                y: 0,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: el,
+                  start: `top ${Math.max(78, 90 - i * stagger * 30)}%`,
+                  end: "top 45%",
+                  scrub,
+                  invalidateOnRefresh: true,
+                },
+              },
+            );
+          });
+          ScrollTrigger.refresh();
+        }, node);
+      };
+
+      play();
+      onResize = () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(play, 180);
+      };
+      window.addEventListener("resize", onResize);
+      refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 300);
+    })();
 
     return () => {
-      window.clearTimeout(t);
+      cancelled = true;
+      window.clearTimeout(refreshTimer);
       window.clearTimeout(resizeTimer);
-      window.removeEventListener("resize", onResize);
+      if (onResize) window.removeEventListener("resize", onResize);
       ctx?.revert();
     };
   }, [distance, scrub, stagger]);

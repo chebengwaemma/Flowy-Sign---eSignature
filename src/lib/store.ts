@@ -315,8 +315,11 @@ type StoreFocus =
 let storeGeneration = 0;
 let bypassSharedCacheUntil = 0;
 
+let revisionMemo: { at: number; value: number } | null = null;
+
 function invalidateStoreCaches() {
   storeGeneration += 1;
+  revisionMemo = null;
   bypassSharedCacheUntil = Date.now() + 15_000;
   try {
     revalidateTag(STORE_CACHE_TAG, "max");
@@ -603,6 +606,13 @@ export function bumpSiteRevision(store: PlatformStore) {
 
 /** Revision only — does not load documents or file bytes. */
 export async function readSiteRevision(): Promise<number> {
+  if (revisionMemo && Date.now() - revisionMemo.at < 2_000) return revisionMemo.value;
+  const value = await readSiteRevisionLive();
+  revisionMemo = { at: Date.now(), value };
+  return value;
+}
+
+async function readSiteRevisionLive(): Promise<number> {
   if (!isMongoSkipped()) {
     try {
       await connectDB();

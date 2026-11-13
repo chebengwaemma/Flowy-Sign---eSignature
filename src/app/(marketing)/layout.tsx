@@ -1,17 +1,19 @@
 import type { CSSProperties } from "react";
-import { connection } from "next/server";
+import dynamic from "next/dynamic";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Chatbot } from "@/components/Chatbot";
 import { LiveSiteSync } from "@/components/LiveSiteSync";
-import { getSiteSettings } from "@/lib/get-marketing";
-import { readSiteRevision } from "@/lib/store";
+import { getPublicSite } from "@/lib/get-marketing";
 import { elegantFontClassName } from "@/components/signature/elegant-font";
 import "./landing.css";
 
+const Chatbot = dynamic(() => import("@/components/Chatbot").then((m) => m.Chatbot));
+
+/** Cached public shell. An admin save calls revalidatePath, so this does not stay stale. */
+export const revalidate = 60;
+
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  await connection();
-  const [settings, revision] = await Promise.all([getSiteSettings(), readSiteRevision()]);
+  const { settings, revision } = await getPublicSite();
   const m = settings.marketing;
   const brand = settings.brandName || settings.companyLegalName || "Flowy Sign - eSignature";
   const address = settings.companyAddress || m.footerTagline || "Austell GA, USA";

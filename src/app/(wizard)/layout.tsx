@@ -1,14 +1,12 @@
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { getSessionUser, SessionStoreUnavailable } from "@/lib/auth";
+import { getPublicSite } from "@/lib/get-marketing";
 import { LiveSiteSync } from "@/components/LiveSiteSync";
 import { signatureFontsClassName } from "@/components/signature/signature-fonts";
-import { readSiteRevision } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export default async function WizardLayout({ children }: { children: React.ReactNode }) {
-  await connection();
   let user;
   try {
     user = await getSessionUser();
@@ -26,7 +24,7 @@ export default async function WizardLayout({ children }: { children: React.React
   }
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
-  const revision = await readSiteRevision().catch(() => 0);
+  const { revision } = await getPublicSite();
   return (
     <div className={`send-shell ${signatureFontsClassName}`}>
       {children}

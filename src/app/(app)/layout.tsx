@@ -1,16 +1,15 @@
+import nextDynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { getSessionUser, publicUser, SessionStoreUnavailable } from "@/lib/auth";
-import { mergeSettings } from "@/lib/settings";
-import { connection } from "next/server";
-import { readStore } from "@/lib/store";
+import { getPublicSite } from "@/lib/get-marketing";
 import { AppChrome } from "@/components/AppChrome";
-import { Chatbot } from "@/components/Chatbot";
 import { LiveSiteSync } from "@/components/LiveSiteSync";
+
+const Chatbot = nextDynamic(() => import("@/components/Chatbot").then((m) => m.Chatbot));
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  await connection();
   let user;
   try {
     user = await getSessionUser();
@@ -33,16 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
 
-  let store: Awaited<ReturnType<typeof readStore>> | null = null;
-  let revision = 0;
-  try {
-    store = await readStore();
-    revision = store.siteRevision || 0;
-  } catch {
-    store = null;
-  }
-  // Live Mongo site CMS (admin) — never use stale org snapshots for branding/plans
-  const settings = mergeSettings(store?.site);
+  const { settings, revision } = await getPublicSite();
   const safe = publicUser(user);
 
   if (settings.maintenanceMode && safe.role === "member") {
