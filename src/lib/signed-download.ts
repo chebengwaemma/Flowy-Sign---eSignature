@@ -82,7 +82,7 @@ export function buildSignedDocumentHtml(doc: Document) {
     <div class="meta">
       <h1>${escapeHtml(doc.title)}</h1>
       <p><span class="badge">Completed &amp; signed</span>
-        ${doc.completedAt ? ` · ${escapeHtml(formatInTimeZone(new Date(doc.completedAt), SIGNING_TIME_ZONE, true))}` : ""}
+        ${doc.completedAt ? ` · ${escapeHtml(formatInTimeZone(new Date(doc.completedAt), SIGNING_TIME_ZONE, false))}` : ""}
       </p>
       <p style="color:#5a736e;font-size:13px;">
         Original document preserved. Signatures are overlays only.

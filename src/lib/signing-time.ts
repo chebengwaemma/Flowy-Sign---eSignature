@@ -51,9 +51,9 @@ export function formatInTimeZone(
   return withTime ? date.toLocaleString(locale, options) : date.toLocaleDateString(locale, options);
 }
 
-/** Place-date stamp: US Eastern month, day, year, and clock (EST/EDT). */
+/** Place-date stamp: US Eastern month, day, and year only — no clock time. */
 export function signerStamp(_timeZone?: string | null, date = new Date(), locale = "en-US") {
-  return formatInTimeZone(date, SIGNING_TIME_ZONE, true, locale);
+  return formatInTimeZone(date, SIGNING_TIME_ZONE, false, locale);
 }
 
 export function formatLocalStamp(iso?: string | null) {
