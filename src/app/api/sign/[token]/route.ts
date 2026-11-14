@@ -351,9 +351,10 @@ export async function PATCH(
           target.x = Math.min(100 - width, Math.max(0, op.x - width / 2));
           target.y = Math.min(100 - height, Math.max(0, op.y - height / 2));
         }
+        // Place / Add date always uses US Eastern — never the signer's device calendar.
         applyDateToField(
           target,
-          op.value || localStamp(),
+          localStamp(),
           dateStyleFor(doc, recipient.id, op.signatureMark?.style, recipient.preferredSignatureStyle),
         );
       }
